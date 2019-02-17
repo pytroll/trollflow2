@@ -1,0 +1,110 @@
+common:
+  output_dir: &output_dir
+    /satnfs/polar_out/pps2018/direct_readout/
+  use_extern_calib: false
+  fname_pattern: &fname
+    "{platform_name}_{time:%Y%m%d_%H%M}_{areaname}_{productname}.{format}"
+  formats: &formats
+    - format: tif
+      writer: geotiff
+    - format: nc
+      writer: cf
+
+product_list: &product_list
+  omerc_bb:
+    areaname: omerc_bb
+    products:
+      ct:
+        productname: ct
+        output_dir: *output_dir
+        formats:
+          - format: nc
+            writer: cf
+      ctth_alti:
+        productname: ctth_alti
+        output_dir: *output_dir
+        formats:
+          - format: nc
+            writer: cf
+      cloudtype:
+        productname: cloudtype
+        output_dir: *output_dir
+        formats:
+          - format: tif
+            writer: geotiff
+      cloud_top_height:
+        productname: cloud_top_height
+        output_dir: *output_dir
+        formats:
+          - format: tif
+            writer: geotiff
+
+  # euron1:
+  #   areaname: euron1
+  #   products:
+  #     cloudtype:
+  #       productname: cloudtype
+  #       output_dir: /satdmz/pps/www/latest_2018/
+  #       formats:
+  #         - format: png
+  #           writer: simple_image
+  #         - format: jpg
+  #           writer: simple_image
+  #           fill_value: 0
+  #     cloudmask:
+  #       productname: cloudmask
+  #       output_dir: /satdmz/pps/www/latest_2018/
+  #       formats:
+  #         - format: png
+  #           writer: simple_image
+  #         - format: jpg
+  #           writer: simple_image
+  #           fill_value: 0
+  #     cloud_top_height:
+  #       productname: cloud_top_height
+  #       output_dir: /satdmz/pps/www/latest_2018/
+  #       formats:
+  #         - format: png
+  #           writer: simple_image
+  #         - format: jpg
+  #           writer: simple_image
+  #           fill_value: 0
+  #       fname_pattern: "{platform_name:s}_{time:%Y%m%d_%H%M}_{areaname:s}_ctth.{format}"
+  #     cloud_top_phase:
+  #       productname: cloud_top_phase
+  #       output_dir: /satdmz/pps/www/latest_2018/
+  #       formats:
+  #         - format: png
+  #           writer: simple_image
+  #         - format: jpg
+  #           writer: simple_image
+  #           fill_value: 0
+  #       fname_pattern: "{platform_name:s}_{time:%Y%m%d_%H%M}_{areaname:s}_cpp-cph.{format}"
+  #     cloud_drop_effective_radius:
+  #       productname: cloud_drop_effective_radius
+  #       output_dir: /satdmz/pps/www/latest_2018/
+  #       formats:
+  #         - format: png
+  #           writer: simple_image
+  #         - format: jpg
+  #           writer: simple_image
+  #           fill_value: 0
+  #       fname_pattern: "{platform_name:s}_{time:%Y%m%d_%H%M}_{areaname:s}_cpp-reff.{format}"
+  #
+  # germ:
+  #   areaname: germ
+  #   products:
+  #     cloudtype:
+  #       productname: cloudtype
+  #       output_dir: /satdmz/pps/www/latest_2018/
+  #       formats:
+  #         - format: png
+  #           writer: simple_image
+
+
+workers:
+  - fun: !!python/name:satpy_launcher.create_scene
+    reader: nwcsaf-pps_nc
+  - fun: !!python/name:satpy_launcher.load_composites
+  - fun: !!python/name:satpy_launcher.resample
+  - fun: !!python/name:satpy_launcher.save_datasets
