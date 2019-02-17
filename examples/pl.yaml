@@ -108,4 +108,4 @@ workers:
   - fun: !!python/name:satpy_launcher.load_composites
   - fun: !!python/name:satpy_launcher.resample
   - fun: !!python/name:satpy_launcher.save_datasets
-  - fun: !!python/class:satpy_launcher.FilePublisher
+  - fun: !!python/object:satpy_launcher.FilePublisher {}

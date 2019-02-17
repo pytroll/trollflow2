@@ -107,16 +107,15 @@ def save_datasets(job):
     compute_writer_results(objs)
 
 
-class FilePublisher():
+class FilePublisher(object):
     def __init__(self):
         # initialize publisher
         pass
 
-    def __call__(self, filename, mda):
+    def __call__(self, job):
         # create message
         # send message
         pass
-
 
 def process(msg, prod_list):
     with open(prod_list) as fd:
