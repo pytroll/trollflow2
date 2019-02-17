@@ -106,6 +106,18 @@ def save_datasets(job):
                 objs.append(scns[area].save_dataset(pconfig['productname'], compute=False, **cfmat))
     compute_writer_results(objs)
 
+
+class FilePublisher():
+    def __init__(self):
+        # initialize publisher
+        pass
+
+    def __call__(self, filename, mda):
+        # create message
+        # send message
+        pass
+
+
 def process(msg, prod_list):
     with open(prod_list) as fd:
         config = yaml.load(fd.read())
