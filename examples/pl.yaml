@@ -103,9 +103,9 @@ product_list: &product_list
 
 
 workers:
-  - fun: !!python/name:satpy_launcher.create_scene
+  - fun: !!python/name:trollflow2.create_scene
     reader: nwcsaf-pps_nc
-  - fun: !!python/name:satpy_launcher.load_composites
-  - fun: !!python/name:satpy_launcher.resample
-  - fun: !!python/name:satpy_launcher.save_datasets
-  - fun: !!python/object:satpy_launcher.FilePublisher {}
+  - fun: !!python/name:trollflow2.load_composites
+  - fun: !!python/name:trollflow2.resample
+  - fun: !!python/name:trollflow2.save_datasets
+  - fun: !!python/object:trollflow2.FilePublisher {}
