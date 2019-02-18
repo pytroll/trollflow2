@@ -21,20 +21,6 @@ from collections import OrderedDict
 
 LOG = getLogger(__name__)
 
-def main2():
-
-    # start listener
-
-    # convert message and product list to an order.
-
-    # how does an order look like ?
-
-    # set of files to process, set of composites and areas to generate, set of files to write
-
-    #
-
-    pass
-
 def run(topics, prod_list):
 
     #listener = ListenerContainer(topics=topics)

@@ -102,3 +102,7 @@ def get_scene_coverage(platform_name, start_time, end_time, sensor, area_id):
     area_def = get_area_def(area_id)
 
     return 100 * overpass.area_coverage(area_def)
+
+from ._version import get_versions
+__version__ = get_versions()['version']
+del get_versions
