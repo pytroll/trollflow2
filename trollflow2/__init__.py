@@ -171,7 +171,6 @@ def get_config_value(config, path, key):
     num = len(path_parts)
     for i in range(num, 1, -1):
         pwd = "/".join(path_parts[:i] + [key])
-        print(pwd)
         vals = dpath.util.values(config, pwd)
         if len(vals) > 0:
             return vals[0]
