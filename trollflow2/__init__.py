@@ -60,8 +60,12 @@ def resample(job, radius_of_influence=None):
     scn = job['scene']
     scn_mda = job['input_mda']
     scn_mda.update(scn.attrs)
-    for area, config in job['product_list']['product_list'].items():
-        if not covers(area, scn_mda, min_coverage=0):
+    product_list = job['product_list']
+    for area, config in product_list['product_list'].items():
+        min_coverage = get_config_value(product_list,
+                                        "/product_list/%s/" % area,
+                                        "min_coverage")
+        if not covers(area, scn_mda, min_coverage=min_coverage):
             continue
         composites = dpath.util.values(config, '/products/*/productname')
         LOG.info('Resampling %s to %s', str(composites), str(area))
