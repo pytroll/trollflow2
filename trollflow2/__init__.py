@@ -66,24 +66,22 @@ class FilePublisher(object):
         pass
 
 
-def coverage(job):
+def coverage(area, scn_mda, min_coverage=0):
     """Check area coverage"""
-    if Pass is None:
-        LOG.error("Trollsched import failed, coverage calculation not possible")
-        return
-    min_coverage = config.get('min_coverage')
     if not min_coverage:
         LOG.debug("Minimum area coverage not given or set to zero")
         return
-    area = config['area']
+    if Pass is None:
+        LOG.error("Trollsched import failed, coverage calculation not possible")
+        return
     platform_name = scn_mda['platform_name']
     start_time = scn_mda['start_time']
     end_time = scn_mda['end_time']
     sensor = scn_mda['sensor']
-    cov = get_scene_coverage()
+    cov = get_scene_coverage(platform_name, start_time, end_time, sensor, area)
     if cov < min_coverage:
         raise AbortProcessing(
-            "Area coverage %.2f %% below threshold %.2f %" % (cov,
+            "Area coverage %.2f %% below threshold %.2f %%" % (cov,
                                                               min_coverage))
 
 
