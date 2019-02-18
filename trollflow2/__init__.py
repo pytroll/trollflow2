@@ -169,6 +169,25 @@ def get_scene_coverage(platform_name, start_time, end_time, sensor, area_id):
     return 100 * overpass.area_coverage(area_def)
 
 
+def plist_iter(product_list, base_mda=None):
+    if base_mda is None:
+        base_mda = {}
+    else:
+        base_mda = base_mda.copy()
+    for area, area_config in product_list.items():
+        aconfig = base_mda.copy()
+        aconfig.update(area_config)
+        aconfig.pop('products', None)
+        for prod, prod_config in area_config['products'].items():
+            pconfig = aconfig.copy()
+            pconfig.update(prod_config)
+            pconfig.pop('formats', None)
+            for idx, fmat_config in enumerate(prod_config['formats']):
+                fconfig = pconfig.copy()
+                fconfig.update(fmat_config)
+                yield fconfig
+
+
 def gen_dict_extract(var, key):
     if hasattr(var, 'items'):
         for k, v in var.items():
