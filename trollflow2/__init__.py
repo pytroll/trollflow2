@@ -61,7 +61,6 @@ def resample(job, radius_of_influence=None):
     scn_mda = job['input_mda']
     scn_mda.update(scn.attrs)
     for area, config in job['product_list']['product_list'].items():
-        # TODO: get min_coverage from config
         if not covers(area, scn_mda, min_coverage=0):
             continue
         composites = dpath.util.values(config, '/products/*/productname')
@@ -92,7 +91,7 @@ class FilePublisher(object):
         pass
 
 
-def covers(area, scn_mda, min_coverage=0):
+def covers(area, scn_mda, min_coverage=None):
     """Check area coverage"""
     if not min_coverage:
         LOG.debug("Minimum area coverage not given or set to zero")
@@ -137,6 +136,29 @@ def gen_dict_extract(var, key):
                 for d in v:
                     for result in gen_dict_extract(d, key):
                         yield result
+
+
+def get_config_value(config, path, key):
+    """Get the most local config value for key *key* starting from the
+    dictionary path *path*. If nothing is found, path "/common/" is
+    also checked, and if still nothing is found, return None.
+    """
+    path_parts = path.split('/')
+    # Loop starting from the current path, and continue upwards
+    # towards the root until something is found
+    num = len(path_parts)
+    for i in range(num, 1, -1):
+        pwd = "/".join(path_parts[:i] + [key])
+        print(pwd)
+        vals = dpath.util.values(config, pwd)
+        if len(vals) > 0:
+            return vals[0]
+
+    vals = dpath.util.values(config, "/common/" + key)
+    if len(vals) > 0:
+        return vals[0]
+
+    return None
 
 
 from ._version import get_versions
