@@ -1,6 +1,7 @@
 common:
   output_dir: &output_dir
-    /satnfs/polar_out/pps2018/direct_readout/
+    /tmp/satnfs/polar_out/pps2018/direct_readout/
+  publish_topic: /NWC-CF/L3
   use_extern_calib: false
   fname_pattern: &fname
     "{platform_name}_{start_time:%Y%m%d_%H%M}_{areaname}_{productname}.{format}"

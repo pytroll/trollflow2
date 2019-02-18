@@ -81,13 +81,13 @@ def save_datasets(job):
             base_config.update(pconfig)
             outdir = base_config['output_dir']
             fname_pattern = base_config['fname_pattern']
-            for fmat in base_config['formats']:
+            for idx, fmat in enumerate(base_config['formats']):
                 base_config.update(fmat)
                 filename = compose(os.path.join(outdir, fname_pattern), base_config)
                 cfmat = fmat.copy()
                 cfmat.pop('format', None)
-                import ipdb; ipdb.set_trace()
                 objs.append(scns[area].save_dataset(pconfig['productname'], filename=filename, compute=False, **cfmat))
+                pconfig['formats'][idx]['filename'] = filename
     compute_writer_results(objs)
 
 
@@ -103,6 +103,19 @@ class FilePublisher(object):
     def __call__(self, job):
         # create message
         # send message
+        mda = job['input_mda'].copy()
+        mda.pop('dataset', None)
+        mda.pop('collection', None)
+        topic = job['product_list']['common']['publish_topic']
+        for area, config in job['product_list']['product_list'].items():
+            for prod, pconfig in config['products'].items():
+                for fmat in pconfig['formats']:
+                    file_mda = mda.copy()
+                    file_mda['uri'] = fmat['filename']
+                    file_mda['uid'] = os.path.basename(fmat['filename'])
+                    msg = Message(topic, 'file', file_mda)
+                    LOG.debug('Publishing %s', str(msg))
+                    self.pub.send(str(msg))
         self.pub.stop()
 
 
