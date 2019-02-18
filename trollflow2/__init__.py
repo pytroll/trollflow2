@@ -61,15 +61,15 @@ def load_composites(job):
 def resample(job, radius_of_influence=None):
     job['resampled_scenes'] = {}
     scn = job['scene']
-    scn_mda = job['input_mda']
+    scn_mda = job['input_mda'].copy()
     scn_mda.update(scn.attrs)
     product_list = job['product_list']
     for area, config in product_list['product_list'].items():
-        min_coverage = get_config_value(product_list,
-                                        "/product_list/%s/" % area,
-                                        "min_coverage")
-        if not covers(area, scn_mda, min_coverage=min_coverage):
-            continue
+        # min_coverage = get_config_value(product_list,
+        #                                 "/product_list/%s/" % area,
+        #                                 "min_coverage")
+        # if not covers(area, scn_mda, min_coverage=min_coverage):
+        #     continue
         composites = dpath.util.values(config, '/products/*/productname')
         LOG.info('Resampling %s to %s', str(composites), str(area))
         job['resampled_scenes'][area] = scn.resample(area, composites, radius_of_influence=radius_of_influence)
@@ -88,12 +88,13 @@ def save_datasets(job):
             base_config.update(pconfig)
             outdir = base_config['output_dir']
             fname_pattern = base_config['fname_pattern']
-            for fmat in base_config['formats']:
+            for idx, fmat in enumerate(base_config['formats']):
                 base_config.update(fmat)
                 filename = compose(os.path.join(outdir, fname_pattern), base_config)
                 cfmat = fmat.copy()
                 cfmat.pop('format', None)
                 objs.append(scns[area].save_dataset(pconfig['productname'], filename=filename, compute=False, **cfmat))
+                pconfig['formats'][idx]['filename'] = filename
     compute_writer_results(objs)
 
 
@@ -109,6 +110,19 @@ class FilePublisher(object):
     def __call__(self, job):
         # create message
         # send message
+        mda = job['input_mda'].copy()
+        mda.pop('dataset', None)
+        mda.pop('collection', None)
+        topic = job['product_list']['common']['publish_topic']
+        for area, config in job['product_list']['product_list'].items():
+            for prod, pconfig in config['products'].items():
+                for fmat in pconfig['formats']:
+                    file_mda = mda.copy()
+                    file_mda['uri'] = fmat['filename']
+                    file_mda['uid'] = os.path.basename(fmat['filename'])
+                    msg = Message(topic, 'file', file_mda)
+                    LOG.debug('Publishing %s', str(msg))
+                    self.pub.send(str(msg))
         self.pub.stop()
 
 
