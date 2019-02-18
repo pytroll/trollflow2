@@ -130,7 +130,7 @@ def covers(job):
 
     product_list = job['product_list'].copy()
     scn_mda = job['input_mda'].copy()
-    scn_mda.update(job['scene']scn.attrs)
+    scn_mda.update(job['scene'].attrs)
 
     platform_name = scn_mda['platform_name']
     start_time = scn_mda['start_time']
