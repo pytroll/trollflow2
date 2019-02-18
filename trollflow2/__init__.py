@@ -124,6 +124,21 @@ def get_scene_coverage(platform_name, start_time, end_time, sensor, area_id):
 
     return 100 * overpass.area_coverage(area_def)
 
+
+def gen_dict_extract(var, key):
+    if hasattr(var, 'items'):
+        for k, v in var.items():
+            if k == key:
+                yield v
+            if hasattr(v, 'items'):
+                for result in gen_dict_extract(v, key):
+                    yield result
+            elif isinstance(v, list):
+                for d in v:
+                    for result in gen_dict_extract(d, key):
+                        yield result
+
+
 from ._version import get_versions
 __version__ = get_versions()['version']
 del get_versions

@@ -30,7 +30,7 @@ import sys
 from threading import Thread as Process  # to get ipdb to work
 import yaml
 import time
-from trollmoves.utils import gen_dict_extract
+from trollflow2 import gen_dict_extract
 from collections import OrderedDict
 from posttroll.message import Message
 
