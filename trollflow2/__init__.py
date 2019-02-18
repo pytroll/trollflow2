@@ -61,15 +61,8 @@ def load_composites(job):
 def resample(job, radius_of_influence=None):
     job['resampled_scenes'] = {}
     scn = job['scene']
-    scn_mda = job['input_mda']
-    scn_mda.update(scn.attrs)
     product_list = job['product_list']
     for area, config in product_list['product_list'].items():
-        min_coverage = get_config_value(product_list,
-                                        "/product_list/%s/" % area,
-                                        "min_coverage")
-        if not covers(area, scn_mda, min_coverage=min_coverage):
-            continue
         composites = dpath.util.values(config, '/products/*/productname')
         LOG.info('Resampling %s to %s', str(composites), str(area))
         job['resampled_scenes'][area] = scn.resample(area, composites, radius_of_influence=radius_of_influence)
@@ -113,29 +106,52 @@ class FilePublisher(object):
         self.pub.stop()
 
 
-def covers(area, scn_mda, min_coverage=None):
-    """Check area coverage"""
-    if not min_coverage:
-        LOG.debug("Minimum area coverage not given or set to zero")
-        return True
+        min_coverage = get_config_value(product_list,
+                                        "/product_list/%s/" % area,
+                                        "min_coverage")
+        if not covers(area, scn_mda, min_coverage=min_coverage):
+            continue
+
+def covers(job):
+    """Check area coverage. Remove areas with too low coverage from the
+    worklist.
+    """
     if Pass is None:
         LOG.error("Trollsched import failed, coverage calculation not possible")
-        return True
+        LOG.info("Keeping all areas")
+        return
+
+    product_list = job['product_list'].copy()
+    scn_mda = job['input_mda'].copy()
+    scn_mda.update(job['scene']scn.attrs)
 
     platform_name = scn_mda['platform_name']
     start_time = scn_mda['start_time']
     end_time = scn_mda['end_time']
     sensor = scn_mda['sensor']
 
-    cov = get_scene_coverage(platform_name, start_time, end_time, sensor, area)
+    areas = list(product_list.keys())
+    for area in areas:
+        area_path = "/product_list/%s/" % area
+        min_coverage = get_config_value(product_list,
+                                        area_path,
+                                        "min_coverage")
+        if not min_coverage:
+            LOG.debug("Minimum area coverage not given or set to zero "
+                      "for area %s", area)
+            continue
 
-    if cov < min_coverage:
-        LOG.info(
-            "Area coverage %.2f %% below threshold %.2f %%",
-            cov, min_coverage)
-        return False
+        cov = get_scene_coverage(platform_name, start_time, end_time,
+                                 sensor, area)
 
-    return True
+        if cov < min_coverage:
+            LOG.info(
+                "Area coverage %.2f %% below threshold %.2f %%",
+                cov, min_coverage)
+            LOG.info("Removing area %s from the worklist", area)
+            dpath.util.delete(product_list, area_path)
+
+    job['product_list'] = product_list
 
 
 def get_scene_coverage(platform_name, start_time, end_time, sensor, area_id):
