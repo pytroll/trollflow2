@@ -93,7 +93,6 @@ def save_datasets(job):
                 filename = compose(os.path.join(outdir, fname_pattern), base_config)
                 cfmat = fmat.copy()
                 cfmat.pop('format', None)
-                import ipdb; ipdb.set_trace()
                 objs.append(scns[area].save_dataset(pconfig['productname'], filename=filename, compute=False, **cfmat))
     compute_writer_results(objs)
 
