@@ -32,8 +32,11 @@ except ImportError:
 from logging import getLogger
 #from multiprocessing import Process
 from posttroll.message import Message
+from posttroll.publisher import NoisyPublisher
 from collections import OrderedDict
+from trollsift import compose
 import dpath
+import os
 
 LOG = getLogger("trollflow2_plugins")
 
@@ -74,22 +77,37 @@ def save_datasets(job):
     objs = []
     for area, config in job['product_list']['product_list'].items():
         for prod, pconfig in config['products'].items():
-            for fmat in pconfig['formats']:
+            base_config = job['input_mda'].copy()
+            base_config.update(job['product_list']['common'])
+            aconfig = config.copy()
+            aconfig.pop('products', None)
+            base_config.update(aconfig)
+            base_config.update(pconfig)
+            outdir = base_config['output_dir']
+            fname_pattern = base_config['fname_pattern']
+            for fmat in base_config['formats']:
+                base_config.update(fmat)
+                filename = compose(os.path.join(outdir, fname_pattern), base_config)
                 cfmat = fmat.copy()
                 cfmat.pop('format', None)
-                objs.append(scns[area].save_dataset(pconfig['productname'], compute=False, **cfmat))
+                import ipdb; ipdb.set_trace()
+                objs.append(scns[area].save_dataset(pconfig['productname'], filename=filename, compute=False, **cfmat))
     compute_writer_results(objs)
 
 
 class FilePublisher(object):
-    def __init__(self):
-        # initialize publisher
-        pass
+    # todo add support for custom port and nameserver
+    def __new__(cls):
+        self = super().__new__(cls)
+        LOG.debug('Starting publisher')
+        self.pub = NoisyPublisher('l2processor')
+        self.pub.start()
+        return self
 
     def __call__(self, job):
         # create message
         # send message
-        pass
+        self.pub.stop()
 
 
 def covers(area, scn_mda, min_coverage=0):

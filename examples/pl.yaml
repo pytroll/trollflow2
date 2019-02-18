@@ -3,7 +3,7 @@ common:
     /satnfs/polar_out/pps2018/direct_readout/
   use_extern_calib: false
   fname_pattern: &fname
-    "{platform_name}_{time:%Y%m%d_%H%M}_{areaname}_{productname}.{format}"
+    "{platform_name}_{start_time:%Y%m%d_%H%M}_{areaname}_{productname}.{format}"
   formats: &formats
     - format: tif
       writer: geotiff
