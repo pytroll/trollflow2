@@ -119,12 +119,6 @@ class FilePublisher(object):
         self.pub.stop()
 
 
-        min_coverage = get_config_value(product_list,
-                                        "/product_list/%s/" % area,
-                                        "min_coverage")
-        if not covers(area, scn_mda, min_coverage=min_coverage):
-            continue
-
 def covers(job):
     """Check area coverage. Remove areas with too low coverage from the
     worklist.
