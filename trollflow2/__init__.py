@@ -37,7 +37,12 @@ def load_composites(job):
 def resample(job, radius_of_influence=None):
     job['resampled_scenes'] = {}
     scn = job['scene']
+    scn_mda = job['input_mda']
+    scn_mda.update(scn.attrs)
     for area, config in job['product_list']['product_list'].items():
+        # TODO: get min_coverage from config
+        if not covers(area, scn_mda, min_coverage=0):
+            continue
         composites = dpath.util.values(config, '/products/*/productname')
         LOG.info('Resampling %s to %s', str(composites), str(area))
         job['resampled_scenes'][area] = scn.resample(area, composites, radius_of_influence=radius_of_influence)
@@ -66,23 +71,29 @@ class FilePublisher(object):
         pass
 
 
-def coverage(area, scn_mda, min_coverage=0):
+def covers(area, scn_mda, min_coverage=0):
     """Check area coverage"""
     if not min_coverage:
         LOG.debug("Minimum area coverage not given or set to zero")
-        return
+        return True
     if Pass is None:
         LOG.error("Trollsched import failed, coverage calculation not possible")
-        return
+        return True
+
     platform_name = scn_mda['platform_name']
     start_time = scn_mda['start_time']
     end_time = scn_mda['end_time']
     sensor = scn_mda['sensor']
+
     cov = get_scene_coverage(platform_name, start_time, end_time, sensor, area)
+
     if cov < min_coverage:
-        raise AbortProcessing(
-            "Area coverage %.2f %% below threshold %.2f %%" % (cov,
-                                                              min_coverage))
+        LOG.info(
+            "Area coverage %.2f %% below threshold %.2f %%",
+            cov, min_coverage)
+        return False
+
+    return True
 
 
 def get_scene_coverage(platform_name, start_time, end_time, sensor, area_id):
