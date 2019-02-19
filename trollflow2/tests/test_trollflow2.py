@@ -101,5 +101,35 @@ class TestSaveDatasets(unittest.TestCase):
         pass
 
 
+class TestConfigValue(unittest.TestCase):
+
+    def setUp(self):
+        self.prodlist = yaml.load(yaml_test1)
+        self.path = "/product_list/germ/products/cloudtype"
+
+    def test_config_value_same_level(self):
+        from trollflow2 import get_config_value
+        expected = "/tmp/satdmz/pps/www/latest_2018/"
+        res = get_config_value(self.prodlist, self.path, "output_dir")
+        self.assertEqual(res, expected)
+
+    def test_config_value_parent_level(self):
+        from trollflow2 import get_config_value
+        expected = "{start_time:%Y%m%d_%H%M}_{areaname:s}_{productname}.{format}"
+        res = get_config_value(self.prodlist, self.path, "fname_pattern")
+        self.assertEqual(res, expected)
+
+    def test_config_value_common(self):
+        from trollflow2 import get_config_value
+        expected = "foo"
+        res = get_config_value(self.prodlist, self.path, "something")
+        self.assertEqual(res, expected)
+
+    def test_config_value_missing(self):
+        from trollflow2 import get_config_value
+        res = get_config_value(self.prodlist, self.path, "nothing")
+        self.assertIsNone(res)
+
+
 if __name__ == '__main__':
     unittest.main()
