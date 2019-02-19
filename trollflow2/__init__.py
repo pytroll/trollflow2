@@ -71,10 +71,9 @@ def resample(job, radius_of_influence=None):
     job['resampled_scenes'] = {}
     scn = job['scene']
     product_list = job['product_list']
-    for area, config in product_list['product_list'].items():
-        composites = dpath.util.values(config, '/products/*/productname')
-        LOG.info('Resampling %s to %s', str(composites), str(area))
-        job['resampled_scenes'][area] = scn.resample(area, composites, radius_of_influence=radius_of_influence)
+    for area in product_list['product_list']:
+        LOG.info('Resampling to %s', str(area))
+        job['resampled_scenes'][area] = scn.resample(area, radius_of_influence=radius_of_influence)
 
 
 def save_datasets(job):
