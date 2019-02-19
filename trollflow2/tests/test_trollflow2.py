@@ -145,5 +145,18 @@ class TestCreateScene(unittest.TestCase):
         scene.assert_called_with(filenames='bar', reader='baz')
 
 
+class TestLoadComposites(unittest.TestCase):
+
+    def setUp(self):
+        self.product_list = yaml.load(yaml_test1)
+
+    def test_load_composites(self):
+        from trollflow2 import load_composites
+        scn = mock.MagicMock()
+        job = {"product_list": self.product_list, "scene": scn}
+        load_composites(job)
+        scn.load.assert_called_with({'ct', 'cloudtype', 'cloud_top_height'})
+
+
 if __name__ == '__main__':
     unittest.main()
