@@ -137,9 +137,9 @@ def covers(job):
     end_time = scn_mda['end_time']
     sensor = scn_mda['sensor']
 
-    areas = list(product_list.keys())
+    areas = list(product_list['product_list'].keys())
     for area in areas:
-        area_path = "/product_list/%s/" % area
+        area_path = "/product_list/%s" % area
         min_coverage = get_config_value(product_list,
                                         area_path,
                                         "min_coverage")
