@@ -227,6 +227,22 @@ class TestCovers(unittest.TestCase):
         self.assertTrue("germ" in job['product_list']['product_list'])
         self.assertTrue("omerc_bb" in job['product_list']['product_list'])
 
+    @mock.patch('trollflow2.get_area_def')
+    @mock.patch('trollflow2.Pass')
+    def test_scene_coverage(self, ts_pass, get_area_def):
+        from trollflow2 import get_scene_coverage
+        area_coverage = mock.MagicMock()
+        area_coverage.return_value = 0.2
+        overpass = mock.MagicMock()
+        overpass.area_coverage = area_coverage
+        ts_pass.return_value = overpass
+        get_area_def.return_value = 6
+        res = get_scene_coverage(1, 2, 3, 4, 5)
+        self.assertEqual(res, 100 * 0.2)
+        ts_pass.assert_called_with(1, 2, 3, instrument=4)
+        get_area_def.assert_called_with(5)
+        area_coverage.assert_called_with(6)
+
 
 if __name__ == '__main__':
     unittest.main()
