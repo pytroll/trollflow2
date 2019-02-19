@@ -71,23 +71,16 @@ def resample(job, radius_of_influence=None):
 def save_datasets(job):
     scns = job['resampled_scenes']
     objs = []
-    for area, config in job['product_list']['product_list'].items():
-        for prod, pconfig in config['products'].items():
-            base_config = job['input_mda'].copy()
-            base_config.update(job['product_list']['common'])
-            aconfig = config.copy()
-            aconfig.pop('products', None)
-            base_config.update(aconfig)
-            base_config.update(pconfig)
-            outdir = base_config['output_dir']
-            fname_pattern = base_config['fname_pattern']
-            for idx, fmat in enumerate(base_config['formats']):
-                base_config.update(fmat)
-                filename = compose(os.path.join(outdir, fname_pattern), base_config)
-                cfmat = fmat.copy()
-                cfmat.pop('format', None)
-                objs.append(scns[area].save_dataset(pconfig['productname'], filename=filename, compute=False, **cfmat))
-                pconfig['formats'][idx]['filename'] = filename
+    base_config = job['input_mda'].copy()
+    base_config.update(job['product_list']['common'])
+    base_config.pop('dataset', None)
+    for fmat, fmat_config in plist_iter(job['product_list']['product_list'], base_config):
+        fname_pattern = fmat['fname_pattern']
+        outdir = fmat['output_dir']
+        filename = compose(os.path.join(outdir, fname_pattern), fmat)
+        fmat.pop('format', None)
+        objs.append(scns[fmat['areaname']].save_dataset(fmat['productname'], filename=filename, compute=False, **fmat))
+        fmat_config['filename'] = filename
     compute_writer_results(objs)
 
 
@@ -169,7 +162,7 @@ def get_scene_coverage(platform_name, start_time, end_time, sensor, area_id):
     return 100 * overpass.area_coverage(area_def)
 
 
-def plist_iter(product_list, base_mda=None):
+def plist_iter(product_list, base_mda=None, level=None):
     if base_mda is None:
         base_mda = {}
     else:
@@ -178,14 +171,20 @@ def plist_iter(product_list, base_mda=None):
         aconfig = base_mda.copy()
         aconfig.update(area_config)
         aconfig.pop('products', None)
+        if level == 'area':
+            yield aconfig, area_config
+            continue
         for prod, prod_config in area_config['products'].items():
             pconfig = aconfig.copy()
             pconfig.update(prod_config)
             pconfig.pop('formats', None)
+            if level == 'product':
+                yield pconfig, prod_config
+                continue
             for idx, fmat_config in enumerate(prod_config['formats']):
                 fconfig = pconfig.copy()
                 fconfig.update(fmat_config)
-                yield fconfig
+                yield fconfig, fmat_config
 
 
 def gen_dict_extract(var, key):

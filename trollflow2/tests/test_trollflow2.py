@@ -23,6 +23,7 @@
 
 import unittest
 import yaml
+import datetime
 try:
     from unittest import mock
 except ImportError:
@@ -76,6 +77,32 @@ product_list:
             writer: geotiff
 """
 
+yaml_common = """common:
+  output_dir: &output_dir
+    /tmp/satnfs/polar_out/pps2018/direct_readout/
+  publish_topic: /NWC-CF/L3
+  use_extern_calib: false
+  fname_pattern: &fname
+    "{platform_name}_{start_time:%Y%m%d_%H%M}_{areaname}_{productname}.{format}"
+  formats: &formats
+    - format: tif
+      writer: geotiff
+    - format: nc
+      writer: cf
+"""
+
+input_mda = {'orig_platform_name': 'noaa15', 'orbit_number': 7993,
+             'start_time': datetime.datetime(2019, 2, 17, 6, 0, 11, 100000), 'stfrac': 1,
+             'end_time': datetime.datetime(2019, 2, 17, 6, 15, 10, 400000), 'etfrac': 4, 'status': 'OK',
+             'format': 'CF', 'data_processing_level': '2', 'orbit': 7993, 'module': 'ppsMakePhysiography',
+             'platform_name': 'NOAA-15', 'pps_version': 'v2018', 'file_was_already_processed': False,
+             'dataset': [{'uri': '/home/a001673/data/satellite/test_trollflow2/S_NWC_CMA_noaa15_07993_20190217T0600111Z_20190217T0615104Z.nc',
+                          'uid': 'S_NWC_CMA_noaa15_07993_20190217T0600111Z_20190217T0615104Z.nc'},
+                         {'uri': '/home/a001673/data/satellite/test_trollflow2/S_NWC_CTTH_noaa15_07993_20190217T0600111Z_20190217T0615104Z.nc',
+                          'uid': 'S_NWC_CTTH_noaa15_07993_20190217T0600111Z_20190217T0615104Z.nc'},
+                         {'uri': '/home/a001673/data/satellite/test_trollflow2/S_NWC_CT_noaa15_07993_20190217T0600111Z_20190217T0615104Z.nc',
+                          'uid': 'S_NWC_CT_noaa15_07993_20190217T0600111Z_20190217T0615104Z.nc'}],
+             'sensor': ['avhrr']}
 
 class TestProdList(unittest.TestCase):
 
@@ -103,7 +130,46 @@ class TestProdList(unittest.TestCase):
 class TestSaveDatasets(unittest.TestCase):
     @mock.patch('trollflow2.compute_writer_results')
     def test_save_datasets(self, cwr_mock):
-        pass
+        from trollflow2 import save_datasets
+        job = {}
+        job['input_mda'] = input_mda
+        job['product_list'] = {
+            'product_list': yaml.load(yaml_test1)['product_list'],
+            'common': yaml.load(yaml_common)['common'],
+        }
+        job['resampled_scenes'] = {}
+        for area in job['product_list']['product_list']:
+            job['resampled_scenes'][area] = mock.Mock()
+        save_datasets(job)
+        dexpected = {'euron1': {'areaname': 'euron1',
+                                'products': {'ctth': {'fname_pattern': '{platform_name:s}_{start_time:%Y%m%d_%H%M}_{areaname:s}_ctth.{format}',
+                                                      'formats': [{'filename': '/tmp/satdmz/pps/www/latest_2018/NOAA-15_20190217_0600_euron1_ctth.png',
+                                                                   'format': 'png',
+                                                                   'writer': 'simple_image'},
+                                                                  {'filename': '/tmp/satdmz/pps/www/latest_2018/NOAA-15_20190217_0600_euron1_ctth.jpg',
+                                                                   'fill_value': 0,
+                                                                   'format': 'jpg',
+                                                                   'writer': 'simple_image'}],
+                                                      'output_dir': '/tmp/satdmz/pps/www/latest_2018/',
+                                                      'productname': 'cloud_top_height'}}},
+                     'germ': {'areaname': 'germ',
+                              'fname_pattern': '{start_time:%Y%m%d_%H%M}_{areaname:s}_{productname}.{format}',
+                              'products': {'cloudtype': {'formats': [{'filename': '/tmp/satdmz/pps/www/latest_2018/20190217_0600_germ_cloudtype.png',
+                                                                      'format': 'png',
+                                                                      'writer': 'simple_image'}],
+                                                         'output_dir': '/tmp/satdmz/pps/www/latest_2018/',
+                                                         'productname': 'cloudtype'}}},
+                     'omerc_bb': {'areaname': 'omerc_bb',
+                                  'output_dir': '/tmp',
+                                  'products': {'cloud_top_height': {'formats': [{'filename': '/tmp/NOAA-15_20190217_0600_omerc_bb_cloud_top_height.tif',
+                                                                                 'format': 'tif',
+                                                                                 'writer': 'geotiff'}],
+                                                                    'productname': 'cloud_top_height'},
+                                               'ct': {'formats': [{'filename': '/tmp/NOAA-15_20190217_0600_omerc_bb_ct.nc',
+                                                                   'format': 'nc',
+                                                                   'writer': 'cf'}],
+                                                      'productname': 'ct'}}}}
+        self.assertDictEqual(job['product_list']['product_list'], dexpected)
 
 
 class TestConfigValue(unittest.TestCase):
