@@ -131,5 +131,19 @@ class TestConfigValue(unittest.TestCase):
         self.assertIsNone(res)
 
 
+class TestCreateScene(unittest.TestCase):
+
+    @mock.patch("trollflow2.Scene")
+    def test_create_scene(self, scene):
+        from trollflow2 import create_scene
+        scene.return_value = "foo"
+        job = {"input_filenames": "bar"}
+        create_scene(job)
+        self.assertEqual(job["scene"], "foo")
+        scene.assert_called_with(filenames='bar', reader=None)
+        create_scene(job, reader="baz")
+        scene.assert_called_with(filenames='bar', reader='baz')
+
+
 if __name__ == '__main__':
     unittest.main()
