@@ -50,7 +50,6 @@ def run(topics, prod_list):
     while True:
         try:
             msg = listener.output_queue.get(True, 5)
-            msg = Message(rawstr=msg)
         except KeyboardInterrupt:
             listener.stop()
             return
