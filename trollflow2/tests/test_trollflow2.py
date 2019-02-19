@@ -241,15 +241,12 @@ class TestResample(unittest.TestCase):
         job = {"scene": scn, "product_list": self.product_list}
         resample(job)
         self.assertTrue(mock.call('omerc_bb',
-                                  ['ct', 'cloud_top_height'],
                                   radius_of_influence=None) in
                         scn.resample.mock_calls)
         self.assertTrue(mock.call('germ',
-                                  ['cloudtype'],
                                   radius_of_influence=None) in
                         scn.resample.mock_calls)
         self.assertTrue(mock.call('euron1',
-                                  ['cloud_top_height'],
                                   radius_of_influence=None) in
                         scn.resample.mock_calls)
         self.assertTrue("resampled_scenes" in job)
