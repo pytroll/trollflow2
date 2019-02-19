@@ -31,7 +31,7 @@ import yaml
 import time
 from trollflow2 import gen_dict_extract
 from collections import OrderedDict
-from posttroll.message import Message
+from six.moves.urllib.parse import urlparse
 
 """The order of basic things is:
 - Create the scene
@@ -64,7 +64,8 @@ def run(topics, prod_list):
 
 def message_to_job(msg, product_list):
     job = OrderedDict()
-    job['input_filenames'] = list(gen_dict_extract(msg.data, 'uri'))
+    # TODO: check the uri is accessible from the current host.
+    job['input_filenames'] = [urlparse(uri).path for uri in gen_dict_extract(msg.data, 'uri')]
     job['product_list'] = product_list
     job['input_mda'] = msg.data.copy()
 
