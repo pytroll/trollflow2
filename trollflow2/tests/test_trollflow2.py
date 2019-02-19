@@ -142,6 +142,7 @@ class TestSaveDatasets(unittest.TestCase):
             job['resampled_scenes'][area] = mock.Mock()
         save_datasets(job)
         dexpected = {'euron1': {'areaname': 'euron1',
+                                'min_coverage': 20.0,
                                 'products': {'ctth': {'fname_pattern': '{platform_name:s}_{start_time:%Y%m%d_%H%M}_{areaname:s}_ctth.{format}',
                                                       'formats': [{'filename': '/tmp/satdmz/pps/www/latest_2018/NOAA-15_20190217_0600_euron1_ctth.png',
                                                                    'format': 'png',
