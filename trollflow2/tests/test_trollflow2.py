@@ -212,7 +212,7 @@ class TestCovers(unittest.TestCase):
 
     @mock.patch('trollflow2.get_scene_coverage')
     @mock.patch('trollflow2.Pass')
-    def test_covers_low_coverage(self, ts_pass, get_scene_coverage):
+    def test_covers(self, ts_pass, get_scene_coverage):
         from trollflow2 import covers
         get_scene_coverage.return_value = 10.0
         scn = mock.MagicMock()
