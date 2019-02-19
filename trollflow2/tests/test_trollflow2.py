@@ -26,7 +26,9 @@ import yaml
 from mock import patch
 
 
-yaml_test1 = """product_list:
+yaml_test1 = """common:
+  something: foo
+product_list:
   euron1:
     areaname: euron1
     products:
@@ -43,6 +45,7 @@ yaml_test1 = """product_list:
 
   germ:
     areaname: germ
+    fname_pattern: "{start_time:%Y%m%d_%H%M}_{areaname:s}_{productname}.{format}"
     products:
       cloudtype:
         productname: cloudtype
@@ -80,6 +83,7 @@ class TestProdList(unittest.TestCase):
                      'output_dir': '/tmp/satdmz/pps/www/latest_2018/', 'format': 'jpg', 'writer': 'simple_image',
                      'fname_pattern': '{platform_name:s}_{start_time:%Y%m%d_%H%M}_{areaname:s}_ctth.{format}'},
                     {'areaname': 'germ', 'productname': 'cloudtype', 'output_dir': '/tmp/satdmz/pps/www/latest_2018/',
+                     'fname_pattern': '{start_time:%Y%m%d_%H%M}_{areaname:s}_{productname}.{format}',
                      'format': 'png', 'writer': 'simple_image'},
                     {'areaname': 'omerc_bb', 'productname': 'ct', 'output_dir': '/tmp', 'format': 'nc', 'writer': 'cf'},
                     {'areaname': 'omerc_bb', 'productname': 'cloud_top_height', 'output_dir': '/tmp', 'format': 'tif',
