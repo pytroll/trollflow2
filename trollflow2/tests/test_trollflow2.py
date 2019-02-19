@@ -27,13 +27,16 @@ try:
     from unittest import mock
 except ImportError:
     import mock
+import datetime as dt
 
 
 yaml_test1 = """common:
   something: foo
+  min_coverage: 5.0
 product_list:
   euron1:
     areaname: euron1
+    min_coverage: 20.0
     products:
       ctth:
         productname: cloud_top_height
@@ -80,9 +83,11 @@ class TestProdList(unittest.TestCase):
         from trollflow2 import plist_iter
         prodlist = yaml.load(yaml_test1)['product_list']
         expected = [{'areaname': 'euron1', 'productname': 'cloud_top_height',
+                     'min_coverage': 20.0,
                      'output_dir': '/tmp/satdmz/pps/www/latest_2018/', 'format': 'png', 'writer': 'simple_image',
                      'fname_pattern': '{platform_name:s}_{start_time:%Y%m%d_%H%M}_{areaname:s}_ctth.{format}'},
                     {'areaname': 'euron1', 'productname': 'cloud_top_height', 'fill_value': 0,
+                     'min_coverage': 20.0,
                      'output_dir': '/tmp/satdmz/pps/www/latest_2018/', 'format': 'jpg', 'writer': 'simple_image',
                      'fname_pattern': '{platform_name:s}_{start_time:%Y%m%d_%H%M}_{areaname:s}_ctth.{format}'},
                     {'areaname': 'germ', 'productname': 'cloudtype', 'output_dir': '/tmp/satdmz/pps/www/latest_2018/',
@@ -185,6 +190,42 @@ class TestResample(unittest.TestCase):
         for area in ["omerc_bb", "germ", "euron1"]:
             self.assertTrue(area in job["resampled_scenes"])
             self.assertTrue(job["resampled_scenes"][area] == "foo")
+
+
+class TestCovers(unittest.TestCase):
+
+    def setUp(self):
+        self.product_list = yaml.load(yaml_test1)
+        self.input_mda = {"platform_name": "NOAA-15",
+                          "sensor": "avhrr-3",
+                          "start_time": dt.datetime(2019, 1, 19, 11),
+                          "end_time": dt.datetime(2019, 1, 19, 12),
+                         }
+
+    @mock.patch('trollflow2.Pass', new=None)
+    def test_covers_no_trollsched(self):
+        from trollflow2 import covers
+        job_orig = {"foo": "bar"}
+        job = job_orig.copy()
+        covers(job)
+        self.assertEqual(job, job_orig)
+
+    @mock.patch('trollflow2.get_scene_coverage')
+    @mock.patch('trollflow2.Pass')
+    def test_covers_low_coverage(self, ts_pass, get_scene_coverage):
+        from trollflow2 import covers
+        get_scene_coverage.return_value = 10.0
+        scn = mock.MagicMock()
+        scn.attrs = {}
+        job = {"product_list": self.product_list,
+               "input_mda": self.input_mda,
+               "scene": scn}
+        covers(job)
+        # Area "euron1" should be removed
+        self.assertFalse("euron1" in job['product_list']['product_list'])
+        # Other areas should stay in the list
+        self.assertTrue("germ" in job['product_list']['product_list'])
+        self.assertTrue("omerc_bb" in job['product_list']['product_list'])
 
 
 if __name__ == '__main__':
