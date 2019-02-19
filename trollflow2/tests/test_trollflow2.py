@@ -158,5 +158,34 @@ class TestLoadComposites(unittest.TestCase):
         scn.load.assert_called_with({'ct', 'cloudtype', 'cloud_top_height'})
 
 
+class TestResample(unittest.TestCase):
+
+    def setUp(self):
+        self.product_list = yaml.load(yaml_test1)
+
+    def test_resample(self):
+        from trollflow2 import resample
+        scn = mock.MagicMock()
+        scn.resample.return_value = "foo"
+        job = {"scene": scn, "product_list": self.product_list}
+        resample(job)
+        self.assertTrue(mock.call('omerc_bb',
+                                  ['ct', 'cloud_top_height'],
+                                  radius_of_influence=None) in
+                        scn.resample.mock_calls)
+        self.assertTrue(mock.call('germ',
+                                 ['cloudtype'],
+                                 radius_of_influence=None) in
+                        scn.resample.mock_calls)
+        self.assertTrue(mock.call('euron1',
+                                  ['cloud_top_height'],
+                                  radius_of_influence=None) in
+                        scn.resample.mock_calls)
+        self.assertTrue("resampled_scenes" in job)
+        for area in ["omerc_bb", "germ", "euron1"]:
+            self.assertTrue(area in job["resampled_scenes"])
+            self.assertTrue(job["resampled_scenes"][area] == "foo")
+
+
 if __name__ == '__main__':
     unittest.main()
