@@ -25,7 +25,11 @@
 """
 from setuptools import setup
 import versioneer
+import sys
 
+install_requires = ['pyyaml', 'dpath', 'trollsift']
+if "test" not in sys.argv:
+    install_requires += ['posttroll', 'satpy']
 
 setup(name="trollflow2",
       version=versioneer.get_version(),
@@ -46,7 +50,7 @@ setup(name="trollflow2",
       scripts=['bin/satpy_launcher.py', ],
       data_files=[],
       zip_safe=False,
-      install_requires=['pyyaml', 'posttroll', 'satpy'],
+      install_requires=install_requires,
       tests_require=['mock'],
       test_suite='trollflow2.tests.suite',
       )

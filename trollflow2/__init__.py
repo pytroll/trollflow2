@@ -21,18 +21,27 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
+# Workaround for unittests so that satpy and posttroll installations
+# are not necessary
+try:
+    from satpy import Scene
+    from satpy.writers import compute_writer_results
+    from satpy.resample import get_area_def
+    from posttroll.message import Message
+    from posttroll.publisher import NoisyPublisher
+except ImportError:
+    Scene = None
+    compute_writer_results = None
+    get_area_def = None
+    Message = None
+    NoisyPublisher = None
 
-from satpy import Scene
-from satpy.writers import compute_writer_results
-from satpy.resample import get_area_def
 try:
     from trollsched.satpass import Pass
 except ImportError:
     Pass = None
 from logging import getLogger
 #from multiprocessing import Process
-from posttroll.message import Message
-from posttroll.publisher import NoisyPublisher
 from collections import OrderedDict
 from trollsift import compose
 import dpath
