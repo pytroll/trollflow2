@@ -23,13 +23,11 @@
 
 import unittest
 import yaml
-import datetime
 try:
     from unittest import mock
 except ImportError:
     import mock
 import datetime as dt
-
 
 yaml_test1 = """common:
   something: foo
@@ -92,8 +90,8 @@ yaml_common = """common:
 """
 
 input_mda = {'orig_platform_name': 'noaa15', 'orbit_number': 7993,
-             'start_time': datetime.datetime(2019, 2, 17, 6, 0, 11, 100000), 'stfrac': 1,
-             'end_time': datetime.datetime(2019, 2, 17, 6, 15, 10, 400000), 'etfrac': 4, 'status': 'OK',
+             'start_time': dt.datetime(2019, 2, 17, 6, 0, 11, 100000), 'stfrac': 1,
+             'end_time': dt.datetime(2019, 2, 17, 6, 15, 10, 400000), 'etfrac': 4, 'status': 'OK',
              'format': 'CF', 'data_processing_level': '2', 'orbit': 7993, 'module': 'ppsMakePhysiography',
              'platform_name': 'NOAA-15', 'pps_version': 'v2018', 'file_was_already_processed': False,
              'dataset': [{'uri': '/home/a001673/data/satellite/test_trollflow2/S_NWC_CMA_noaa15_07993_20190217T0600111Z_20190217T0615104Z.nc',
@@ -103,6 +101,7 @@ input_mda = {'orig_platform_name': 'noaa15', 'orbit_number': 7993,
                          {'uri': '/home/a001673/data/satellite/test_trollflow2/S_NWC_CT_noaa15_07993_20190217T0600111Z_20190217T0615104Z.nc',
                           'uid': 'S_NWC_CT_noaa15_07993_20190217T0600111Z_20190217T0615104Z.nc'}],
              'sensor': ['avhrr']}
+
 
 class TestProdList(unittest.TestCase):
 
@@ -246,8 +245,8 @@ class TestResample(unittest.TestCase):
                                   radius_of_influence=None) in
                         scn.resample.mock_calls)
         self.assertTrue(mock.call('germ',
-                                 ['cloudtype'],
-                                 radius_of_influence=None) in
+                                  ['cloudtype'],
+                                  radius_of_influence=None) in
                         scn.resample.mock_calls)
         self.assertTrue(mock.call('euron1',
                                   ['cloud_top_height'],
