@@ -124,7 +124,7 @@ class TestProdList(unittest.TestCase):
                     {'areaname': 'omerc_bb', 'productname': 'cloud_top_height', 'output_dir': '/tmp', 'format': 'tif',
                      'writer': 'geotiff'}]
         for i, exp in zip(plist_iter(prodlist), expected):
-            self.assertDictEqual(i, exp)
+            self.assertDictEqual(i[0], exp)
 
 
 class TestSaveDatasets(unittest.TestCase):
