@@ -310,5 +310,20 @@ class TestCovers(unittest.TestCase):
         area_coverage.assert_called_with(6)
 
 
+def suite():
+    """The test suite for test_writers."""
+    loader = unittest.TestLoader()
+    my_suite = unittest.TestSuite()
+    my_suite.addTest(loader.loadTestsFromTestCase(TestProdList))
+    my_suite.addTest(loader.loadTestsFromTestCase(TestSaveDatasets))
+    my_suite.addTest(loader.loadTestsFromTestCase(TestConfigValue))
+    my_suite.addTest(loader.loadTestsFromTestCase(TestCreateScene))
+    my_suite.addTest(loader.loadTestsFromTestCase(TestLoadComposites))
+    my_suite.addTest(loader.loadTestsFromTestCase(TestResample))
+    my_suite.addTest(loader.loadTestsFromTestCase(TestCovers))
+
+    return my_suite
+
+
 if __name__ == '__main__':
     unittest.main()
