@@ -23,7 +23,10 @@
 
 import unittest
 import yaml
-from mock import patch
+try:
+    from unittest import mock
+except ImportError:
+    import mock
 
 
 yaml_test1 = """common:
@@ -93,7 +96,7 @@ class TestProdList(unittest.TestCase):
 
 
 class TestSaveDatasets(unittest.TestCase):
-    @patch('trollflow2.compute_writer_results')
+    @mock.patch('trollflow2.compute_writer_results')
     def test_save_datasets(self, cwr_mock):
         pass
 
