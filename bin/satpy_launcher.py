@@ -29,7 +29,7 @@ import sys
 from multiprocessing import Process
 import yaml
 import time
-from trollflow2 import gen_dict_extract
+from trollflow2 import gen_dict_extract, AbortProcessing
 from collections import OrderedDict
 from six.moves.urllib.parse import urlparse
 
@@ -78,7 +78,10 @@ def process(msg, prod_list):
     job = message_to_job(msg, config)
     for wrk in config['workers']:
         cwrk = wrk.copy()
-        cwrk.pop('fun')(job, **cwrk)
+        try:
+            cwrk.pop('fun')(job, **cwrk)
+        except AbortProcessing:
+            LOG.info("Processing aborted for this scene")
 
 
 def main():
