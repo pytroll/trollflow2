@@ -170,6 +170,19 @@ def get_scene_coverage(platform_name, start_time, end_time, sensor, area_id):
     return 100 * overpass.area_coverage(area_def)
 
 
+def metadata_alias(job):
+    """Replace input metadata values with aliases"""
+    mda_out = job['input_mda'].copy()
+    product_list = job['product_list']
+    aliases = get_config_value(product_list, '/common', 'metadata_aliases')
+    if aliases is None:
+        return
+    for key in aliases:
+        if key in mda_out:
+            mda_out[key] = aliases[key].get(mda_out[key], mda_out[key])
+    job['input_mda'] = mda_out.copy()
+
+
 def plist_iter(product_list, base_mda=None, level=None):
     if base_mda is None:
         base_mda = {}
