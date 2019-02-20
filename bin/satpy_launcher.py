@@ -79,9 +79,10 @@ def process(msg, prod_list):
     for wrk in config['workers']:
         cwrk = wrk.copy()
         try:
-            cwrk.pop('fun')(job, **cwrk)
+            func = wrk('fun')
+            func(job, **cwrk)
         except AbortProcessing:
-            LOG.info("Processing aborted for this scene")
+            LOG.info("Processing aborted by '%s'", func.__name__)
 
 
 def main():
