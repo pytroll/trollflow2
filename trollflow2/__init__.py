@@ -87,7 +87,10 @@ def save_datasets(job):
         outdir = fmat['output_dir']
         filename = compose(os.path.join(outdir, fname_pattern), fmat)
         fmat.pop('format', None)
-        objs.append(scns[fmat['areaname']].save_dataset(fmat['productname'], filename=filename, compute=False, **fmat))
+        try:
+            objs.append(scns[fmat['areaname']].save_dataset(fmat['productname'], filename=filename, compute=False, **fmat))
+        except KeyError as err:
+            LOG.info('Skipping %s: %s', fmat['productname'], str(err))
         fmat_config['filename'] = filename
     compute_writer_results(objs)
 
@@ -102,21 +105,20 @@ class FilePublisher(object):
         return self
 
     def __call__(self, job):
-        # create message
-        # send message
         mda = job['input_mda'].copy()
         mda.pop('dataset', None)
         mda.pop('collection', None)
         topic = job['product_list']['common']['publish_topic']
-        for area, config in job['product_list']['product_list'].items():
-            for prod, pconfig in config['products'].items():
-                for fmat in pconfig['formats']:
-                    file_mda = mda.copy()
-                    file_mda['uri'] = fmat['filename']
-                    file_mda['uid'] = os.path.basename(fmat['filename'])
-                    msg = Message(topic, 'file', file_mda)
-                    LOG.debug('Publishing %s', str(msg))
-                    self.pub.send(str(msg))
+        for fmat, fmat_config in plist_iter(job['product_list']['product_list']):
+            file_mda = mda.copy()
+            try:
+                file_mda['uri'] = fmat['filename']
+            except KeyError:
+                continue
+            file_mda['uid'] = os.path.basename(fmat['filename'])
+            msg = Message(topic, 'file', file_mda)
+            LOG.debug('Publishing %s', str(msg))
+            self.pub.send(str(msg))
         self.pub.stop()
 
 
