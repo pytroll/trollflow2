@@ -209,10 +209,10 @@ def gen_dict_extract(var, key):
                         yield result
 
 
-def get_config_value(config, path, key):
+def get_config_value(config, path, key, default=None):
     """Get the most local config value for key *key* starting from the
     dictionary path *path*. If nothing is found, path "/common/" is
-    also checked, and if still nothing is found, return None.
+    also checked, and if still nothing is found, return *default*.
     """
     path_parts = path.split('/')
     # Loop starting from the current path, and continue upwards
@@ -228,7 +228,7 @@ def get_config_value(config, path, key):
     if len(vals) > 0:
         return vals[0]
 
-    return None
+    return default
 
 
 from ._version import get_versions
