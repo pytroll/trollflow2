@@ -334,6 +334,23 @@ class TestCovers(unittest.TestCase):
         area_coverage.assert_called_with(6)
 
 
+class TestGetPluginConf(unittest.TestCase):
+
+    def test_get_plugin_conf(self):
+        from trollflow2 import _get_plugin_conf
+        conf = {"common": {"val1": "foo1"},
+                "product_list": {"val2": "bar2"}}
+        path = "/product_list"
+        defaults = {"val1": "foo0", "val2": "bar0", "val3": "baz0"}
+        res = _get_plugin_conf(conf, path, defaults)
+        self.assertTrue("val1" in res)
+        self.assertTrue("val2" in res)
+        self.assertTrue("val3" in res)
+        self.assertEqual(res["val1"], "foo1")
+        self.assertEqual(res["val2"], "bar2")
+        self.assertEqual(res["val3"], "baz0")
+
+
 def suite():
     """The test suite for test_writers."""
     loader = unittest.TestLoader()
@@ -345,6 +362,7 @@ def suite():
     my_suite.addTest(loader.loadTestsFromTestCase(TestLoadComposites))
     my_suite.addTest(loader.loadTestsFromTestCase(TestResample))
     my_suite.addTest(loader.loadTestsFromTestCase(TestCovers))
+    my_suite.addTest(loader.loadTestsFromTestCase(TestGetPluginConf))
 
     return my_suite
 
