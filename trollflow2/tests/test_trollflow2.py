@@ -217,15 +217,13 @@ class TestCreateScene(unittest.TestCase):
         job = {"input_filenames": "bar", "product_list": {}}
         create_scene(job)
         self.assertEqual(job["scene"], "foo")
-        scene.assert_called_with(filenames='bar', reader=None)
+        scene.assert_called_with(filenames='bar', reader=None,
+                                 reader_kwargs=None, ppp_config_dir=None)
         job = {"input_filenames": "bar",
-               "product_list": {"common": {"plugin_scene": {"reader": "baz"}}}}
+               "product_list": {"common": {"reader": "baz"}}}
         create_scene(job)
-        scene.assert_called_with(filenames='bar', reader="baz")
-        job = {"input_filenames": "bar",
-               "product_list": {"common": {"own_name": {"reader": "val"}}}}
-        create_scene(job, name="own_name")
-        scene.assert_called_with(filenames='bar', reader="val")
+        scene.assert_called_with(filenames='bar', reader='baz',
+                                 reader_kwargs=None, ppp_config_dir=None)
 
 
 class TestLoadComposites(unittest.TestCase):
@@ -239,12 +237,6 @@ class TestLoadComposites(unittest.TestCase):
         job = {"product_list": self.product_list, "scene": scn}
         load_composites(job)
         scn.load.assert_called_with({'ct', 'cloudtype', 'cloud_top_height'})
-        prod_list = self.product_list.copy()
-        prod_list["common"] = {"own_name": {"calibration": "foo"}}
-        job = {"product_list": prod_list, "scene": scn}
-        load_composites(job, name="own_name")
-        scn.load.assert_called_with({'ct', 'cloudtype', 'cloud_top_height'},
-                                    calibration="foo")
 
 
 class TestResample(unittest.TestCase):
@@ -260,15 +252,18 @@ class TestResample(unittest.TestCase):
         resample(job)
         self.assertTrue(mock.call('omerc_bb',
                                   radius_of_influence=None,
-                                  resampler="nearest") in
+                                  resampler="nearest",
+                                  reduce_data=True) in
                         scn.resample.mock_calls)
         self.assertTrue(mock.call('germ',
                                   radius_of_influence=None,
-                                  resampler="nearest") in
+                                  resampler="nearest",
+                                  reduce_data=True) in
                         scn.resample.mock_calls)
         self.assertTrue(mock.call('euron1',
                                   radius_of_influence=None,
-                                  resampler="nearest") in
+                                  resampler="nearest",
+                                  reduce_data=True) in
                         scn.resample.mock_calls)
         self.assertTrue("resampled_scenes" in job)
         for area in ["omerc_bb", "germ", "euron1"]:
@@ -276,12 +271,14 @@ class TestResample(unittest.TestCase):
             self.assertTrue(job["resampled_scenes"][area] == "foo")
 
         prod_list = self.product_list.copy()
-        prod_list["common"] = {"own_name": {"resampler": "bilinear"}}
+        prod_list["common"] = {"resampler": "bilinear"}
+        prod_list["product_list"]["euron1"]["reduce_data"] = False
         job = {"product_list": prod_list, "scene": scn}
-        resample(job, name="own_name")
+        resample(job)
         self.assertTrue(mock.call('euron1',
                                   radius_of_influence=None,
-                                  resampler="bilinear") in
+                                  resampler="bilinear",
+                                  reduce_data=False) in
                         scn.resample.mock_calls)
 
 

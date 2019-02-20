@@ -4,12 +4,7 @@ common:
   publish_topic: /NWC-CF/L3
   use_extern_calib: false
   # Scene creation settings
-  plugin_scene:
-    reader: nwcsaf-pps_nc
-  # Composite loader settings
-  #plugin_composites:
-  #  calibration: null
-  #  resolution: null
+  reader: nwcsaf-pps_nc
   fname_pattern: &fname
     "{platform_name}_{start_time:%Y%m%d_%H%M}_{areaname}_{productname}.{format}"
   formats: &formats
@@ -21,9 +16,9 @@ common:
 product_list: &product_list
   omerc_bb:
     # Resampler settings can be global (in common section above) or per area
-    #plugin_resample:
-    #  radius_of_influence: 5000
-    #  resampler: bilinear
+    #radius_of_influence: 5000
+    #resampler: bilinear
+    #reduce_data: False
     areaname: omerc_bb
     products:
       ct:

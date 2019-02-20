@@ -54,41 +54,37 @@ class AbortProcessing(Exception):
     pass
 
 
-def create_scene(job, name="plugin_scene"):
-    defaults = {'reader': None}
+def create_scene(job):
+    defaults = {'reader': None,
+                'reader_kwargs': None,
+                'ppp_config_dir': None}
     product_list = job['product_list']
-    conf = get_config_value(product_list, '/common', name, default={})
-    defaults.update(conf)
+    conf = _get_plugin_conf(product_list, '/common', defaults)
     LOG.info('Generating scene')
-    job['scene'] = Scene(filenames=job['input_filenames'], **defaults)
+    job['scene'] = Scene(filenames=job['input_filenames'], **conf)
 
 
-def load_composites(job, name="plugin_composites"):
-    defaults = {}
-    product_list = job['product_list']
-    conf = get_config_value(product_list, '/common', name, default={})
+def load_composites(job):
     composites = set(dpath.util.values(job['product_list'], '/product_list/*/products/*/productname'))
     LOG.info('Loading %s', str(composites))
     scn = job['scene']
-    scn.load(composites, **conf)
+    scn.load(composites)
     job['scene'] = scn
 
 
-def resample(job, name="plugin_resample"):
-    defaults = {"radius_of_influence": None, "resampler": "nearest"}
+def resample(job):
+    defaults = {"radius_of_influence": None,
+                "resampler": "nearest",
+                "reduce_data": True}
     product_list = job['product_list']
-    # Update global settings
-    conf = get_config_value(product_list, '/common', name, default={})
-    defaults.update(conf)
+    conf = _get_plugin_conf(product_list, '/common', defaults)
     job['resampled_scenes'] = {}
     scn = job['scene']
     for area in product_list['product_list']:
-        conf = defaults.copy()
-        area_conf = get_config_value(product_list, '/product_list/' + area,
-                                     name, default={})
-        conf.update(area_conf)
+        area_conf = _get_plugin_conf(product_list, '/product_list/' + area,
+                                     conf)
         LOG.info('Resampling to %s', str(area))
-        job['resampled_scenes'][area] = scn.resample(area, **conf)
+        job['resampled_scenes'][area] = scn.resample(area, **area_conf)
 
 
 def save_datasets(job):
@@ -244,6 +240,14 @@ def get_config_value(config, path, key, default=None):
         return vals[0]
 
     return default
+
+
+def _get_plugin_conf(product_list, path, defaults):
+    conf = {}
+    for key in defaults:
+        conf[key] = get_config_value(product_list, path, key,
+                                     default=defaults.get(key))
+    return conf
 
 
 from ._version import get_versions
