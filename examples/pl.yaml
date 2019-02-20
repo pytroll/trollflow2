@@ -3,8 +3,10 @@ common:
     /tmp/satnfs/polar_out/pps2018/direct_readout/
   publish_topic: /NWC-CF/L3
   use_extern_calib: false
+  # Scene creation settings
   plugin_scene:
     reader: nwcsaf-pps_nc
+  # Composite loader settings
   #plugin_composites:
   #  calibration: null
   #  resolution: null
@@ -18,6 +20,10 @@ common:
 
 product_list: &product_list
   omerc_bb:
+    # Resampler settings can be global (in common section above) or per area
+    #plugin_resample:
+    #  radius_of_influence: 5000
+    #  resampler: bilinear
     areaname: omerc_bb
     products:
       ct:

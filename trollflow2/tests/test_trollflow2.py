@@ -259,18 +259,30 @@ class TestResample(unittest.TestCase):
         job = {"scene": scn, "product_list": self.product_list}
         resample(job)
         self.assertTrue(mock.call('omerc_bb',
-                                  radius_of_influence=None) in
+                                  radius_of_influence=None,
+                                  resampler="nearest") in
                         scn.resample.mock_calls)
         self.assertTrue(mock.call('germ',
-                                  radius_of_influence=None) in
+                                  radius_of_influence=None,
+                                  resampler="nearest") in
                         scn.resample.mock_calls)
         self.assertTrue(mock.call('euron1',
-                                  radius_of_influence=None) in
+                                  radius_of_influence=None,
+                                  resampler="nearest") in
                         scn.resample.mock_calls)
         self.assertTrue("resampled_scenes" in job)
         for area in ["omerc_bb", "germ", "euron1"]:
             self.assertTrue(area in job["resampled_scenes"])
             self.assertTrue(job["resampled_scenes"][area] == "foo")
+
+        prod_list = self.product_list.copy()
+        prod_list["common"] = {"own_name": {"resampler": "bilinear"}}
+        job = {"product_list": prod_list, "scene": scn}
+        resample(job, name="own_name")
+        self.assertTrue(mock.call('euron1',
+                                  radius_of_influence=None,
+                                  resampler="bilinear") in
+                        scn.resample.mock_calls)
 
 
 class TestCovers(unittest.TestCase):

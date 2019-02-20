@@ -74,13 +74,21 @@ def load_composites(job, name="plugin_composites"):
     job['scene'] = scn
 
 
-def resample(job, radius_of_influence=None):
+def resample(job, name="plugin_resample"):
+    defaults = {"radius_of_influence": None, "resampler": "nearest"}
+    product_list = job['product_list']
+    # Update global settings
+    conf = get_config_value(product_list, '/common', name, default={})
+    defaults.update(conf)
     job['resampled_scenes'] = {}
     scn = job['scene']
-    product_list = job['product_list']
     for area in product_list['product_list']:
+        conf = defaults.copy()
+        area_conf = get_config_value(product_list, '/product_list/' + area,
+                                     name, default={})
+        conf.update(area_conf)
         LOG.info('Resampling to %s', str(area))
-        job['resampled_scenes'][area] = scn.resample(area, radius_of_influence=radius_of_influence)
+        job['resampled_scenes'][area] = scn.resample(area, **conf)
 
 
 def save_datasets(job):
