@@ -201,6 +201,12 @@ class TestConfigValue(unittest.TestCase):
         res = get_config_value(self.prodlist, self.path, "nothing")
         self.assertIsNone(res)
 
+    def test_config_value_missing_own_default(self):
+        from trollflow2 import get_config_value
+        res = get_config_value(self.prodlist, self.path, "nothing",
+                               default=42)
+        self.assertEqual(res, 42)
+
 
 class TestCreateScene(unittest.TestCase):
 
@@ -208,12 +214,18 @@ class TestCreateScene(unittest.TestCase):
     def test_create_scene(self, scene):
         from trollflow2 import create_scene
         scene.return_value = "foo"
-        job = {"input_filenames": "bar"}
+        job = {"input_filenames": "bar", "product_list": {}}
         create_scene(job)
         self.assertEqual(job["scene"], "foo")
         scene.assert_called_with(filenames='bar', reader=None)
-        create_scene(job, reader="baz")
-        scene.assert_called_with(filenames='bar', reader='baz')
+        job = {"input_filenames": "bar",
+               "product_list": {"common": {"plugin_scene": {"reader": "baz"}}}}
+        create_scene(job)
+        scene.assert_called_with(filenames='bar', reader="baz")
+        job = {"input_filenames": "bar",
+               "product_list": {"common": {"own_name": {"reader": "val"}}}}
+        create_scene(job, name="own_name")
+        scene.assert_called_with(filenames='bar', reader="val")
 
 
 class TestLoadComposites(unittest.TestCase):

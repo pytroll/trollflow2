@@ -3,6 +3,8 @@ common:
     /tmp/satnfs/polar_out/pps2018/direct_readout/
   publish_topic: /NWC-CF/L3
   use_extern_calib: false
+  plugin_scene:
+    reader: nwcsaf-pps_nc
   fname_pattern: &fname
     "{platform_name}_{start_time:%Y%m%d_%H%M}_{areaname}_{productname}.{format}"
   formats: &formats
@@ -105,7 +107,6 @@ product_list: &product_list
 
 workers:
   - fun: !!python/name:trollflow2.create_scene
-    reader: nwcsaf-pps_nc
   - fun: !!python/name:trollflow2.load_composites
   - fun: !!python/name:trollflow2.resample
   - fun: !!python/name:trollflow2.save_datasets

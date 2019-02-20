@@ -54,9 +54,13 @@ class AbortProcessing(Exception):
     pass
 
 
-def create_scene(job, reader=None):
+def create_scene(job, name="plugin_scene"):
+    defaults = {'reader': None}
+    product_list = job['product_list']
+    conf = get_config_value(product_list, '/common', name, default={})
+    defaults.update(conf)
     LOG.info('Generating scene')
-    job['scene'] = Scene(filenames=job['input_filenames'], reader=reader)
+    job['scene'] = Scene(filenames=job['input_filenames'], **defaults)
 
 
 def load_composites(job):
