@@ -239,6 +239,12 @@ class TestLoadComposites(unittest.TestCase):
         job = {"product_list": self.product_list, "scene": scn}
         load_composites(job)
         scn.load.assert_called_with({'ct', 'cloudtype', 'cloud_top_height'})
+        prod_list = self.product_list.copy()
+        prod_list["common"] = {"own_name": {"calibration": "foo"}}
+        job = {"product_list": prod_list, "scene": scn}
+        load_composites(job, name="own_name")
+        scn.load.assert_called_with({'ct', 'cloudtype', 'cloud_top_height'},
+                                    calibration="foo")
 
 
 class TestResample(unittest.TestCase):

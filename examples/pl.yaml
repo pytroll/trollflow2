@@ -5,6 +5,9 @@ common:
   use_extern_calib: false
   plugin_scene:
     reader: nwcsaf-pps_nc
+  #plugin_composites:
+  #  calibration: null
+  #  resolution: null
   fname_pattern: &fname
     "{platform_name}_{start_time:%Y%m%d_%H%M}_{areaname}_{productname}.{format}"
   formats: &formats
