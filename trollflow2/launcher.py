@@ -39,6 +39,7 @@ from six.moves.urllib.parse import urlparse
 """
 
 LOG = getLogger("launcher")
+DEFAULT_PRIORITY = 999
 
 
 def run(topics, prod_list):
@@ -60,20 +61,44 @@ def run(topics, prod_list):
         time.sleep(5)
 
 
-def message_to_job(msg, product_list):
-    job = OrderedDict()
-    # TODO: check the uri is accessible from the current host.
-    job['input_filenames'] = [urlparse(uri).path for uri in gen_dict_extract(msg.data, 'uri')]
-    job['product_list'] = product_list
-    job['input_mda'] = msg.data.copy()
+def get_area_priorities(product_list):
+    """Get processing priorities and names for areas."""
+    priorities = {}
+    plist = product_list['product_list']
+    for area in plist.keys():
+        prio = plist[area].get('priority', DEFAULT_PRIORITY)
+        if prio not in priorities:
+            priorities[prio] = [area]
+        else:
+            priorities[prio].append(area)
 
-    return job
+    return priorities
+
+
+def message_to_jobs(msg, product_list):
+    jobs = OrderedDict()
+    priorities = get_area_priorities(product_list)
+    # TODO: check the uri is accessible from the current host.
+    input_filenames = [urlparse(uri).path for uri in gen_dict_extract(msg.data, 'uri')]
+    for prio, area in priorities.items():
+        jobs[prio] = OrderedDict()
+        jobs[prio]['input_filenames'] = input_filenames.copy()
+        jobs[prio]['input_mda'] = msg.data.copy()
+        jobs[prio]['product_list'] = {}
+        for section in product_list:
+            if section == 'product_list':
+                jobs[prio][area] = product_list[section][area]
+            else:
+                jobs[section] = product_list[section]
+
+    return jobs
 
 
 def process(msg, prod_list):
     with open(prod_list) as fd:
         config = yaml.load(fd.read())
-    job = message_to_job(msg, config)
-    for wrk in config['workers']:
-        cwrk = wrk.copy()
-        cwrk.pop('fun')(job, **cwrk)
+    jobs = message_to_jobs(msg, config)
+    for prio in sorted(jobs.keys()):
+        for wrk in config['workers']:
+            cwrk = wrk.copy()
+            cwrk.pop('fun')(job, **cwrk)
