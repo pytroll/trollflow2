@@ -201,6 +201,12 @@ class TestConfigValue(unittest.TestCase):
         res = get_config_value(self.prodlist, self.path, "nothing")
         self.assertIsNone(res)
 
+    def test_config_value_missing_own_default(self):
+        from trollflow2 import get_config_value
+        res = get_config_value(self.prodlist, self.path, "nothing",
+                               default=42)
+        self.assertEqual(res, 42)
+
 
 class TestCreateScene(unittest.TestCase):
 
@@ -208,12 +214,16 @@ class TestCreateScene(unittest.TestCase):
     def test_create_scene(self, scene):
         from trollflow2 import create_scene
         scene.return_value = "foo"
-        job = {"input_filenames": "bar"}
+        job = {"input_filenames": "bar", "product_list": {}}
         create_scene(job)
         self.assertEqual(job["scene"], "foo")
-        scene.assert_called_with(filenames='bar', reader=None)
-        create_scene(job, reader="baz")
-        scene.assert_called_with(filenames='bar', reader='baz')
+        scene.assert_called_with(filenames='bar', reader=None,
+                                 reader_kwargs=None, ppp_config_dir=None)
+        job = {"input_filenames": "bar",
+               "product_list": {"common": {"reader": "baz"}}}
+        create_scene(job)
+        scene.assert_called_with(filenames='bar', reader='baz',
+                                 reader_kwargs=None, ppp_config_dir=None)
 
 
 class TestLoadComposites(unittest.TestCase):
@@ -241,18 +251,35 @@ class TestResample(unittest.TestCase):
         job = {"scene": scn, "product_list": self.product_list}
         resample(job)
         self.assertTrue(mock.call('omerc_bb',
-                                  radius_of_influence=None) in
+                                  radius_of_influence=None,
+                                  resampler="nearest",
+                                  reduce_data=True) in
                         scn.resample.mock_calls)
         self.assertTrue(mock.call('germ',
-                                  radius_of_influence=None) in
+                                  radius_of_influence=None,
+                                  resampler="nearest",
+                                  reduce_data=True) in
                         scn.resample.mock_calls)
         self.assertTrue(mock.call('euron1',
-                                  radius_of_influence=None) in
+                                  radius_of_influence=None,
+                                  resampler="nearest",
+                                  reduce_data=True) in
                         scn.resample.mock_calls)
         self.assertTrue("resampled_scenes" in job)
         for area in ["omerc_bb", "germ", "euron1"]:
             self.assertTrue(area in job["resampled_scenes"])
             self.assertTrue(job["resampled_scenes"][area] == "foo")
+
+        prod_list = self.product_list.copy()
+        prod_list["common"] = {"resampler": "bilinear"}
+        prod_list["product_list"]["euron1"]["reduce_data"] = False
+        job = {"product_list": prod_list, "scene": scn}
+        resample(job)
+        self.assertTrue(mock.call('euron1',
+                                  radius_of_influence=None,
+                                  resampler="bilinear",
+                                  reduce_data=False) in
+                        scn.resample.mock_calls)
 
 
 class TestCovers(unittest.TestCase):
@@ -323,6 +350,23 @@ class TestCheckPlatform(unittest.TestCase):
             check_platform(job)
 
 
+class TestGetPluginConf(unittest.TestCase):
+
+    def test_get_plugin_conf(self):
+        from trollflow2 import _get_plugin_conf
+        conf = {"common": {"val1": "foo1"},
+                "product_list": {"val2": "bar2"}}
+        path = "/product_list"
+        defaults = {"val1": "foo0", "val2": "bar0", "val3": "baz0"}
+        res = _get_plugin_conf(conf, path, defaults)
+        self.assertTrue("val1" in res)
+        self.assertTrue("val2" in res)
+        self.assertTrue("val3" in res)
+        self.assertEqual(res["val1"], "foo1")
+        self.assertEqual(res["val2"], "bar2")
+        self.assertEqual(res["val3"], "baz0")
+
+
 def suite():
     """The test suite for test_writers."""
     loader = unittest.TestLoader()
@@ -335,6 +379,7 @@ def suite():
     my_suite.addTest(loader.loadTestsFromTestCase(TestResample))
     my_suite.addTest(loader.loadTestsFromTestCase(TestCovers))
     my_suite.addTest(loader.loadTestsFromTestCase(TestCheckPlatform))
+    my_suite.addTest(loader.loadTestsFromTestCase(TestGetPluginConf))
 
     return my_suite
 
