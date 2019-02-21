@@ -54,9 +54,14 @@ class AbortProcessing(Exception):
     pass
 
 
-def create_scene(job, reader=None):
+def create_scene(job):
+    defaults = {'reader': None,
+                'reader_kwargs': None,
+                'ppp_config_dir': None}
+    product_list = job['product_list']
+    conf = _get_plugin_conf(product_list, '/common', defaults)
     LOG.info('Generating scene')
-    job['scene'] = Scene(filenames=job['input_filenames'], reader=reader)
+    job['scene'] = Scene(filenames=job['input_filenames'], **conf)
 
 
 def load_composites(job):
@@ -67,13 +72,19 @@ def load_composites(job):
     job['scene'] = scn
 
 
-def resample(job, radius_of_influence=None):
+def resample(job):
+    defaults = {"radius_of_influence": None,
+                "resampler": "nearest",
+                "reduce_data": True}
+    product_list = job['product_list']
+    conf = _get_plugin_conf(product_list, '/common', defaults)
     job['resampled_scenes'] = {}
     scn = job['scene']
-    product_list = job['product_list']
     for area in product_list['product_list']:
+        area_conf = _get_plugin_conf(product_list, '/product_list/' + area,
+                                     conf)
         LOG.info('Resampling to %s', str(area))
-        job['resampled_scenes'][area] = scn.resample(area, radius_of_influence=radius_of_influence)
+        job['resampled_scenes'][area] = scn.resample(area, **area_conf)
 
 
 def save_datasets(job):
@@ -211,10 +222,10 @@ def gen_dict_extract(var, key):
                         yield result
 
 
-def get_config_value(config, path, key):
+def get_config_value(config, path, key, default=None):
     """Get the most local config value for key *key* starting from the
     dictionary path *path*. If nothing is found, path "/common/" is
-    also checked, and if still nothing is found, return None.
+    also checked, and if still nothing is found, return *default*.
     """
     path_parts = path.split('/')
     # Loop starting from the current path, and continue upwards
@@ -230,7 +241,15 @@ def get_config_value(config, path, key):
     if len(vals) > 0:
         return vals[0]
 
-    return None
+    return default
+
+
+def _get_plugin_conf(product_list, path, defaults):
+    conf = {}
+    for key in defaults:
+        conf[key] = get_config_value(product_list, path, key,
+                                     default=defaults.get(key))
+    return conf
 
 
 from ._version import get_versions
