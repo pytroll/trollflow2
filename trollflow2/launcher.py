@@ -22,7 +22,10 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
 from logging import getLogger
-from posttroll.listener import ListenerContainer
+try:
+    from posttroll.listener import ListenerContainer
+except ImportError:
+    ListenerContainer = None
 from six.moves.queue import Empty as queue_empty
 from multiprocessing import Process
 import yaml
