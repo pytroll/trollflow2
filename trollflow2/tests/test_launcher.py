@@ -117,17 +117,17 @@ class TestMessageToJobs(unittest.TestCase):
 
 class TestRun(unittest.TestCase):
 
+    @mock.patch('trollflow2.launcher.process')
     @mock.patch('trollflow2.launcher.time.sleep')
     @mock.patch('trollflow2.launcher.Process')
     @mock.patch('trollflow2.launcher.ListenerContainer')
-    def test_run(self, lc_, process, sleep):
+    def test_run(self, lc_, Process, sleep, process):
         from trollflow2.launcher import run
         listener = mock.MagicMock()
-        get = mock.Mock()
         listener.output_queue.get.return_value = 'foo'
         lc_.return_value = listener
         proc_ret = mock.MagicMock()
-        process.return_value = proc_ret
+        Process.return_value = proc_ret
         # stop looping
         sleep.side_effect = KeyboardInterrupt
         prod_list = 'bar'
@@ -137,7 +137,7 @@ class TestRun(unittest.TestCase):
         except KeyboardInterrupt:
             pass
         listener.output_queue.called_once()
-        process.assert_called_once()
+        Process.assert_called_with(args=('foo', prod_list), target=process)
         proc_ret.start.assert_called_once()
         proc_ret.join.assert_called_once()
         sleep.called_once_with(5)
