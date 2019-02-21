@@ -80,16 +80,19 @@ def message_to_jobs(msg, product_list):
     priorities = get_area_priorities(product_list)
     # TODO: check the uri is accessible from the current host.
     input_filenames = [urlparse(uri).path for uri in gen_dict_extract(msg.data, 'uri')]
-    for prio, area in priorities.items():
+    for prio, areas in priorities.items():
         jobs[prio] = OrderedDict()
         jobs[prio]['input_filenames'] = input_filenames.copy()
         jobs[prio]['input_mda'] = msg.data.copy()
         jobs[prio]['product_list'] = {}
         for section in product_list:
             if section == 'product_list':
-                jobs[prio][area] = product_list[section][area]
+                if section not in jobs[prio]['product_list']:
+                    jobs[prio]['product_list'][section] = OrderedDict()
+                for area in areas:
+                    jobs[prio]['product_list'][section][area] = product_list[section][area]
             else:
-                jobs[section] = product_list[section]
+                jobs[prio]['product_list'][section] = product_list[section]
 
     return jobs
 
