@@ -20,7 +20,10 @@ product_list: &product_list
     #resampler: bilinear
     #reduce_data: False
     areaname: omerc_bb
+    # Set high priority (small value) for this area
     # priority: 1
+    # Use "null" for default priority, or don't define priority at all
+    # priority: null
     products:
       ct:
         productname: ct

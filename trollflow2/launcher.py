@@ -70,6 +70,8 @@ def get_area_priorities(product_list):
     plist = product_list['product_list']
     for area in plist.keys():
         prio = plist[area].get('priority', DEFAULT_PRIORITY)
+        if prio is None:
+            prio = DEFAULT_PRIORITY
         if prio not in priorities:
             priorities[prio] = [area]
         else:

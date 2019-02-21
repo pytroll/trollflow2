@@ -114,6 +114,10 @@ class TestMessageToJobs(unittest.TestCase):
         self.assertEqual(set(jobs[999]['product_list']['product_list'].keys()),
                          set(['germ', 'omerc_bb']))
 
+        prodlist['product_list']['germ']['priority'] = None
+        jobs = message_to_jobs(msg, prodlist)
+        self.assertTrue('germ' in jobs[999]['product_list']['product_list'])
+
 
 class TestRun(unittest.TestCase):
 
