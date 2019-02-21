@@ -334,6 +334,28 @@ class TestCovers(unittest.TestCase):
         area_coverage.assert_called_with(6)
 
 
+class TestMetadataAlias(unittest.TestCase):
+
+    def test_metadata_alias(self):
+        from trollflow2 import metadata_alias
+        mda = {'platform_name': 'noaa15', 'not_changed': True}
+        product_list = {'common': {'not_metadata_aliases': True}}
+        job = {'input_mda': mda, 'product_list': product_list}
+        metadata_alias(job)
+        mda = job['input_mda']
+        self.assertEqual(mda['platform_name'], 'noaa15')
+        self.assertTrue(mda['not_changed'])
+        product_list = {'common': {'metadata_aliases':
+                                   {'platform_name': {'noaa15': 'NOAA-15'},
+                                    'not_in_mda': {'something': 'other'}}}}
+        job = {'input_mda': mda, 'product_list': product_list}
+        metadata_alias(job)
+        mda = job['input_mda']
+        self.assertEqual(mda['platform_name'], 'NOAA-15')
+        self.assertTrue(mda['not_changed'])
+        self.assertTrue('not_in_mda' not in mda)
+
+
 class TestGetPluginConf(unittest.TestCase):
 
     def test_get_plugin_conf(self):
@@ -362,6 +384,7 @@ def suite():
     my_suite.addTest(loader.loadTestsFromTestCase(TestLoadComposites))
     my_suite.addTest(loader.loadTestsFromTestCase(TestResample))
     my_suite.addTest(loader.loadTestsFromTestCase(TestCovers))
+    my_suite.addTest(loader.loadTestsFromTestCase(TestMetadataAlias))
     my_suite.addTest(loader.loadTestsFromTestCase(TestGetPluginConf))
 
     return my_suite
