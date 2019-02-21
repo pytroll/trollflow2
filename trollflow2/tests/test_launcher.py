@@ -158,6 +158,17 @@ class TestRun(unittest.TestCase):
         listener.stop.assert_called_once()
 
 
+class TestProcess(unittest.TestCase):
+
+    @mock.patch('trollflow2.launcher.message_to_jobs')
+    @mock.patch('trollflow2.launcher.open')
+    def test_process(self, open_, message_to_jobs):
+        fid = mock.MagicMock()
+        fid.read.return_value = yaml_test1
+        open_.return_value.__enter__.return_value = fid
+        # jobs = {0: }
+        message_to_jobs.return_value = jobs
+
 def suite():
     """The test suite for test_writers."""
     loader = unittest.TestLoader()
