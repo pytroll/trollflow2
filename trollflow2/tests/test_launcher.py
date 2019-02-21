@@ -115,12 +115,52 @@ class TestMessageToJobs(unittest.TestCase):
                          set(['germ', 'omerc_bb']))
 
 
+class TestRun(unittest.TestCase):
+
+    @mock.patch('trollflow2.launcher.time.sleep')
+    @mock.patch('trollflow2.launcher.Process')
+    @mock.patch('trollflow2.launcher.ListenerContainer')
+    def test_run(self, lc_, process, sleep):
+        from trollflow2.launcher import run
+        listener = mock.MagicMock()
+        get = mock.Mock()
+        listener.output_queue.get.return_value = 'foo'
+        lc_.return_value = listener
+        proc_ret = mock.MagicMock()
+        process.return_value = proc_ret
+        # stop looping
+        sleep.side_effect = KeyboardInterrupt
+        prod_list = 'bar'
+        topics = 'baz'
+        try:
+            run(topics, prod_list)
+        except KeyboardInterrupt:
+            pass
+        listener.output_queue.called_once()
+        process.assert_called_once()
+        proc_ret.start.assert_called_once()
+        proc_ret.join.assert_called_once()
+        sleep.called_once_with(5)
+
+    @mock.patch('trollflow2.launcher.ListenerContainer')
+    def test_run_keyboard_interrupt(self, lc_):
+        from trollflow2.launcher import run
+        listener = mock.MagicMock()
+        get = mock.Mock()
+        get.side_effect = KeyboardInterrupt
+        listener.output_queue.get = get
+        lc_.return_value = listener
+        run(0, 1)
+        listener.stop.assert_called_once()
+
+
 def suite():
     """The test suite for test_writers."""
     loader = unittest.TestLoader()
     my_suite = unittest.TestSuite()
     my_suite.addTest(loader.loadTestsFromTestCase(TestGetAreaPriorities))
     my_suite.addTest(loader.loadTestsFromTestCase(TestMessageToJobs))
+    my_suite.addTest(loader.loadTestsFromTestCase(TestRun))
 
     return my_suite
 
