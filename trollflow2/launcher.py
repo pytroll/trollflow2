@@ -105,6 +105,7 @@ def process(msg, prod_list):
         config = yaml.load(fd.read())
     jobs = message_to_jobs(msg, config)
     for prio in sorted(jobs.keys()):
+        job = jobs[prio]
         for wrk in config['workers']:
             cwrk = wrk.copy()
             cwrk.pop('fun')(job, **cwrk)
