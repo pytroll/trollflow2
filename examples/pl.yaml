@@ -12,6 +12,14 @@ common:
       writer: geotiff
     - format: nc
       writer: cf
+  #metadata_aliases:
+  #  platform_name:
+  #    j01: NOAA-20
+  #    noaa15: NOAA-15
+  #    noaa18: NOAA-18
+  #    noaa19: NOAA-19
+  #  sensor:
+  #    avhrr/3: avhrr-3
 
 product_list: &product_list
   omerc_bb:
