@@ -35,9 +35,9 @@ RUN pip install -r /tmp/requirements.txt && \
     cd /tmp/ && rm -rf /tmp/supervisor/ && \
     git clone https://github.com/Supervisor/superlance.git && \
     cd superlance && python setup.py install && \
-    cd /tmp/ && rm -rf /tmp/superlance/
-    git clone https://github.com/pnuu/trollflow2.git && \
-    cd trollflow2 && git checkout feature-docker-example && python setup.py install && \
+    cd /tmp/ && rm -rf /tmp/superlance/ && \
+    git clone https://github.com/pytroll/trollflow2.git && \
+    cd trollflow2 && python setup.py install && \
     cd /tmp/ && rm -rf /tmp/trollflow2/
     #python -c 'from pyspectral.utils import download_luts; \
     #  from pyspectral.utils import logging_on; import logging; \
@@ -50,10 +50,6 @@ RUN pip install -r /tmp/requirements.txt && \
     
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
-
-#COPY trollflow2 /tmp/trollflow2
-#RUN cd /tmp/trollflow2 && python setup.py install && \
-#     cd /tmp/ && rm -rf /tmp/trollflow2/
 
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 CMD ["supervisord", "-c", "/mnt/config/supervisord.conf"]
