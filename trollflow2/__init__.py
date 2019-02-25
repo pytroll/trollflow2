@@ -83,7 +83,7 @@ def resample(job):
     job['resampled_scenes'] = {}
     scn = job['scene']
     for area in product_list['product_list']:
-        area_conf = _get_plugin_conf(product_list, '/product_list/' + area,
+        area_conf = _get_plugin_conf(product_list, '/product_list/' + str(area),
                                      conf)
         LOG.info('Resampling to %s', str(area))
         if area is None:
