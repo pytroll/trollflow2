@@ -36,6 +36,7 @@ except ImportError:
     get_area_def = None
     Message = None
     NoisyPublisher = None
+    sun_zenith_angle = None
 
 try:
     from trollsched.satpass import Pass
