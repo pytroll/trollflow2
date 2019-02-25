@@ -1,12 +1,8 @@
 import sys
 import logging
+import unittest
 
-from trollflow2.tests import test_trollflow2
-
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
+from trollflow2.tests import (test_trollflow2, test_launcher)
 
 
 def suite():
@@ -16,6 +12,7 @@ def suite():
 
     mysuite = unittest.TestSuite()
     mysuite.addTests(test_trollflow2.suite())
+    mysuite.addTests(test_launcher.suite())
 
     return mysuite
 

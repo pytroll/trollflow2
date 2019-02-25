@@ -186,6 +186,19 @@ def get_scene_coverage(platform_name, start_time, end_time, sensor, area_id):
     return 100 * overpass.area_coverage(area_def)
 
 
+def check_platform(job):
+    """Check if the platform is valid.  If not, discard the scene."""
+    mda = job['input_mda']
+    product_list = job['product_list']
+    conf = get_config_value(product_list, '/common', 'processed_platforms')
+    if conf is None:
+        return
+    platform = mda['platform_name']
+    if platform not in conf:
+        raise AbortProcessing(
+            "'%s' not in list of allowed platforms" % platform)
+
+
 def metadata_alias(job):
     """Replace input metadata values with aliases"""
     mda_out = job['input_mda'].copy()
