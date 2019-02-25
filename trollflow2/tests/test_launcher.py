@@ -100,12 +100,12 @@ product_list:
       night_fog:
         productname: night_fog
 
-workers:
-  - fun: !!python/name:trollflow2.create_scene
-  - fun: !!python/name:trollflow2.load_composites
-  - fun: !!python/name:trollflow2.resample
-  - fun: !!python/name:trollflow2.save_datasets
-  - fun: !!python/object:trollflow2.FilePublisher {}
+# workers:
+#   - fun: !!python/name:trollflow2.create_scene
+#   - fun: !!python/name:trollflow2.load_composites
+#   - fun: !!python/name:trollflow2.resample
+#   - fun: !!python/name:trollflow2.save_datasets
+#   - fun: !!python/object:trollflow2.FilePublisher {}
 """
 
 
