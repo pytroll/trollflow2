@@ -5,9 +5,6 @@ common:
   reader: seviri_l1b_hrit
   fname_pattern:
     "{start_time:%Y%m%d_%H%M}_{platform_name}_{areaname}_{productname}.{format}"
-  formats:
-    - format: tif
-      writer: geotiff
 
 product_list:
   euro4:
@@ -15,14 +12,26 @@ product_list:
     products:
       overview:
         productname: overview
+        formats:
+          - format: tif
+            writer: geotiff
       #day_microphysics:
       #  productname: day_microphysics
       airmass:
         productname: airmass
+        formats:
+          - format: tif
+            writer: geotiff
       natural_color:
         productname: natural_color
+        formats:
+          - format: tif
+            writer: geotiff
       night_fog:
         productname: night_fog
+        formats:
+          - format: tif
+            writer: geotiff
 
 workers:
   - fun: !!python/name:trollflow2.create_scene
