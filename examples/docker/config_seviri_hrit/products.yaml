@@ -5,9 +5,13 @@ common:
   reader: seviri_l1b_hrit
   fname_pattern:
     "{start_time:%Y%m%d_%H%M}_{platform_name}_{areaname}_{productname}.{format}"
+  sunzen_check_lon: 5.0
+  sunzen_check_lat: 56.0
 
 product_list:
   euro4:
+    # Add a priority. Not relevant for one area, but just to show the option
+    priority: 1
     areaname: euro4
     products:
       overview:
@@ -15,6 +19,7 @@ product_list:
         formats:
           - format: tif
             writer: geotiff
+        sunzen_maximum_angle: 90.0
       #day_microphysics:
       #  productname: day_microphysics
       airmass:
@@ -27,14 +32,17 @@ product_list:
         formats:
           - format: tif
             writer: geotiff
+        sunzen_maximum_angle: 90.0
       night_fog:
         productname: night_fog
         formats:
           - format: tif
             writer: geotiff
+        sunzen_minimum_angle: 90.0
 
 workers:
   - fun: !!python/name:trollflow2.create_scene
+  - fun: !!python/name:trollflow2.sza_check
   - fun: !!python/name:trollflow2.load_composites
   - fun: !!python/name:trollflow2.resample
   - fun: !!python/name:trollflow2.save_datasets
