@@ -208,10 +208,10 @@ def sza_check(job):
         products = list(product_list['product_list'][area]['products'].keys())
         for product in products:
             prod_path = "/product_list/%s/products/%s" % (area, product)
-            lon = get_config_value(product_list, prod_path, "sunzen_lon")
-            lat = get_config_value(product_list, prod_path, "sunzen_lat")
+            lon = get_config_value(product_list, prod_path, "sunzen_check_lon")
+            lat = get_config_value(product_list, prod_path, "sunzen_check_lat")
             if lon is None or lat is None:
-                LOG.debug("No 'sunzen_lon' or 'sunzen_lat' configured, "
+                LOG.debug("No 'sunzen_check_lon' or 'sunzen_check_lat' configured, "
                           "can\'t check Sun elevation for %s / %s",
                           area, product)
                 continue
@@ -220,7 +220,7 @@ def sza_check(job):
             LOG.debug("Sun zenith angle is %.2f degrees", sunzen)
             # Check nighttime limit
             limit = get_config_value(product_list, prod_path,
-                                     "sunzen_night_minimum")
+                                     "sunzen_minimum_angle")
             if limit is not None:
                 if sunzen < limit:
                     LOG.info("Sun zenith angle to small for nighttime "
@@ -230,7 +230,7 @@ def sza_check(job):
 
             # Check daytime limit
             limit = get_config_value(product_list, prod_path,
-                                     "sunzen_day_maximum")
+                                     "sunzen_maximum_angle")
             if limit is not None:
                 if sunzen > limit:
                     LOG.info("Sun zenith angle to large for daytime "

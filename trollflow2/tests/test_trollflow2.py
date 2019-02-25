@@ -390,13 +390,13 @@ class TestSZACheck(unittest.TestCase):
 
         # Add SZA limits to couple of products
         # Day product
-        product_list['product_list']['omerc_bb']['products']['ct']['sunzen_day_maximum'] = 95.
-        product_list['product_list']['omerc_bb']['products']['ct']['sunzen_lon'] = 25.
-        product_list['product_list']['omerc_bb']['products']['ct']['sunzen_lat'] = 60.
+        product_list['product_list']['omerc_bb']['products']['ct']['sunzen_maximum_angle'] = 95.
+        product_list['product_list']['omerc_bb']['products']['ct']['sunzen_check_lon'] = 25.
+        product_list['product_list']['omerc_bb']['products']['ct']['sunzen_check_lat'] = 60.
         # Night product
-        product_list['product_list']['germ']['products']['cloudtype']['sunzen_night_minimum'] = 85.
-        product_list['product_list']['germ']['products']['cloudtype']['sunzen_lon'] = 25.
-        product_list['product_list']['germ']['products']['cloudtype']['sunzen_lat'] = 60.
+        product_list['product_list']['germ']['products']['cloudtype']['sunzen_minimum_angle'] = 85.
+        product_list['product_list']['germ']['products']['cloudtype']['sunzen_check_lon'] = 25.
+        product_list['product_list']['germ']['products']['cloudtype']['sunzen_check_lat'] = 60.
 
         # Zenith angle that removes nothing
         sun_zenith_angle.return_value = 90.
