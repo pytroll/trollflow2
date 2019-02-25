@@ -29,12 +29,14 @@ try:
     from satpy.resample import get_area_def
     from posttroll.message import Message
     from posttroll.publisher import NoisyPublisher
+    from pyorbital.astronomy import sun_zenith_angle
 except ImportError:
     Scene = None
     compute_writer_results = None
     get_area_def = None
     Message = None
     NoisyPublisher = None
+    sun_zenith_angle = None
 
 try:
     from trollsched.satpass import Pass
@@ -195,6 +197,51 @@ def metadata_alias(job):
         if key in mda_out:
             mda_out[key] = aliases[key].get(mda_out[key], mda_out[key])
     job['input_mda'] = mda_out.copy()
+
+
+def sza_check(job):
+    """Remove products which are not valid for the current Sun zenith angle."""
+    scn = job['scene']
+    start_time = scn.attrs['start_time']
+    product_list = job['product_list']
+    areas = list(product_list['product_list'].keys())
+    for area in areas:
+        products = list(product_list['product_list'][area]['products'].keys())
+        for product in products:
+            prod_path = "/product_list/%s/products/%s" % (area, product)
+            lon = get_config_value(product_list, prod_path, "sunzen_check_lon")
+            lat = get_config_value(product_list, prod_path, "sunzen_check_lat")
+            if lon is None or lat is None:
+                LOG.debug("No 'sunzen_check_lon' or 'sunzen_check_lat' configured, "
+                          "can\'t check Sun elevation for %s / %s",
+                          area, product)
+                continue
+
+            sunzen = sun_zenith_angle(start_time, lon, lat)
+            LOG.debug("Sun zenith angle is %.2f degrees", sunzen)
+            # Check nighttime limit
+            limit = get_config_value(product_list, prod_path,
+                                     "sunzen_minimum_angle")
+            if limit is not None:
+                if sunzen < limit:
+                    LOG.info("Sun zenith angle to small for nighttime "
+                             "product '%s', product removed.", product)
+                    dpath.util.delete(product_list, prod_path)
+                continue
+
+            # Check daytime limit
+            limit = get_config_value(product_list, prod_path,
+                                     "sunzen_maximum_angle")
+            if limit is not None:
+                if sunzen > limit:
+                    LOG.info("Sun zenith angle to large for daytime "
+                             "product '%s', product removed.", product)
+                    dpath.util.delete(product_list, prod_path)
+                continue
+
+        if len(product_list['product_list'][area]['products']) == 0:
+            LOG.info("Removing empty area: %s", area)
+            dpath.util.delete(product_list, '/product_list/%s' % area)
 
 
 def plist_iter(product_list, base_mda=None, level=None):
