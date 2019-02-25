@@ -286,8 +286,8 @@ class TestResample(unittest.TestCase):
         scn = mock.MagicMock()
         scn.resample.return_value = "foo"
         job = {"scene": scn, "product_list": self.product_list.copy()}
-        job['product_list'][None] = job['product_list']['germ']
-        del job['product_list']['germ']
+        job['product_list']['product_list'][None] = job['product_list']['product_list']['germ']
+        del job['product_list']['product_list']['germ']
         resample(job)
         self.assertTrue(mock.call('omerc_bb',
                                   radius_of_influence=None,
