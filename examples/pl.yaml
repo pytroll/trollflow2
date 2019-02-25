@@ -20,6 +20,8 @@ common:
   #    noaa19: NOAA-19
   #  sensor:
   #    avhrr/3: avhrr-3
+  #sunzen_lon: 25.0
+  #sunzen_lat: 60.0
 
 product_list: &product_list
   omerc_bb:
@@ -35,12 +37,16 @@ product_list: &product_list
         formats:
           - format: nc
             writer: cf
+        # Remove product if SZA is more than this
+        #sunzen_day_maximum: 90.0
       ctth_alti:
         productname: ctth_alti
         output_dir: *output_dir
         formats:
           - format: nc
             writer: cf
+        # Remove product if SZA is less than this
+        #sunzen_night_minimum: 90.0
       cloudtype:
         productname: cloudtype
         output_dir: *output_dir

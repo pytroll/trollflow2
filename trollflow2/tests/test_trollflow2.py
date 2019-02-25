@@ -373,6 +373,50 @@ class TestGetPluginConf(unittest.TestCase):
         self.assertEqual(res["val3"], "baz0")
 
 
+class TestSZACheck(unittest.TestCase):
+
+    @mock.patch("trollflow2.sun_zenith_angle")
+    def test_sza_check(self, sun_zenith_angle):
+        from trollflow2 import sza_check
+        job = {}
+        scene = mock.MagicMock()
+        scene.attrs = {'start_time': 42}
+        job['scene'] = scene
+        product_list = yaml.load(yaml_test1)
+        job['product_list'] = product_list.copy()
+        # Run without any settings
+        sza_check(job)
+        sun_zenith_angle.assert_not_called()
+
+        # Add SZA limits to couple of products
+        # Day product
+        product_list['product_list']['omerc_bb']['products']['ct']['sunzen_day_maximum'] = 95.
+        product_list['product_list']['omerc_bb']['products']['ct']['sunzen_lon'] = 25.
+        product_list['product_list']['omerc_bb']['products']['ct']['sunzen_lat'] = 60.
+        # Night product
+        product_list['product_list']['germ']['products']['cloudtype']['sunzen_night_minimum'] = 85.
+        product_list['product_list']['germ']['products']['cloudtype']['sunzen_lon'] = 25.
+        product_list['product_list']['germ']['products']['cloudtype']['sunzen_lat'] = 60.
+
+        # Zenith angle that removes nothing
+        sun_zenith_angle.return_value = 90.
+        sza_check(job)
+        sun_zenith_angle.assert_called_with(42, 25., 60.)
+        self.assertDictEqual(job['product_list'], product_list)
+
+        # Zenith angle that removes day products
+        sun_zenith_angle.return_value = 100.
+        sza_check(job)
+        self.assertTrue('cloud_top_height' in product_list['product_list']['omerc_bb']['products'])
+        self.assertFalse('ct' in product_list['product_list']['omerc_bb']['products'])
+
+        # Zenith angle that removes night products
+        sun_zenith_angle.return_value = 45.
+        sza_check(job)
+        # There was only one product, so the whole area is deleted
+        self.assertFalse('germ' in job['product_list']['product_list'])
+
+
 def suite():
     """The test suite for test_writers."""
     loader = unittest.TestLoader()
@@ -386,6 +430,7 @@ def suite():
     my_suite.addTest(loader.loadTestsFromTestCase(TestCovers))
     my_suite.addTest(loader.loadTestsFromTestCase(TestMetadataAlias))
     my_suite.addTest(loader.loadTestsFromTestCase(TestGetPluginConf))
+    my_suite.addTest(loader.loadTestsFromTestCase(TestSZACheck))
 
     return my_suite
 
