@@ -27,7 +27,6 @@ try:
     from unittest import mock
 except ImportError:
     import mock
-import datetime as dt
 
 yaml_test1 = """common:
   something: foo
@@ -75,6 +74,7 @@ product_list:
           - format: tif
             writer: geotiff
 """
+
 
 class TestGetAreaPriorities(unittest.TestCase):
 
