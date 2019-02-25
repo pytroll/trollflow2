@@ -3,9 +3,9 @@ common:
     /mnt/output/
   publish_topic: /MSG_0deg/L3
   reader: seviri_l1b_hrit
-  fname_pattern: &fname
+  fname_pattern:
     "{start_time:%Y%m%d_%H%M}_{platform_name}_{areaname}_{productname}.{format}"
-  formats: &formats
+  formats:
     - format: tif
       writer: geotiff
 
@@ -15,24 +15,14 @@ product_list:
     products:
       overview:
         productname: overview
-        output_dir: *output_dir
-        formats: *formats
       #day_microphysics:
       #  productname: day_microphysics
-      #  output_dir: *output_dir
-      #  formats: *formats
       airmass:
         productname: airmass
-        output_dir: *output_dir
-        formats: *formats
       natural_color:
         productname: natural_color
-        output_dir: *output_dir
-        formats: *formats
       night_fog:
         productname: night_fog
-        output_dir: *output_dir
-        formats: *formats
 
 workers:
   - fun: !!python/name:trollflow2.create_scene
