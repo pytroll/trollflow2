@@ -29,12 +29,14 @@ try:
     from satpy.resample import get_area_def
     from posttroll.message import Message
     from posttroll.publisher import NoisyPublisher
+    from pyorbital.astronomy import sun_zenith_angle
 except ImportError:
     Scene = None
     compute_writer_results = None
     get_area_def = None
     Message = None
     NoisyPublisher = None
+    sun_zenith_angle = None
 
 try:
     from trollsched.satpass import Pass
@@ -98,7 +100,10 @@ def save_datasets(job):
         outdir = fmat['output_dir']
         filename = compose(os.path.join(outdir, fname_pattern), fmat)
         fmat.pop('format', None)
-        objs.append(scns[fmat['areaname']].save_dataset(fmat['productname'], filename=filename, compute=False, **fmat))
+        try:
+            objs.append(scns[fmat['areaname']].save_dataset(fmat['productname'], filename=filename, compute=False, **fmat))
+        except KeyError as err:
+            LOG.info('Skipping %s: %s', fmat['productname'], str(err))
         fmat_config['filename'] = filename
     compute_writer_results(objs)
 
@@ -113,21 +118,20 @@ class FilePublisher(object):
         return self
 
     def __call__(self, job):
-        # create message
-        # send message
         mda = job['input_mda'].copy()
         mda.pop('dataset', None)
         mda.pop('collection', None)
         topic = job['product_list']['common']['publish_topic']
-        for area, config in job['product_list']['product_list'].items():
-            for prod, pconfig in config['products'].items():
-                for fmat in pconfig['formats']:
-                    file_mda = mda.copy()
-                    file_mda['uri'] = fmat['filename']
-                    file_mda['uid'] = os.path.basename(fmat['filename'])
-                    msg = Message(topic, 'file', file_mda)
-                    LOG.debug('Publishing %s', str(msg))
-                    self.pub.send(str(msg))
+        for fmat, fmat_config in plist_iter(job['product_list']['product_list']):
+            file_mda = mda.copy()
+            try:
+                file_mda['uri'] = fmat['filename']
+            except KeyError:
+                continue
+            file_mda['uid'] = os.path.basename(fmat['filename'])
+            msg = Message(topic, 'file', file_mda)
+            LOG.debug('Publishing %s', str(msg))
+            self.pub.send(str(msg))
         self.pub.stop()
 
 
@@ -179,6 +183,64 @@ def get_scene_coverage(platform_name, start_time, end_time, sensor, area_id):
     area_def = get_area_def(area_id)
 
     return 100 * overpass.area_coverage(area_def)
+
+
+def metadata_alias(job):
+    """Replace input metadata values with aliases"""
+    mda_out = job['input_mda'].copy()
+    product_list = job['product_list']
+    aliases = get_config_value(product_list, '/common', 'metadata_aliases')
+    if aliases is None:
+        return
+    for key in aliases:
+        if key in mda_out:
+            mda_out[key] = aliases[key].get(mda_out[key], mda_out[key])
+    job['input_mda'] = mda_out.copy()
+
+
+def sza_check(job):
+    """Remove products which are not valid for the current Sun zenith angle."""
+    scn = job['scene']
+    start_time = scn.attrs['start_time']
+    product_list = job['product_list']
+    areas = list(product_list['product_list'].keys())
+    for area in areas:
+        products = list(product_list['product_list'][area]['products'].keys())
+        for product in products:
+            prod_path = "/product_list/%s/products/%s" % (area, product)
+            lon = get_config_value(product_list, prod_path, "sunzen_check_lon")
+            lat = get_config_value(product_list, prod_path, "sunzen_check_lat")
+            if lon is None or lat is None:
+                LOG.debug("No 'sunzen_check_lon' or 'sunzen_check_lat' configured, "
+                          "can\'t check Sun elevation for %s / %s",
+                          area, product)
+                continue
+
+            sunzen = sun_zenith_angle(start_time, lon, lat)
+            LOG.debug("Sun zenith angle is %.2f degrees", sunzen)
+            # Check nighttime limit
+            limit = get_config_value(product_list, prod_path,
+                                     "sunzen_minimum_angle")
+            if limit is not None:
+                if sunzen < limit:
+                    LOG.info("Sun zenith angle to small for nighttime "
+                             "product '%s', product removed.", product)
+                    dpath.util.delete(product_list, prod_path)
+                continue
+
+            # Check daytime limit
+            limit = get_config_value(product_list, prod_path,
+                                     "sunzen_maximum_angle")
+            if limit is not None:
+                if sunzen > limit:
+                    LOG.info("Sun zenith angle to large for daytime "
+                             "product '%s', product removed.", product)
+                    dpath.util.delete(product_list, prod_path)
+                continue
+
+        if len(product_list['product_list'][area]['products']) == 0:
+            LOG.info("Removing empty area: %s", area)
+            dpath.util.delete(product_list, '/product_list/%s' % area)
 
 
 def plist_iter(product_list, base_mda=None, level=None):

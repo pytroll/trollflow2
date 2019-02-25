@@ -12,6 +12,16 @@ common:
       writer: geotiff
     - format: nc
       writer: cf
+  #metadata_aliases:
+  #  platform_name:
+  #    j01: NOAA-20
+  #    noaa15: NOAA-15
+  #    noaa18: NOAA-18
+  #    noaa19: NOAA-19
+  #  sensor:
+  #    avhrr/3: avhrr-3
+  #sunzen_check_lon: 25.0
+  #sunzen_check_lat: 60.0
 
 product_list: &product_list
   omerc_bb:
@@ -31,12 +41,16 @@ product_list: &product_list
         formats:
           - format: nc
             writer: cf
+        # Remove product if SZA is more than this
+        #sunzen_maximum_angle: 90.0
       ctth_alti:
         productname: ctth_alti
         output_dir: *output_dir
         formats:
           - format: nc
             writer: cf
+        # Remove product if SZA is less than this
+        #sunzen_minimum_angle: 90.0
       cloudtype:
         productname: cloudtype
         output_dir: *output_dir
