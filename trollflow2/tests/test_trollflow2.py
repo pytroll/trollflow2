@@ -334,6 +334,22 @@ class TestCovers(unittest.TestCase):
         area_coverage.assert_called_with(6)
 
 
+class TestCheckPlatform(unittest.TestCase):
+
+    @mock.patch('trollflow2.get_config_value')
+    def test_check_platform(self, get_config_value):
+        from trollflow2 import check_platform
+        from trollflow2 import AbortProcessing
+        get_config_value.return_value = None
+        job = {'product_list': None, 'input_mda': {'platform_name': 'foo'}}
+        self.assertIsNone(check_platform(job))
+        get_config_value.return_value = ['foo', 'bar']
+        self.assertIsNone(check_platform(job))
+        get_config_value.return_value = ['bar']
+        with self.assertRaises(AbortProcessing):
+            check_platform(job)
+
+
 class TestMetadataAlias(unittest.TestCase):
 
     def test_metadata_alias(self):
@@ -428,6 +444,7 @@ def suite():
     my_suite.addTest(loader.loadTestsFromTestCase(TestLoadComposites))
     my_suite.addTest(loader.loadTestsFromTestCase(TestResample))
     my_suite.addTest(loader.loadTestsFromTestCase(TestCovers))
+    my_suite.addTest(loader.loadTestsFromTestCase(TestCheckPlatform))
     my_suite.addTest(loader.loadTestsFromTestCase(TestMetadataAlias))
     my_suite.addTest(loader.loadTestsFromTestCase(TestGetPluginConf))
     my_suite.addTest(loader.loadTestsFromTestCase(TestSZACheck))
