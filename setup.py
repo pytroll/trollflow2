@@ -29,7 +29,7 @@ import sys
 
 install_requires = ['pyyaml', 'dpath', 'trollsift']
 if "test" not in sys.argv:
-    install_requires += ['posttroll', 'satpy']
+    install_requires += ['posttroll', 'satpy', 'pyorbital']
 
 setup(name="trollflow2",
       version=versioneer.get_version(),
