@@ -281,6 +281,41 @@ class TestResample(unittest.TestCase):
                                   reduce_data=False) in
                         scn.resample.mock_calls)
 
+    def test_resample_satproj(self):
+        from trollflow2 import resample
+        scn = mock.MagicMock()
+        scn.resample.return_value = "foo"
+        job = {"scene": scn, "product_list": self.product_list.copy()}
+        job['product_list'][None] = job['product_list']['germ']
+        del job['product_list']['germ']
+        resample(job)
+        self.assertTrue(mock.call('omerc_bb',
+                                  radius_of_influence=None,
+                                  resampler="nearest",
+                                  reduce_data=True) in
+                        scn.resample.mock_calls)
+        self.assertTrue(mock.call('euron1',
+                                  radius_of_influence=None,
+                                  resampler="nearest",
+                                  reduce_data=True) in
+                        scn.resample.mock_calls)
+        self.assertTrue(scn in job['resampled_scenes'])
+        self.assertTrue("resampled_scenes" in job)
+        for area in ["omerc_bb", None, "euron1"]:
+            self.assertTrue(area in job["resampled_scenes"])
+            self.assertTrue(job["resampled_scenes"][area] == "foo")
+
+        prod_list = self.product_list.copy()
+        prod_list["common"] = {"resampler": "bilinear"}
+        prod_list["product_list"]["euron1"]["reduce_data"] = False
+        job = {"product_list": prod_list, "scene": scn}
+        resample(job)
+        self.assertTrue(mock.call('euron1',
+                                  radius_of_influence=None,
+                                  resampler="bilinear",
+                                  reduce_data=False) in
+                        scn.resample.mock_calls)
+
 
 class TestCovers(unittest.TestCase):
 

@@ -86,7 +86,10 @@ def resample(job):
         area_conf = _get_plugin_conf(product_list, '/product_list/' + area,
                                      conf)
         LOG.info('Resampling to %s', str(area))
-        job['resampled_scenes'][area] = scn.resample(area, **area_conf)
+        if area is None:
+            job['resampled_scenes'][area] = scn
+        else:
+            job['resampled_scenes'][area] = scn.resample(area, **area_conf)
 
 
 def save_datasets(job):
