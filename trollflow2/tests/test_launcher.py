@@ -212,6 +212,15 @@ class TestRun(unittest.TestCase):
         listener.stop.assert_called_once()
 
 
+class TestExpand(unittest.TestCase):
+    def test_expand(self):
+        from trollflow2.launcher import expand
+        inside = {'a': 'b'}
+        outside = {'c': inside, 'd': inside}
+        expanded = expand(outside)
+        self.assertIsNot(expanded['d'], expanded['c'])
+
+
 class TestProcess(unittest.TestCase):
 
     @mock.patch('trollflow2.launcher.message_to_jobs')
@@ -230,6 +239,7 @@ def suite():
     my_suite.addTest(loader.loadTestsFromTestCase(TestGetAreaPriorities))
     my_suite.addTest(loader.loadTestsFromTestCase(TestMessageToJobs))
     my_suite.addTest(loader.loadTestsFromTestCase(TestRun))
+    my_suite.addTest(loader.loadTestsFromTestCase(TestExpand))
 
     return my_suite
 
