@@ -263,18 +263,24 @@ def sza_check(job):
 def add_overviews(job):
     """Add overviews to images already written to disk."""
     # Get the formats, including filenames and overview settings
-    formats = _get_formats_from_product_list(job['product_list'])
-    for fmt in formats:
-        if "overviews" in fmt:
-            fname = fmt['filename']
-            overviews = fmt['overviews']
-            try:
-                with rasterio.open(fname, 'r+') as dst:
-                    dst.build_overviews(overviews, Resampling.average)
-                    dst.update_tags(ns='rio_overview', resampling='average')
-                LOG.info("Added overviews to %s", fname)
-            except rasterio.RasterioIOError:
-                pass
+    product_list = job['product_list']
+    for area in product_list:
+        for product in product_list[area]:
+            formats = product_list[area][product].get("formats", None)
+            if formats is None:
+                continue
+            for fmt in formats:
+                if "overviews" in fmt:
+                    fname = formats[fmt]['filename']
+                    overviews = formats[fmt]['overviews']
+                    try:
+                        with rasterio.open(fname, 'r+') as dst:
+                            dst.build_overviews(overviews, Resampling.average)
+                            dst.update_tags(ns='rio_overview',
+                                            resampling='average')
+                        LOG.info("Added overviews to %s", fname)
+                    except rasterio.RasterioIOError:
+                        pass
 
 
 def plist_iter(product_list, base_mda=None, level=None):
