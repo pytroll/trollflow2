@@ -114,7 +114,7 @@ def expand(yml):
     PFE http://disq.us/p/1tdbxgx
     """
     if isinstance(yml, dict):
-        for key, value in yml.iteritems():
+        for key, value in yml.items():
             if isinstance(value, dict):
                 expand(value)
                 yml[key] = copy.deepcopy(yml[key])
