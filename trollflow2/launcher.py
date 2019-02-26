@@ -30,8 +30,9 @@ from six.moves.queue import Empty as queue_empty
 from multiprocessing import Process
 import yaml
 import time
-from trollflow2 import gen_dict_extract
+from trollflow2 import gen_dict_extract, plist_iter
 from collections import OrderedDict
+import copy
 from six.moves.urllib.parse import urlparse
 
 """The order of basic things is:
@@ -81,6 +82,11 @@ def get_area_priorities(product_list):
 
 
 def message_to_jobs(msg, product_list):
+    """Convert a posttroll message *msg* to a list of jobs given a *product_list*."""
+    formats = product_list['common'].get('formats', None)
+    for product, pconfig in plist_iter(product_list['product_list'], level='product'):
+        if 'formats' not in pconfig and formats is not None:
+            pconfig['formats'] = formats.copy()
     jobs = OrderedDict()
     priorities = get_area_priorities(product_list)
     # TODO: check the uri is accessible from the current host.
@@ -102,13 +108,30 @@ def message_to_jobs(msg, product_list):
     return jobs
 
 
+def expand(yml):
+    """Expand a yaml config so that aliases are copied.
+
+    PFE http://disq.us/p/1tdbxgx
+    """
+    if isinstance(yml, dict):
+        for key, value in yml.iteritems():
+            if isinstance(value, dict):
+                expand(value)
+                yml[key] = copy.deepcopy(yml[key])
+    return yml
+
+
 def process(msg, prod_list):
-    with open(prod_list) as fd:
-        config = yaml.load(fd.read())
-    jobs = message_to_jobs(msg, config)
-    for prio in sorted(jobs.keys()):
-        job = jobs[prio]
-        job['processing_priority'] = prio
-        for wrk in config['workers']:
-            cwrk = wrk.copy()
-            cwrk.pop('fun')(job, **cwrk)
+    try:
+        with open(prod_list) as fd:
+            config = yaml.load(fd.read())
+        config = expand(config)
+        jobs = message_to_jobs(msg, config)
+        for prio in sorted(jobs.keys()):
+            job = jobs[prio]
+            job['processing_priority'] = prio
+            for wrk in config['workers']:
+                cwrk = wrk.copy()
+                cwrk.pop('fun')(job, **cwrk)
+    except Exception:
+        LOG.exception("Process crashed")
