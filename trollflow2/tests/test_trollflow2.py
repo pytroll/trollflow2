@@ -323,6 +323,38 @@ class TestResample(unittest.TestCase):
             self.assertTrue(area in job["resampled_scenes"])
             self.assertTrue(job["resampled_scenes"][area] == "foo")
 
+    def test_minmax_area(self):
+        from trollflow2 import resample
+        scn = mock.MagicMock()
+        scn.resample.return_value = "foo"
+        product_list = self.product_list.copy()
+        product_list['product_list'][None] = product_list['product_list']['germ']
+        product_list['product_list'][None]['use_min_area'] = True
+        del product_list['product_list']['germ']
+        del product_list['product_list']['omerc_bb']
+        del product_list['product_list']['euron1']
+        job = {"scene": scn, "product_list": product_list.copy()}
+        resample(job)
+        self.assertTrue(mock.call(scn.min_area(),
+                                  radius_of_influence=None,
+                                  resampler="nearest",
+                                  reduce_data=True,
+                                  cache_dir=None,
+                                  mask_area=False,
+                                  epsilon=0.0) in
+                        scn.resample.mock_calls)
+        del product_list['product_list'][None]['use_min_area']
+        product_list['product_list'][None]['use_max_area'] = True
+        job = {"scene": scn, "product_list": product_list.copy()}
+        resample(job)
+        self.assertTrue(mock.call(scn.max_area(),
+                                  radius_of_influence=None,
+                                  resampler="nearest",
+                                  reduce_data=True,
+                                  cache_dir=None,
+                                  mask_area=False,
+                                  epsilon=0.0) in
+                        scn.resample.mock_calls)
 
 
 class TestCovers(unittest.TestCase):
