@@ -253,17 +253,26 @@ class TestResample(unittest.TestCase):
         self.assertTrue(mock.call('omerc_bb',
                                   radius_of_influence=None,
                                   resampler="nearest",
-                                  reduce_data=True) in
+                                  reduce_data=True,
+                                  cache_dir=None,
+                                  mask_area=False,
+                                  epsilon=0.0) in
                         scn.resample.mock_calls)
         self.assertTrue(mock.call('germ',
                                   radius_of_influence=None,
                                   resampler="nearest",
-                                  reduce_data=True) in
+                                  reduce_data=True,
+                                  cache_dir=None,
+                                  mask_area=False,
+                                  epsilon=0.0) in
                         scn.resample.mock_calls)
         self.assertTrue(mock.call('euron1',
                                   radius_of_influence=None,
                                   resampler="nearest",
-                                  reduce_data=True) in
+                                  reduce_data=True,
+                                  cache_dir=None,
+                                  mask_area=False,
+                                  epsilon=0.0) in
                         scn.resample.mock_calls)
         self.assertTrue("resampled_scenes" in job)
         for area in ["omerc_bb", "germ", "euron1"]:
@@ -278,7 +287,10 @@ class TestResample(unittest.TestCase):
         self.assertTrue(mock.call('euron1',
                                   radius_of_influence=None,
                                   resampler="bilinear",
-                                  reduce_data=False) in
+                                  reduce_data=False,
+                                  cache_dir=None,
+                                  mask_area=False,
+                                  epsilon=0.0) in
                         scn.resample.mock_calls)
 
     def test_resample_satproj(self):
@@ -292,12 +304,18 @@ class TestResample(unittest.TestCase):
         self.assertTrue(mock.call('omerc_bb',
                                   radius_of_influence=None,
                                   resampler="nearest",
-                                  reduce_data=True) in
+                                  reduce_data=True,
+                                  cache_dir=None,
+                                  mask_area=False,
+                                  epsilon=0.0) in
                         scn.resample.mock_calls)
         self.assertTrue(mock.call('euron1',
                                   radius_of_influence=None,
                                   resampler="nearest",
-                                  reduce_data=True) in
+                                  reduce_data=True,
+                                  cache_dir=None,
+                                  mask_area=False,
+                                  epsilon=0.0) in
                         scn.resample.mock_calls)
         self.assertTrue(job['resampled_scenes'][None] is scn)
         self.assertTrue("resampled_scenes" in job)
