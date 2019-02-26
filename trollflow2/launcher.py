@@ -120,10 +120,12 @@ def expand(yml):
                 yml[key] = copy.deepcopy(yml[key])
     return yml
 
+
 def process(msg, prod_list):
     try:
         with open(prod_list) as fd:
             config = yaml.load(fd.read())
+        config = expand(config)
         jobs = message_to_jobs(msg, config)
         for prio in sorted(jobs.keys()):
             job = jobs[prio]
