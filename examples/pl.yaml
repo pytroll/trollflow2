@@ -63,9 +63,8 @@ product_list: &product_list
         formats:
           - format: tif
             writer: geotiff
-
-  # euron1:
-  #   areaname: euron1
+  # null:  # satellite projection
+  #   areaname: satellite_projection
   #   products:
   #     cloudtype:
   #       productname: cloudtype
