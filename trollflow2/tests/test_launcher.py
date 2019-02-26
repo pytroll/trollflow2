@@ -239,6 +239,7 @@ def suite():
     my_suite.addTest(loader.loadTestsFromTestCase(TestGetAreaPriorities))
     my_suite.addTest(loader.loadTestsFromTestCase(TestMessageToJobs))
     my_suite.addTest(loader.loadTestsFromTestCase(TestRun))
+    my_suite.addTest(loader.loadTestsFromTestCase(TestExpand))
 
     return my_suite
 
