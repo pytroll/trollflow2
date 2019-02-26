@@ -27,7 +27,6 @@ try:
     from unittest import mock
 except ImportError:
     import mock
-import datetime as dt
 
 yaml_test1 = """common:
   something: foo
@@ -76,6 +75,39 @@ product_list:
             writer: geotiff
 """
 
+yaml_test_minimal = """common:
+  output_dir: &output_dir
+    /mnt/output/
+  publish_topic: /MSG_0deg/L3
+  reader: seviri_l1b_hrit
+  fname_pattern:
+    "{start_time:%Y%m%d_%H%M}_{platform_name}_{areaname}_{productname}.{format}"
+  formats:
+    - format: tif
+      writer: geotiff
+
+product_list:
+  euro4:
+    areaname: euro4
+    products:
+      overview:
+        productname: overview
+      airmass:
+        productname: airmass
+      natural_color:
+        productname: natural_color
+      night_fog:
+        productname: night_fog
+
+# workers:
+#   - fun: !!python/name:trollflow2.create_scene
+#   - fun: !!python/name:trollflow2.load_composites
+#   - fun: !!python/name:trollflow2.resample
+#   - fun: !!python/name:trollflow2.save_datasets
+#   - fun: !!python/object:trollflow2.FilePublisher {}
+"""
+
+
 class TestGetAreaPriorities(unittest.TestCase):
 
     def test_get_area_priorities(self):
@@ -118,6 +150,28 @@ class TestMessageToJobs(unittest.TestCase):
         jobs = message_to_jobs(msg, prodlist)
         self.assertTrue('germ' in jobs[999]['product_list']['product_list'])
 
+    def test_message_to_jobs_minimal(self):
+        from trollflow2.launcher import message_to_jobs
+        prodlist = yaml.load(yaml_test_minimal)
+        msg = mock.MagicMock()
+        msg.data = {'uri': 'foo'}
+        jobs = message_to_jobs(msg, prodlist)
+
+        expected = dict([('euro4',
+                          {'areaname': 'euro4',
+                           'products': {'airmass': {'formats': [{'format': 'tif',
+                                                                 'writer': 'geotiff'}],
+                                                    'productname': 'airmass'},
+                                        'natural_color': {'formats': [{'format': 'tif',
+                                                                       'writer': 'geotiff'}],
+                                                          'productname': 'natural_color'},
+                                        'night_fog': {'formats': [{'format': 'tif',
+                                                                   'writer': 'geotiff'}],
+                                                      'productname': 'night_fog'},
+                                        'overview': {'formats': [{'format': 'tif',
+                                                                  'writer': 'geotiff'}],
+                                                     'productname': 'overview'}}})])
+        self.assertDictEqual(jobs[999]['product_list']['product_list'], expected)
 
 class TestRun(unittest.TestCase):
 
@@ -158,6 +212,15 @@ class TestRun(unittest.TestCase):
         listener.stop.assert_called_once()
 
 
+class TestExpand(unittest.TestCase):
+    def test_expand(self):
+        from trollflow2.launcher import expand
+        inside = {'a': 'b'}
+        outside = {'c': inside, 'd': inside}
+        expanded = expand(outside)
+        self.assertIsNot(expanded['d'], expanded['c'])
+
+
 class TestProcess(unittest.TestCase):
 
     @mock.patch('trollflow2.launcher.message_to_jobs')
@@ -176,6 +239,7 @@ def suite():
     my_suite.addTest(loader.loadTestsFromTestCase(TestGetAreaPriorities))
     my_suite.addTest(loader.loadTestsFromTestCase(TestMessageToJobs))
     my_suite.addTest(loader.loadTestsFromTestCase(TestRun))
+    my_suite.addTest(loader.loadTestsFromTestCase(TestExpand))
 
     return my_suite
 

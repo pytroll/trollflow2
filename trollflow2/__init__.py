@@ -77,16 +77,35 @@ def load_composites(job):
 def resample(job):
     defaults = {"radius_of_influence": None,
                 "resampler": "nearest",
-                "reduce_data": True}
+                "reduce_data": True,
+                "cache_dir": None,
+                "mask_area": False,
+                "epsilon": 0.0}
     product_list = job['product_list']
     conf = _get_plugin_conf(product_list, '/common', defaults)
     job['resampled_scenes'] = {}
     scn = job['scene']
     for area in product_list['product_list']:
-        area_conf = _get_plugin_conf(product_list, '/product_list/' + area,
+        area_conf = _get_plugin_conf(product_list, '/product_list/' + str(area),
                                      conf)
         LOG.info('Resampling to %s', str(area))
-        job['resampled_scenes'][area] = scn.resample(area, **area_conf)
+        if area is None:
+            minarea = get_config_value(product_list,
+                                       '/product_list/' + str(area),
+                                       'use_min_area')
+            maxarea = get_config_value(product_list,
+                                       '/product_list/' + str(area),
+                                       'use_max_area')
+            if minarea is True:
+                job['resampled_scenes'][area] = scn.resample(scn.min_area(),
+                                                             **area_conf)
+            elif maxarea is True:
+                job['resampled_scenes'][area] = scn.resample(scn.max_area(),
+                                                             **area_conf)
+            else:
+                job['resampled_scenes'][area] = scn
+        else:
+            job['resampled_scenes'][area] = scn.resample(area, **area_conf)
 
 
 def save_datasets(job):
