@@ -118,4 +118,4 @@ c) The results
     need to be updated also in the configuration files
 
   - Remember to match the mount-points in the "docker run" command to
-    the paths define in the configuration files
+    the paths defined in the configuration files

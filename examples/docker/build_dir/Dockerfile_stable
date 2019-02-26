@@ -26,9 +26,9 @@ RUN conda config --add channels conda-forge && \
     toolz \
     configobj && \
     conda clean -a -y
-ADD requirements.txt /tmp/
+ADD requirements_stable.txt /tmp/
 RUN pip install -r /tmp/requirements_stable.txt && \
-    rm -r /tmp/requirements.txt &&  \
+    rm -r /tmp/requirements_stable.txt &&  \
     cd /tmp/ && \
     git clone https://github.com/Supervisor/supervisor.git && \
     cd supervisor && python setup.py install && \
