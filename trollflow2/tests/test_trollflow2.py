@@ -508,6 +508,26 @@ class TestSZACheck(unittest.TestCase):
         self.assertFalse('germ' in job['product_list']['product_list'])
 
 
+class TestOverviews(unittest.TestCase):
+
+    def setUp(self):
+        self.product_list = yaml.load(yaml_test1)
+
+    @mock.patch('trollflow2.Resampling')
+    @mock.patch('trollflow2.rasterio')
+    def test_add_overviews(self, rasterio, resampling):
+        from trollflow2 import add_overviews
+        # Mock the rasterio.open context manager
+        dst = mock.MagicMock()
+        rasterio.open.return_value.__enter__.return_value = dst
+
+        product_list = self.product_list['product_list']
+        product_list['germ']['products']['cloud_top_height']['formats']['overviews'] = [4]
+        job = {"product_list": self.product_list}
+        add_overviews(job)
+        import pbd; pdb.set_trace()
+
+
 def suite():
     """The test suite for test_writers."""
     loader = unittest.TestLoader()
@@ -523,6 +543,7 @@ def suite():
     my_suite.addTest(loader.loadTestsFromTestCase(TestMetadataAlias))
     my_suite.addTest(loader.loadTestsFromTestCase(TestGetPluginConf))
     my_suite.addTest(loader.loadTestsFromTestCase(TestSZACheck))
+    my_suite.addTest(loader.loadTestsFromTestCase(TestOverviews))
 
     return my_suite
 
