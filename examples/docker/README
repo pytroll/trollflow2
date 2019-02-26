@@ -22,18 +22,21 @@ b) Build the docker image "trollflow2"
 
   After you have a working Docker installation, in commandline, navigate
   to the directory where this README file is located
-  (trollflow2/examples/docker/) and issue the following command:
+  (trollflow2/examples/docker/) and issue the following command to build
+  the latest release of trollflow2:
 
   In linux or OSX:
 
-    docker build -t trollflow2 -f build_dir/Dockerfile build_dir
+    docker build -t trollflow2 -f build_dir/Dockerfile_stable build_dir
 
   In windows:
 
-    docker build -t trollflow2 -f build_dir\Dockerfile build_dir
+    docker build -t trollflow2 -f build_dir\Dockerfile_stable build_dir
 
-  Depending on the computer and network connection, the build takes from
-  5 minutes to 20 minutes.
+  Depending on the computer and network connection, the build takes
+  from 5 minutes to 20 minutes.  To build the development version, use
+  Dockerfile_dev.  The development version will not download
+  pyspectral look-up tables.
 
 
 2) Running production
