@@ -214,14 +214,31 @@ class TestRun(unittest.TestCase):
 
 class TestProcess(unittest.TestCase):
 
+    @mock.patch('trollflow2.launcher.expand')
+    @mock.patch('trollflow2.launcher.yaml')
     @mock.patch('trollflow2.launcher.message_to_jobs')
     @mock.patch('trollflow2.launcher.open')
-    def test_process(self, open_, message_to_jobs):
+    def test_process(self, open_, message_to_jobs, yaml, expand):
+        from trollflow2.launcher import process
         fid = mock.MagicMock()
         fid.read.return_value = yaml_test1
         open_.return_value.__enter__.return_value = fid
-        # jobs = {0: }
-        message_to_jobs.return_value = jobs
+        yaml.load.return_value = "foo"
+        fun1 = mock.MagicMock()
+        # Return something resembling a config
+        expand.return_value = {"workers": [{"fun": fun1}]}
+
+        message_to_jobs.return_value = {1: {"job1": dict([])}}
+        process("msg", "prod_list")
+        open_.assert_called_with("prod_list")
+        yaml.load.assert_called_once()
+        message_to_jobs.assert_called_with("msg", {"workers": [{"fun": fun1}]})
+        fun1.assert_called_with({'job1': {}, 'processing_priority': 1})
+        # Test that errors are propagated
+        yaml.load.side_effect = KeyboardInterrupt
+        with self.assertRaises(KeyboardInterrupt):
+            process("msg", "prod_list")
+
 
 def suite():
     """The test suite for test_writers."""
@@ -230,6 +247,7 @@ def suite():
     my_suite.addTest(loader.loadTestsFromTestCase(TestGetAreaPriorities))
     my_suite.addTest(loader.loadTestsFromTestCase(TestMessageToJobs))
     my_suite.addTest(loader.loadTestsFromTestCase(TestRun))
+    my_suite.addTest(loader.loadTestsFromTestCase(TestProcess))
 
     return my_suite
 
