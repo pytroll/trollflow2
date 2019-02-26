@@ -103,12 +103,15 @@ def message_to_jobs(msg, product_list):
 
 
 def process(msg, prod_list):
-    with open(prod_list) as fd:
-        config = yaml.load(fd.read())
-    jobs = message_to_jobs(msg, config)
-    for prio in sorted(jobs.keys()):
-        job = jobs[prio]
-        job['processing_priority'] = prio
-        for wrk in config['workers']:
-            cwrk = wrk.copy()
-            cwrk.pop('fun')(job, **cwrk)
+    try:
+        with open(prod_list) as fd:
+            config = yaml.load(fd.read())
+        jobs = message_to_jobs(msg, config)
+        for prio in sorted(jobs.keys()):
+            job = jobs[prio]
+            job['processing_priority'] = prio
+            for wrk in config['workers']:
+                cwrk = wrk.copy()
+                cwrk.pop('fun')(job, **cwrk)
+    except Exception:
+        LOG.exception("Process crashed")
