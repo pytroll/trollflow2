@@ -37,7 +37,7 @@ product_list:
     areaname: euron1
     min_coverage: 20.0
     products:
-      ctth:
+      cloud_top_height:
         productname: cloud_top_height
         output_dir: /tmp/satdmz/pps/www/latest_2018/
         formats:
@@ -142,16 +142,16 @@ class TestSaveDatasets(unittest.TestCase):
         save_datasets(job)
         dexpected = {'euron1': {'areaname': 'euron1',
                                 'min_coverage': 20.0,
-                                'products': {'ctth': {'fname_pattern': '{platform_name:s}_{start_time:%Y%m%d_%H%M}_{areaname:s}_ctth.{format}',
-                                                      'formats': [{'filename': '/tmp/satdmz/pps/www/latest_2018/NOAA-15_20190217_0600_euron1_ctth.png',
-                                                                   'format': 'png',
-                                                                   'writer': 'simple_image'},
-                                                                  {'filename': '/tmp/satdmz/pps/www/latest_2018/NOAA-15_20190217_0600_euron1_ctth.jpg',
-                                                                   'fill_value': 0,
-                                                                   'format': 'jpg',
-                                                                   'writer': 'simple_image'}],
-                                                      'output_dir': '/tmp/satdmz/pps/www/latest_2018/',
-                                                      'productname': 'cloud_top_height'}}},
+                                'products': {'cloud_top_height': {'fname_pattern': '{platform_name:s}_{start_time:%Y%m%d_%H%M}_{areaname:s}_ctth.{format}',
+                                                                  'formats': [{'filename': '/tmp/satdmz/pps/www/latest_2018/NOAA-15_20190217_0600_euron1_ctth.png',
+                                                                               'format': 'png',
+                                                                               'writer': 'simple_image'},
+                                                                              {'filename': '/tmp/satdmz/pps/www/latest_2018/NOAA-15_20190217_0600_euron1_ctth.jpg',
+                                                                               'fill_value': 0,
+                                                                               'format': 'jpg',
+                                                                               'writer': 'simple_image'}],
+                                                                  'output_dir': '/tmp/satdmz/pps/www/latest_2018/',
+                                                                  'productname': 'cloud_top_height'}}},
                      'germ': {'areaname': 'germ',
                               'fname_pattern': '{start_time:%Y%m%d_%H%M}_{areaname:s}_{productname}.{format}',
                               'products': {'cloudtype': {'formats': [{'filename': '/tmp/satdmz/pps/www/latest_2018/20190217_0600_germ_cloudtype.png',
@@ -236,7 +236,15 @@ class TestLoadComposites(unittest.TestCase):
         scn = mock.MagicMock()
         job = {"product_list": self.product_list, "scene": scn}
         load_composites(job)
-        scn.load.assert_called_with({'ct', 'cloudtype', 'cloud_top_height'})
+        scn.load.assert_called_with({'ct', 'cloudtype', 'cloud_top_height'}, resolution=None)
+
+    def test_load_composites_with_resolution(self):
+        from trollflow2 import load_composites
+        scn = mock.MagicMock()
+        self.product_list['common']['resolution'] = 1000
+        job = {"product_list": self.product_list, "scene": scn}
+        load_composites(job)
+        scn.load.assert_called_with({'ct', 'cloudtype', 'cloud_top_height'}, resolution=1000)
 
 
 class TestResample(unittest.TestCase):
