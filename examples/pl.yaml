@@ -12,6 +12,7 @@ common:
       writer: geotiff
     - format: nc
       writer: cf
+  #resolution: 1000
   #metadata_aliases:
   #  platform_name:
   #    j01: NOAA-20
