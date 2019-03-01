@@ -132,6 +132,7 @@ class TestProdList(unittest.TestCase):
 class TestSaveDatasets(unittest.TestCase):
     @mock.patch('trollflow2.compute_writer_results')
     def test_save_datasets(self, cwr_mock):
+        self.maxDiff = None
         from trollflow2 import save_datasets
         job = {}
         job['input_mda'] = input_mda
@@ -143,25 +144,25 @@ class TestSaveDatasets(unittest.TestCase):
         for area in job['product_list']['product_list']:
             job['resampled_scenes'][area] = mock.Mock()
         save_datasets(job)
-        dexpected = {'euron1': {'areaname': 'euron1',
+        dexpected = {'euron1': {'areaname': 'euron1_in_fname',
                                 'min_coverage': 20.0,
                                 'products': {'cloud_top_height': {'fname_pattern': '{platform_name:s}_{start_time:%Y%m%d_%H%M}_{areaname:s}_ctth.{format}',
-                                                                  'formats': [{'filename': '/tmp/satdmz/pps/www/latest_2018/NOAA-15_20190217_0600_euron1_ctth.png',
+                                                                  'formats': [{'filename': '/tmp/satdmz/pps/www/latest_2018/NOAA-15_20190217_0600_euron1_in_fname_ctth_in_fname.png',
                                                                                'format': 'png',
                                                                                'writer': 'simple_image'},
-                                                                              {'filename': '/tmp/satdmz/pps/www/latest_2018/NOAA-15_20190217_0600_euron1_ctth.jpg',
+                                                                              {'filename': '/tmp/satdmz/pps/www/latest_2018/NOAA-15_20190217_0600_euron1_in_fname_ctth_in_fname.jpg',
                                                                                'fill_value': 0,
                                                                                'format': 'jpg',
                                                                                'writer': 'simple_image'}],
                                                                   'output_dir': '/tmp/satdmz/pps/www/latest_2018/',
-                                                                  'productname': 'cloud_top_height'}}},
-                     'germ': {'areaname': 'germ',
+                                                                  'productname': 'cloud_top_height_in_fname'}}},
+                     'germ': {'areaname': 'germ_in_fname',
                               'fname_pattern': '{start_time:%Y%m%d_%H%M}_{areaname:s}_{productname}.{format}',
-                              'products': {'cloudtype': {'formats': [{'filename': '/tmp/satdmz/pps/www/latest_2018/20190217_0600_germ_cloudtype.png',
+                              'products': {'cloudtype': {'formats': [{'filename': '/tmp/satdmz/pps/www/latest_2018/20190217_0600_germ_in_fname_cloudtype_in_fname.png',
                                                                       'format': 'png',
                                                                       'writer': 'simple_image'}],
                                                          'output_dir': '/tmp/satdmz/pps/www/latest_2018/',
-                                                         'productname': 'cloudtype'}}},
+                                                         'productname': 'cloudtype_in_fname'}}},
                      'omerc_bb': {'areaname': 'omerc_bb',
                                   'output_dir': '/tmp',
                                   'products': {'cloud_top_height': {'formats': [{'filename': '/tmp/NOAA-15_20190217_0600_omerc_bb_cloud_top_height.tif',
