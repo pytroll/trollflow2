@@ -34,11 +34,11 @@ yaml_test1 = """common:
   min_coverage: 5.0
 product_list:
   euron1:
-    areaname: euron1
+    areaname: euron1_in_fname
     min_coverage: 20.0
     products:
       cloud_top_height:
-        productname: cloud_top_height
+        productname: cloud_top_height_in_fname
         output_dir: /tmp/satdmz/pps/www/latest_2018/
         formats:
           - format: png
@@ -49,11 +49,11 @@ product_list:
         fname_pattern: "{platform_name:s}_{start_time:%Y%m%d_%H%M}_{areaname:s}_ctth.{format}"
 
   germ:
-    areaname: germ
+    areaname: germ_in_fname
     fname_pattern: "{start_time:%Y%m%d_%H%M}_{areaname:s}_{productname}.{format}"
     products:
       cloudtype:
-        productname: cloudtype
+        productname: cloudtype_in_fname
         output_dir: /tmp/satdmz/pps/www/latest_2018/
         formats:
           - format: png
@@ -108,19 +108,22 @@ class TestProdList(unittest.TestCase):
     def test_iter(self):
         from trollflow2 import plist_iter
         prodlist = yaml.load(yaml_test1)['product_list']
-        expected = [{'areaname': 'euron1', 'productname': 'cloud_top_height',
+        expected = [{'areaname': 'euron1_in_fname', 'area': 'euron1', 'productname': 'cloud_top_height_in_fname', 'product': 'cloud_top_height',
                      'min_coverage': 20.0,
                      'output_dir': '/tmp/satdmz/pps/www/latest_2018/', 'format': 'png', 'writer': 'simple_image',
                      'fname_pattern': '{platform_name:s}_{start_time:%Y%m%d_%H%M}_{areaname:s}_ctth.{format}'},
-                    {'areaname': 'euron1', 'productname': 'cloud_top_height', 'fill_value': 0,
+                    {'areaname': 'euron1_in_fname', 'area': 'euron1', 'productname': 'cloud_top_height_in_fname', 'product': 'cloud_top_height', 'fill_value': 0,
                      'min_coverage': 20.0,
                      'output_dir': '/tmp/satdmz/pps/www/latest_2018/', 'format': 'jpg', 'writer': 'simple_image',
                      'fname_pattern': '{platform_name:s}_{start_time:%Y%m%d_%H%M}_{areaname:s}_ctth.{format}'},
-                    {'areaname': 'germ', 'productname': 'cloudtype', 'output_dir': '/tmp/satdmz/pps/www/latest_2018/',
+                    {'areaname': 'germ_in_fname', 'area': 'germ', 'productname': 'cloudtype_in_fname', 'product': 'cloudtype',
+                     'output_dir': '/tmp/satdmz/pps/www/latest_2018/',
                      'fname_pattern': '{start_time:%Y%m%d_%H%M}_{areaname:s}_{productname}.{format}',
                      'format': 'png', 'writer': 'simple_image'},
-                    {'areaname': 'omerc_bb', 'productname': 'ct', 'output_dir': '/tmp', 'format': 'nc', 'writer': 'cf'},
-                    {'areaname': 'omerc_bb', 'productname': 'cloud_top_height', 'output_dir': '/tmp', 'format': 'tif',
+                    {'areaname': 'omerc_bb', 'area': 'omerc_bb', 'productname': 'ct', 'product': 'ct',
+                     'output_dir': '/tmp', 'format': 'nc', 'writer': 'cf'},
+                    {'areaname': 'omerc_bb', 'area': 'omerc_bb', 'productname': 'cloud_top_height', 'product': 'cloud_top_height',
+                     'output_dir': '/tmp', 'format': 'tif',
                      'writer': 'geotiff'}]
         for i, exp in zip(plist_iter(prodlist), expected):
             self.assertDictEqual(i[0], exp)
