@@ -147,33 +147,29 @@ class TestSaveDatasets(unittest.TestCase):
         dexpected = {'euron1': {'areaname': 'euron1_in_fname',
                                 'min_coverage': 20.0,
                                 'products': {'cloud_top_height': {'fname_pattern': '{platform_name:s}_{start_time:%Y%m%d_%H%M}_{areaname:s}_ctth.{format}',
-                                                                  'formats': [{'filename': '/tmp/satdmz/pps/www/latest_2018/NOAA-15_20190217_0600_euron1_in_fname_ctth_in_fname.png',
-                                                                               'format': 'png',
+                                                                  'formats': [{'format': 'png',
                                                                                'writer': 'simple_image'},
-                                                                              {'filename': '/tmp/satdmz/pps/www/latest_2018/NOAA-15_20190217_0600_euron1_in_fname_ctth_in_fname.jpg',
-                                                                               'fill_value': 0,
+                                                                              {'fill_value': 0,
                                                                                'format': 'jpg',
                                                                                'writer': 'simple_image'}],
                                                                   'output_dir': '/tmp/satdmz/pps/www/latest_2018/',
                                                                   'productname': 'cloud_top_height_in_fname'}}},
                      'germ': {'areaname': 'germ_in_fname',
                               'fname_pattern': '{start_time:%Y%m%d_%H%M}_{areaname:s}_{productname}.{format}',
-                              'products': {'cloudtype': {'formats': [{'filename': '/tmp/satdmz/pps/www/latest_2018/20190217_0600_germ_in_fname_cloudtype_in_fname.png',
-                                                                      'format': 'png',
+                              'products': {'cloudtype': {'formats': [{'format': 'png',
                                                                       'writer': 'simple_image'}],
                                                          'output_dir': '/tmp/satdmz/pps/www/latest_2018/',
                                                          'productname': 'cloudtype_in_fname'}}},
                      'omerc_bb': {'areaname': 'omerc_bb',
                                   'output_dir': '/tmp',
-                                  'products': {'cloud_top_height': {'formats': [{'filename': '/tmp/NOAA-15_20190217_0600_omerc_bb_cloud_top_height.tif',
-                                                                                 'format': 'tif',
+                                  'products': {'cloud_top_height': {'formats': [{'format': 'tif',
                                                                                  'writer': 'geotiff'}],
                                                                     'productname': 'cloud_top_height'},
-                                               'ct': {'formats': [{'filename': '/tmp/NOAA-15_20190217_0600_omerc_bb_ct.nc',
-                                                                   'format': 'nc',
+                                               'ct': {'formats': [{'format': 'nc',
                                                                    'writer': 'cf'}],
                                                       'productname': 'ct'}}}}
-        self.assertDictEqual(job['product_list']['product_list'], dexpected)
+        res = job['product_list']['product_list']
+        self.assertDictEqual(res, dexpected)
 
 
 class TestConfigValue(unittest.TestCase):
