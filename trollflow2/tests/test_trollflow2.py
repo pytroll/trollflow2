@@ -46,7 +46,7 @@ product_list:
           - format: jpg
             writer: simple_image
             fill_value: 0
-        fname_pattern: "{platform_name:s}_{start_time:%Y%m%d_%H%M}_{areaname:s}_ctth.{format}"
+        fname_pattern: "{platform_name:s}_{start_time:%Y%m%d_%H%M}_{areaname:s}_ctth_static.{format}"
 
   germ:
     areaname: germ_in_fname
@@ -111,11 +111,11 @@ class TestProdList(unittest.TestCase):
         expected = [{'areaname': 'euron1_in_fname', 'area': 'euron1', 'productname': 'cloud_top_height_in_fname', 'product': 'cloud_top_height',
                      'min_coverage': 20.0,
                      'output_dir': '/tmp/satdmz/pps/www/latest_2018/', 'format': 'png', 'writer': 'simple_image',
-                     'fname_pattern': '{platform_name:s}_{start_time:%Y%m%d_%H%M}_{areaname:s}_ctth.{format}'},
+                     'fname_pattern': '{platform_name:s}_{start_time:%Y%m%d_%H%M}_{areaname:s}_ctth_static.{format}'},
                     {'areaname': 'euron1_in_fname', 'area': 'euron1', 'productname': 'cloud_top_height_in_fname', 'product': 'cloud_top_height', 'fill_value': 0,
                      'min_coverage': 20.0,
                      'output_dir': '/tmp/satdmz/pps/www/latest_2018/', 'format': 'jpg', 'writer': 'simple_image',
-                     'fname_pattern': '{platform_name:s}_{start_time:%Y%m%d_%H%M}_{areaname:s}_ctth.{format}'},
+                     'fname_pattern': '{platform_name:s}_{start_time:%Y%m%d_%H%M}_{areaname:s}_ctth_static.{format}'},
                     {'areaname': 'germ_in_fname', 'area': 'germ', 'productname': 'cloudtype_in_fname', 'product': 'cloudtype',
                      'output_dir': '/tmp/satdmz/pps/www/latest_2018/',
                      'fname_pattern': '{start_time:%Y%m%d_%H%M}_{areaname:s}_{productname}.{format}',
@@ -146,11 +146,11 @@ class TestSaveDatasets(unittest.TestCase):
         save_datasets(job)
         dexpected = {'euron1': {'areaname': 'euron1_in_fname',
                                 'min_coverage': 20.0,
-                                'products': {'cloud_top_height': {'fname_pattern': '{platform_name:s}_{start_time:%Y%m%d_%H%M}_{areaname:s}_ctth.{format}',
-                                                                  'formats': [{'filename': '/tmp/satdmz/pps/www/latest_2018/NOAA-15_20190217_0600_euron1_in_fname_ctth_in_fname.png',
+                                'products': {'cloud_top_height': {'fname_pattern': '{platform_name:s}_{start_time:%Y%m%d_%H%M}_{areaname:s}_ctth_static.{format}',
+                                                                  'formats': [{'filename': '/tmp/satdmz/pps/www/latest_2018/NOAA-15_20190217_0600_euron1_in_fname_ctth_static.png',
                                                                                'format': 'png',
                                                                                'writer': 'simple_image'},
-                                                                              {'filename': '/tmp/satdmz/pps/www/latest_2018/NOAA-15_20190217_0600_euron1_in_fname_ctth_in_fname.jpg',
+                                                                              {'filename': '/tmp/satdmz/pps/www/latest_2018/NOAA-15_20190217_0600_euron1_in_fname_ctth_static.jpg',
                                                                                'fill_value': 0,
                                                                                'format': 'jpg',
                                                                                'writer': 'simple_image'}],

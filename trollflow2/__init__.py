@@ -124,9 +124,9 @@ def save_datasets(job):
         fmat.pop('format', None)
         try:
             objs.append(scns[fmat['area']].save_dataset(fmat['product'], filename=filename, compute=False, **fmat))
+            fmat_config['filename'] = filename
         except KeyError as err:
             LOG.info('Skipping %s: %s', fmat['productname'], str(err))
-            fmat_config['filename'] = filename
     compute_writer_results(objs)
 
 
