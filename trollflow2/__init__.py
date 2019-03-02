@@ -119,14 +119,14 @@ def save_datasets(job):
     base_config.pop('dataset', None)
     for fmat, fmat_config in plist_iter(job['product_list']['product_list'], base_config):
         fname_pattern = fmat['fname_pattern']
-        outdir = fmat['output_dir']
-        filename = compose(os.path.join(outdir, fname_pattern), fmat)
+        filename = compose(os.path.join(fmat['output_dir'], fname_pattern), fmat)
         fmat.pop('format', None)
         try:
             objs.append(scns[fmat['area']].save_dataset(fmat['product'], filename=filename, compute=False, **fmat))
-            fmat_config['filename'] = filename
         except KeyError as err:
             LOG.info('Skipping %s: %s', fmat['productname'], str(err))
+        else:
+            fmat_config['filename'] = filename
     compute_writer_results(objs)
 
 
