@@ -67,10 +67,12 @@ def create_scene(job):
 
 
 def load_composites(job):
-    composites = set(dpath.util.values(job['product_list'], '/product_list/*/products/*/productname'))
+    """Load composites given in the job's product_list."""
+    composites = set().union(*(set(d.keys()) for d in dpath.util.values(job['product_list'], '/product_list/*/products')))
     LOG.info('Loading %s', str(composites))
     scn = job['scene']
-    scn.load(composites)
+    resolution = job['product_list']['common'].get('resolution', None)
+    scn.load(composites, resolution=resolution)
     job['scene'] = scn
 
 
