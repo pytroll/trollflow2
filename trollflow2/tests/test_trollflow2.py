@@ -34,11 +34,11 @@ yaml_test1 = """common:
   min_coverage: 5.0
 product_list:
   euron1:
-    areaname: euron1
+    areaname: euron1_in_fname
     min_coverage: 20.0
     products:
       cloud_top_height:
-        productname: cloud_top_height
+        productname: cloud_top_height_in_fname
         output_dir: /tmp/satdmz/pps/www/latest_2018/
         formats:
           - format: png
@@ -46,14 +46,14 @@ product_list:
           - format: jpg
             writer: simple_image
             fill_value: 0
-        fname_pattern: "{platform_name:s}_{start_time:%Y%m%d_%H%M}_{areaname:s}_ctth.{format}"
+        fname_pattern: "{platform_name:s}_{start_time:%Y%m%d_%H%M}_{areaname:s}_ctth_static.{format}"
 
   germ:
-    areaname: germ
+    areaname: germ_in_fname
     fname_pattern: "{start_time:%Y%m%d_%H%M}_{areaname:s}_{productname}.{format}"
     products:
       cloudtype:
-        productname: cloudtype
+        productname: cloudtype_in_fname
         output_dir: /tmp/satdmz/pps/www/latest_2018/
         formats:
           - format: png
@@ -108,19 +108,22 @@ class TestProdList(unittest.TestCase):
     def test_iter(self):
         from trollflow2 import plist_iter
         prodlist = yaml.load(yaml_test1)['product_list']
-        expected = [{'areaname': 'euron1', 'productname': 'cloud_top_height',
+        expected = [{'areaname': 'euron1_in_fname', 'area': 'euron1', 'productname': 'cloud_top_height_in_fname', 'product': 'cloud_top_height',
                      'min_coverage': 20.0,
                      'output_dir': '/tmp/satdmz/pps/www/latest_2018/', 'format': 'png', 'writer': 'simple_image',
-                     'fname_pattern': '{platform_name:s}_{start_time:%Y%m%d_%H%M}_{areaname:s}_ctth.{format}'},
-                    {'areaname': 'euron1', 'productname': 'cloud_top_height', 'fill_value': 0,
+                     'fname_pattern': '{platform_name:s}_{start_time:%Y%m%d_%H%M}_{areaname:s}_ctth_static.{format}'},
+                    {'areaname': 'euron1_in_fname', 'area': 'euron1', 'productname': 'cloud_top_height_in_fname', 'product': 'cloud_top_height', 'fill_value': 0,
                      'min_coverage': 20.0,
                      'output_dir': '/tmp/satdmz/pps/www/latest_2018/', 'format': 'jpg', 'writer': 'simple_image',
-                     'fname_pattern': '{platform_name:s}_{start_time:%Y%m%d_%H%M}_{areaname:s}_ctth.{format}'},
-                    {'areaname': 'germ', 'productname': 'cloudtype', 'output_dir': '/tmp/satdmz/pps/www/latest_2018/',
+                     'fname_pattern': '{platform_name:s}_{start_time:%Y%m%d_%H%M}_{areaname:s}_ctth_static.{format}'},
+                    {'areaname': 'germ_in_fname', 'area': 'germ', 'productname': 'cloudtype_in_fname', 'product': 'cloudtype',
+                     'output_dir': '/tmp/satdmz/pps/www/latest_2018/',
                      'fname_pattern': '{start_time:%Y%m%d_%H%M}_{areaname:s}_{productname}.{format}',
                      'format': 'png', 'writer': 'simple_image'},
-                    {'areaname': 'omerc_bb', 'productname': 'ct', 'output_dir': '/tmp', 'format': 'nc', 'writer': 'cf'},
-                    {'areaname': 'omerc_bb', 'productname': 'cloud_top_height', 'output_dir': '/tmp', 'format': 'tif',
+                    {'areaname': 'omerc_bb', 'area': 'omerc_bb', 'productname': 'ct', 'product': 'ct',
+                     'output_dir': '/tmp', 'format': 'nc', 'writer': 'cf'},
+                    {'areaname': 'omerc_bb', 'area': 'omerc_bb', 'productname': 'cloud_top_height', 'product': 'cloud_top_height',
+                     'output_dir': '/tmp', 'format': 'tif',
                      'writer': 'geotiff'}]
         for i, exp in zip(plist_iter(prodlist), expected):
             self.assertDictEqual(i[0], exp)
@@ -129,6 +132,7 @@ class TestProdList(unittest.TestCase):
 class TestSaveDatasets(unittest.TestCase):
     @mock.patch('trollflow2.compute_writer_results')
     def test_save_datasets(self, cwr_mock):
+        self.maxDiff = None
         from trollflow2 import save_datasets
         job = {}
         job['input_mda'] = input_mda
@@ -140,25 +144,25 @@ class TestSaveDatasets(unittest.TestCase):
         for area in job['product_list']['product_list']:
             job['resampled_scenes'][area] = mock.Mock()
         save_datasets(job)
-        dexpected = {'euron1': {'areaname': 'euron1',
+        dexpected = {'euron1': {'areaname': 'euron1_in_fname',
                                 'min_coverage': 20.0,
-                                'products': {'cloud_top_height': {'fname_pattern': '{platform_name:s}_{start_time:%Y%m%d_%H%M}_{areaname:s}_ctth.{format}',
-                                                                  'formats': [{'filename': '/tmp/satdmz/pps/www/latest_2018/NOAA-15_20190217_0600_euron1_ctth.png',
+                                'products': {'cloud_top_height': {'fname_pattern': '{platform_name:s}_{start_time:%Y%m%d_%H%M}_{areaname:s}_ctth_static.{format}',
+                                                                  'formats': [{'filename': '/tmp/satdmz/pps/www/latest_2018/NOAA-15_20190217_0600_euron1_in_fname_ctth_static.png',
                                                                                'format': 'png',
                                                                                'writer': 'simple_image'},
-                                                                              {'filename': '/tmp/satdmz/pps/www/latest_2018/NOAA-15_20190217_0600_euron1_ctth.jpg',
+                                                                              {'filename': '/tmp/satdmz/pps/www/latest_2018/NOAA-15_20190217_0600_euron1_in_fname_ctth_static.jpg',
                                                                                'fill_value': 0,
                                                                                'format': 'jpg',
                                                                                'writer': 'simple_image'}],
                                                                   'output_dir': '/tmp/satdmz/pps/www/latest_2018/',
-                                                                  'productname': 'cloud_top_height'}}},
-                     'germ': {'areaname': 'germ',
+                                                                  'productname': 'cloud_top_height_in_fname'}}},
+                     'germ': {'areaname': 'germ_in_fname',
                               'fname_pattern': '{start_time:%Y%m%d_%H%M}_{areaname:s}_{productname}.{format}',
-                              'products': {'cloudtype': {'formats': [{'filename': '/tmp/satdmz/pps/www/latest_2018/20190217_0600_germ_cloudtype.png',
+                              'products': {'cloudtype': {'formats': [{'filename': '/tmp/satdmz/pps/www/latest_2018/20190217_0600_germ_in_fname_cloudtype_in_fname.png',
                                                                       'format': 'png',
                                                                       'writer': 'simple_image'}],
                                                          'output_dir': '/tmp/satdmz/pps/www/latest_2018/',
-                                                         'productname': 'cloudtype'}}},
+                                                         'productname': 'cloudtype_in_fname'}}},
                      'omerc_bb': {'areaname': 'omerc_bb',
                                   'output_dir': '/tmp',
                                   'products': {'cloud_top_height': {'formats': [{'filename': '/tmp/NOAA-15_20190217_0600_omerc_bb_cloud_top_height.tif',

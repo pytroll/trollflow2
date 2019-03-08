@@ -75,8 +75,8 @@ def load_composites(job):
     scn.load(composites, resolution=resolution)
     job['scene'] = scn
 
-
 def resample(job):
+    """Resample the scene to some areas."""
     defaults = {"radius_of_influence": None,
                 "resampler": "nearest",
                 "reduce_data": True,
@@ -111,6 +111,7 @@ def resample(job):
 
 
 def save_datasets(job):
+    """Save the datasets (and trigger the computation)."""
     scns = job['resampled_scenes']
     objs = []
     base_config = job['input_mda'].copy()
@@ -118,14 +119,14 @@ def save_datasets(job):
     base_config.pop('dataset', None)
     for fmat, fmat_config in plist_iter(job['product_list']['product_list'], base_config):
         fname_pattern = fmat['fname_pattern']
-        outdir = fmat['output_dir']
-        filename = compose(os.path.join(outdir, fname_pattern), fmat)
+        filename = compose(os.path.join(fmat['output_dir'], fname_pattern), fmat)
         fmat.pop('format', None)
         try:
-            objs.append(scns[fmat['areaname']].save_dataset(fmat['productname'], filename=filename, compute=False, **fmat))
+            objs.append(scns[fmat['area']].save_dataset(fmat['product'], filename=filename, compute=False, **fmat))
         except KeyError as err:
             LOG.info('Skipping %s: %s', fmat['productname'], str(err))
-        fmat_config['filename'] = filename
+        else:
+            fmat_config['filename'] = filename
     compute_writer_results(objs)
 
 
@@ -286,6 +287,7 @@ def plist_iter(product_list, base_mda=None, level=None):
         aconfig = base_mda.copy()
         aconfig.update(area_config)
         aconfig.pop('products', None)
+        aconfig['area'] = area
         if level == 'area':
             yield aconfig, area_config
             continue
@@ -293,6 +295,7 @@ def plist_iter(product_list, base_mda=None, level=None):
             pconfig = aconfig.copy()
             pconfig.update(prod_config)
             pconfig.pop('formats', None)
+            pconfig['product'] = prod
             if level == 'product':
                 yield pconfig, prod_config
                 continue
