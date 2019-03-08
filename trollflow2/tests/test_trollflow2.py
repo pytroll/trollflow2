@@ -236,15 +236,16 @@ class TestLoadComposites(unittest.TestCase):
         scn = mock.MagicMock()
         job = {"product_list": self.product_list, "scene": scn}
         load_composites(job)
-        scn.load.assert_called_with({'ct', 'cloudtype', 'cloud_top_height'}, resolution=None)
+        scn.load.assert_called_with({'ct', 'cloudtype', 'cloud_top_height'}, resolution=None, generate=False)
 
-    def test_load_composites_with_resolution(self):
+    def test_load_composites_with_config(self):
         from trollflow2 import load_composites
         scn = mock.MagicMock()
         self.product_list['common']['resolution'] = 1000
+        self.product_list['common']['delay_composites'] = False
         job = {"product_list": self.product_list, "scene": scn}
         load_composites(job)
-        scn.load.assert_called_with({'ct', 'cloudtype', 'cloud_top_height'}, resolution=1000)
+        scn.load.assert_called_with({'ct', 'cloudtype', 'cloud_top_height'}, resolution=1000, generate=True)
 
 
 class TestResample(unittest.TestCase):
