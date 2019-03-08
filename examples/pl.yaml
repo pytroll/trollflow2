@@ -23,6 +23,10 @@ common:
   #    avhrr/3: avhrr-3
   #sunzen_check_lon: 25.0
   #sunzen_check_lat: 60.0
+  # Set delay_composites to `False` to create composites before resampling.
+  #   Default is to create them after resampling (`True`), which is much
+  #   faster in most cases
+  # delay_composites: False
 
 product_list: &product_list
   omerc_bb:

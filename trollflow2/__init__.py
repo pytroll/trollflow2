@@ -72,7 +72,8 @@ def load_composites(job):
     LOG.info('Loading %s', str(composites))
     scn = job['scene']
     resolution = job['product_list']['common'].get('resolution', None)
-    scn.load(composites, resolution=resolution)
+    generate = job['product_list']['common'].get('delay_composites', True) is False
+    scn.load(composites, resolution=resolution, generate=generate)
     job['scene'] = scn
 
 def resample(job):
