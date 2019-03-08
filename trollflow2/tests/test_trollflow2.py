@@ -75,6 +75,52 @@ product_list:
             writer: geotiff
 """
 
+yaml_test2 = """common:
+  something: foo
+  min_coverage: 5.0
+product_list:
+  euron1:
+    areaname: euron1_in_fname
+    min_coverage: 20.0
+    products:
+      cloud_top_height:
+        productname: cloud_top_height_in_fname
+        output_dir: /tmp/satdmz/pps/www/latest_2018/
+        formats:
+          - format: png
+            writer: simple_image
+          - format: jpg
+            writer: simple_image
+            fill_value: 0
+        fname_pattern: "{platform_name:s}_{start_time:%Y%m%d_%H%M}_{areaname:s}_ctth_static.{format}"
+
+  germ:
+    areaname: germ_in_fname
+    fname_pattern: "{start_time:%Y%m%d_%H%M}_{areaname:s}_{productname}.{format}"
+    formats:
+      - format: png
+        writer: simple_image
+    products:
+      cloudtype:
+        productname: cloudtype_in_fname
+        output_dir: /tmp/satdmz/pps/www/latest_2018/
+
+  omerc_bb:
+    areaname: omerc_bb
+    output_dir: /tmp
+    products:
+      ct:
+        productname: ct
+        formats:
+          - format: nc
+            writer: cf
+      cloud_top_height:
+        productname: cloud_top_height
+        formats:
+          - format: tif
+            writer: geotiff
+"""
+
 yaml_common = """common:
   output_dir: &output_dir
     /tmp/satnfs/polar_out/pps2018/direct_readout/
@@ -127,7 +173,9 @@ class TestProdList(unittest.TestCase):
                      'writer': 'geotiff'}]
         for i, exp in zip(plist_iter(prodlist), expected):
             self.assertDictEqual(i[0], exp)
-
+        prodlist = yaml.load(yaml_test2)['product_list']
+        for i, exp in zip(plist_iter(prodlist), expected):
+            self.assertDictEqual(i[0], exp)
 
 class TestSaveDatasets(unittest.TestCase):
     @mock.patch('trollflow2.compute_writer_results')

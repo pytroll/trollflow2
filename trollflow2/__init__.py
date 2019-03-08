@@ -294,15 +294,15 @@ def plist_iter(product_list, base_mda=None, level=None):
         for prod, prod_config in area_config['products'].items():
             pconfig = aconfig.copy()
             pconfig.update(prod_config)
-            pconfig.pop('formats', None)
             pconfig['product'] = prod
             if level == 'product':
                 yield pconfig, prod_config
                 continue
-            for idx, fmat_config in enumerate(prod_config['formats']):
+            for idx, file_config in enumerate(pconfig.get('formats', [{'format': 'tif', 'writer': 'geotiff'}])):
                 fconfig = pconfig.copy()
-                fconfig.update(fmat_config)
-                yield fconfig, fmat_config
+                fconfig.pop('formats', None)
+                fconfig.update(file_config)
+                yield fconfig, file_config
 
 
 def gen_dict_extract(var, key):
