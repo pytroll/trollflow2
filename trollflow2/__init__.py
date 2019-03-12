@@ -68,13 +68,15 @@ def create_scene(job):
 
 def load_composites(job):
     """Load composites given in the job's product_list."""
-    composites = set().union(*(set(d.keys()) for d in dpath.util.values(job['product_list'], '/product_list/*/products')))
+    composites = set().union(*(set(d.keys())
+                               for d in dpath.util.values(job['product_list'], '/product_list/*/products')))
     LOG.info('Loading %s', str(composites))
     scn = job['scene']
     resolution = job['product_list']['common'].get('resolution', None)
     generate = job['product_list']['common'].get('delay_composites', True) is False
     scn.load(composites, resolution=resolution, generate=generate)
     job['scene'] = scn
+
 
 def resample(job):
     """Resample the scene to some areas."""
@@ -118,6 +120,7 @@ def save_datasets(job):
     base_config = job['input_mda'].copy()
     base_config.update(job['product_list']['common'])
     base_config.pop('dataset', None)
+
     for fmat, fmat_config in plist_iter(job['product_list']['product_list'], base_config):
         fname_pattern = fmat['fname_pattern']
         filename = compose(os.path.join(fmat['output_dir'], fname_pattern), fmat)
@@ -168,8 +171,9 @@ def covers(job):
         return
 
     product_list = job['product_list'].copy()
-    scn_mda = job['input_mda'].copy()
-    scn_mda.update(job['scene'].attrs)
+
+    scn_mda = job['scene'].attrs.copy()
+    scn_mda.update(job['input_mda'])
 
     platform_name = scn_mda['platform_name']
     start_time = scn_mda['start_time']
@@ -202,6 +206,7 @@ def covers(job):
 
 def get_scene_coverage(platform_name, start_time, end_time, sensor, area_id):
     """Get scene area coverage in percentages"""
+
     overpass = Pass(platform_name, start_time, end_time, instrument=sensor)
     area_def = get_area_def(area_id)
 
