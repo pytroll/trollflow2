@@ -28,6 +28,7 @@ except ImportError:
     ListenerContainer = None
 from six.moves.queue import Empty as queue_empty
 from multiprocessing import Process
+import yaml
 try:
     from yaml import UnsafeLoader
 except ImportError:
