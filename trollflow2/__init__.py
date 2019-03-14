@@ -63,18 +63,23 @@ def create_scene(job):
     product_list = job['product_list']
     conf = _get_plugin_conf(product_list, '/common', defaults)
     LOG.info('Generating scene')
-    job['scene'] = Scene(filenames=job['input_filenames'], **conf)
+    try:
+        job['scene'] = Scene(filenames=job['input_filenames'], **conf)
+    except ValueError as err:
+        raise AbortProcessing("Failed creating scene: %s" % str(err))
 
 
 def load_composites(job):
     """Load composites given in the job's product_list."""
-    composites = set().union(*(set(d.keys()) for d in dpath.util.values(job['product_list'], '/product_list/*/products')))
+    composites = set().union(*(set(d.keys())
+                               for d in dpath.util.values(job['product_list'], '/product_list/*/products')))
     LOG.info('Loading %s', str(composites))
     scn = job['scene']
     resolution = job['product_list']['common'].get('resolution', None)
     generate = job['product_list']['common'].get('delay_composites', True) is False
     scn.load(composites, resolution=resolution, generate=generate)
     job['scene'] = scn
+
 
 def resample(job):
     """Resample the scene to some areas."""
