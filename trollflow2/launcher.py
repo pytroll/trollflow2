@@ -29,6 +29,10 @@ except ImportError:
 from six.moves.queue import Empty as queue_empty
 from multiprocessing import Process
 import yaml
+try:
+    from yaml import UnsafeLoader
+except ImportError:
+    from yaml import Loader as UnsafeLoader
 import time
 from trollflow2 import gen_dict_extract, plist_iter
 from collections import OrderedDict
@@ -124,7 +128,7 @@ def expand(yml):
 def process(msg, prod_list):
     try:
         with open(prod_list) as fd:
-            config = yaml.load(fd.read())
+            config = yaml.load(fd.read(), Loader=UnsafeLoader)
         config = expand(config)
         jobs = message_to_jobs(msg, config)
         for prio in sorted(jobs.keys()):
