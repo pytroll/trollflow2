@@ -1,13 +1,15 @@
 FROM continuumio/miniconda3:latest
 
 RUN apt-get update && apt-get -y --no-install-recommends install \
-    gosu
+    gosu \
+    build-essential
 
 RUN conda config --add channels conda-forge && \
     conda update conda && \
     conda install satpy \
     pyresample \
     pykdtree \
+    trollsift \
     trollimage \
     pycoast \
     pyorbital \
@@ -25,20 +27,11 @@ RUN conda config --add channels conda-forge && \
     dpath \
     toolz \
     configobj && \
+    conda remove --force satpy pyresample trollimage pycoast pyorbital pykdtree trollsift && \
     conda clean -a -y
 ADD requirements_dev.txt /tmp/
 RUN pip install -r /tmp/requirements_dev.txt && \
-    rm -r /tmp/requirements_dev.txt &&  \
-    cd /tmp/ && \
-    git clone https://github.com/Supervisor/supervisor.git && \
-    cd supervisor && python setup.py install && \
-    cd /tmp/ && rm -rf /tmp/supervisor/ && \
-    git clone https://github.com/Supervisor/superlance.git && \
-    cd superlance && python setup.py install && \
-    cd /tmp/ && rm -rf /tmp/superlance/ && \
-    git clone https://github.com/pytroll/trollflow2.git && \
-    cd trollflow2 && python setup.py install && \
-    cd /tmp/ && rm -rf /tmp/trollflow2/
+    rm -r /tmp/requirements_dev.txt
     #python -c 'from pyspectral.utils import download_luts; \
     #  from pyspectral.utils import logging_on; import logging; \
     #  logging_on(logging.DEBUG); download_luts()' && \
@@ -47,7 +40,8 @@ RUN pip install -r /tmp/requirements_dev.txt && \
     #  logging_on(logging.DEBUG); download_rsr()' && \
     #mkdir -p /home/user/.local/share && \
     #mv /root/.local/share/pyspectral /home/user/.local/share/
-    
+RUN apt-get -y remove build-essential
+
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
