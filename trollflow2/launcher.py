@@ -34,7 +34,7 @@ try:
 except ImportError:
     from yaml import Loader as UnsafeLoader
 import time
-from trollflow2 import gen_dict_extract, plist_iter
+from trollflow2 import gen_dict_extract, plist_iter, AbortProcessing
 from collections import OrderedDict
 import copy
 from six.moves.urllib.parse import urlparse
@@ -137,5 +137,7 @@ def process(msg, prod_list):
             for wrk in config['workers']:
                 cwrk = wrk.copy()
                 cwrk.pop('fun')(job, **cwrk)
+    except AbortProcessing as err:
+        LOG.info(str(err))
     except Exception:
         LOG.exception("Process crashed")

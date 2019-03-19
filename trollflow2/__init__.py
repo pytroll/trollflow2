@@ -63,7 +63,10 @@ def create_scene(job):
     product_list = job['product_list']
     conf = _get_plugin_conf(product_list, '/common', defaults)
     LOG.info('Generating scene')
-    job['scene'] = Scene(filenames=job['input_filenames'], **conf)
+    try:
+        job['scene'] = Scene(filenames=job['input_filenames'], **conf)
+    except ValueError as err:
+        raise AbortProcessing("Failed creating scene: %s" % str(err))
 
 
 def load_composites(job):
