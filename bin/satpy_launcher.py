@@ -32,9 +32,8 @@ LOG = getLogger(__name__)
 
 
 def main():
-    topics = sys.argv[1].split(',')
-    prod_list = sys.argv[2]
-    run(topics, prod_list)
+    prod_list = sys.argv[1]
+    run(prod_list)
 
 
 if __name__ == "__main__":

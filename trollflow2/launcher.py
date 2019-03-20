@@ -50,7 +50,11 @@ LOG = getLogger("launcher")
 DEFAULT_PRIORITY = 999
 
 
-def run(topics, prod_list):
+def run(prod_list):
+
+    with open(prod_list) as fid:
+        config = yaml.load(fid.read(), Loader=UnsafeLoader)
+    topics = config['common'].pop('subscribe_topics', None)
 
     listener = ListenerContainer(topics=topics)
 
@@ -125,10 +129,8 @@ def expand(yml):
     return yml
 
 
-def process(msg, prod_list):
+def process(msg, config):
     try:
-        with open(prod_list) as fd:
-            config = yaml.load(fd.read(), Loader=UnsafeLoader)
         config = expand(config)
         jobs = message_to_jobs(msg, config)
         for prio in sorted(jobs.keys()):
