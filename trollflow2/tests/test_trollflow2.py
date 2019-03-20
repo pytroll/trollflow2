@@ -24,6 +24,10 @@
 import unittest
 import yaml
 try:
+    from yaml import UnsafeLoader
+except ImportError:
+    from yaml import Loader as UnsafeLoader
+try:
     from unittest import mock
 except ImportError:
     import mock
@@ -153,7 +157,7 @@ class TestProdList(unittest.TestCase):
 
     def test_iter(self):
         from trollflow2 import plist_iter
-        prodlist = yaml.load(yaml_test1)['product_list']
+        prodlist = yaml.load(yaml_test1, Loader=UnsafeLoader)['product_list']
         expected = [{'areaname': 'euron1_in_fname', 'area': 'euron1', 'productname': 'cloud_top_height_in_fname', 'product': 'cloud_top_height',
                      'min_coverage': 20.0,
                      'output_dir': '/tmp/satdmz/pps/www/latest_2018/', 'format': 'png', 'writer': 'simple_image',
@@ -173,7 +177,7 @@ class TestProdList(unittest.TestCase):
                      'writer': 'geotiff'}]
         for i, exp in zip(plist_iter(prodlist), expected):
             self.assertDictEqual(i[0], exp)
-        prodlist = yaml.load(yaml_test2)['product_list']
+        prodlist = yaml.load(yaml_test2, Loader=UnsafeLoader)['product_list']
         for i, exp in zip(plist_iter(prodlist), expected):
             self.assertDictEqual(i[0], exp)
 
@@ -185,8 +189,8 @@ class TestSaveDatasets(unittest.TestCase):
         job = {}
         job['input_mda'] = input_mda
         job['product_list'] = {
-            'product_list': yaml.load(yaml_test1)['product_list'],
-            'common': yaml.load(yaml_common)['common'],
+            'product_list': yaml.load(yaml_test1, Loader=UnsafeLoader)['product_list'],
+            'common': yaml.load(yaml_common, Loader=UnsafeLoader)['common'],
         }
         job['resampled_scenes'] = {}
         for area in job['product_list']['product_list']:
@@ -227,7 +231,7 @@ class TestSaveDatasets(unittest.TestCase):
 class TestConfigValue(unittest.TestCase):
 
     def setUp(self):
-        self.prodlist = yaml.load(yaml_test1)
+        self.prodlist = yaml.load(yaml_test1, Loader=UnsafeLoader)
         self.path = "/product_list/germ/products/cloudtype"
 
     def test_config_value_same_level(self):
@@ -281,7 +285,7 @@ class TestCreateScene(unittest.TestCase):
 class TestLoadComposites(unittest.TestCase):
 
     def setUp(self):
-        self.product_list = yaml.load(yaml_test1)
+        self.product_list = yaml.load(yaml_test1, Loader=UnsafeLoader)
 
     def test_load_composites(self):
         from trollflow2 import load_composites
@@ -303,7 +307,7 @@ class TestLoadComposites(unittest.TestCase):
 class TestResample(unittest.TestCase):
 
     def setUp(self):
-        self.product_list = yaml.load(yaml_test1)
+        self.product_list = yaml.load(yaml_test1, Loader=UnsafeLoader)
 
     def test_resample(self):
         from trollflow2 import resample
@@ -421,7 +425,7 @@ class TestResample(unittest.TestCase):
 class TestCovers(unittest.TestCase):
 
     def setUp(self):
-        self.product_list = yaml.load(yaml_test1)
+        self.product_list = yaml.load(yaml_test1, Loader=UnsafeLoader)
         self.input_mda = {"platform_name": "NOAA-15",
                           "sensor": "avhrr-3",
                           "start_time": dt.datetime(2019, 1, 19, 11),
@@ -534,7 +538,7 @@ class TestSZACheck(unittest.TestCase):
         scene = mock.MagicMock()
         scene.attrs = {'start_time': 42}
         job['scene'] = scene
-        product_list = yaml.load(yaml_test1)
+        product_list = yaml.load(yaml_test1, Loader=UnsafeLoader)
         job['product_list'] = product_list.copy()
         # Run without any settings
         sza_check(job)
