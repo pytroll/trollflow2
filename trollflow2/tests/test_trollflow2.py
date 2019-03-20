@@ -177,9 +177,11 @@ class TestProdList(unittest.TestCase):
                      'writer': 'geotiff'}]
         for i, exp in zip(plist_iter(prodlist), expected):
             self.assertDictEqual(i[0], exp)
+
         prodlist = yaml.load(yaml_test2, Loader=UnsafeLoader)['product_list']
         for i, exp in zip(plist_iter(prodlist), expected):
             self.assertDictEqual(i[0], exp)
+
 
 class TestSaveDatasets(unittest.TestCase):
     @mock.patch('trollflow2.compute_writer_results')
@@ -573,6 +575,51 @@ class TestSZACheck(unittest.TestCase):
         self.assertFalse('germ' in job['product_list']['product_list'])
 
 
+class TestFilePublisher(unittest.TestCase):
+
+    def setUp(self):
+        self.product_list = yaml.load(yaml_test2, Loader=UnsafeLoader)
+        self.product_list['common']['publish_topic'] = '/{areaname}/{productname}'
+        # Skip omerc_bb are, there's no fname_pattern
+        del self.product_list['product_list']['omerc_bb']
+        self.input_mda = input_mda.copy()
+        self.input_mda['uri'] = 'foo.nc'
+
+    @mock.patch('trollflow2.Message')
+    @mock.patch('trollflow2.NoisyPublisher')
+    def test_filepublisher(self, noisy_pub, message):
+        from trollflow2 import FilePublisher, plist_iter
+        from trollsift import compose
+        import os.path
+        pub = FilePublisher()
+        pub.pub.start.assert_called_once()
+        job = {'product_list': self.product_list,
+               'input_mda': self.input_mda}
+        topic_pattern = job['product_list']['common']['publish_topic']
+        topics = []
+        # Create filenames and topics
+        for fmat, fmat_config in plist_iter(job['product_list']['product_list'],
+                                            job['input_mda'].copy()):
+            fname_pattern = fmat['fname_pattern']
+            filename = compose(os.path.join(fmat['output_dir'],
+                                            fname_pattern), fmat)
+            fmat.pop('format', None)
+            fmat_config['filename'] = filename
+            topics.append(compose(topic_pattern, fmat))
+
+        pub(job)
+        message.assert_called()
+        pub.pub.send.assert_called()
+        pub.pub.stop.assert_called()
+        i = 0
+        for area in job['product_list']['product_list']:
+            for prod in job['product_list']['product_list'][area]:
+                # Skip calls to __str__
+                if 'call().__str__()' != str(message.mock_calls[i]):
+                    self.assertTrue(topics[i] in str(message.mock_calls[i]))
+                    i += 1
+
+
 def suite():
     """The test suite for test_writers."""
     loader = unittest.TestLoader()
@@ -588,6 +635,7 @@ def suite():
     my_suite.addTest(loader.loadTestsFromTestCase(TestMetadataAlias))
     my_suite.addTest(loader.loadTestsFromTestCase(TestGetPluginConf))
     my_suite.addTest(loader.loadTestsFromTestCase(TestSZACheck))
+    my_suite.addTest(loader.loadTestsFromTestCase(TestFilePublisher))
 
     return my_suite
 
