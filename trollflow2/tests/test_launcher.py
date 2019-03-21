@@ -214,6 +214,13 @@ class TestRun(unittest.TestCase):
         lc_.assert_called_with(topics=['/topic1', '/topic2'])
         # Subscriber topics are removed from config
         self.assertTrue('subscribe_topics' not in self.config['common'])
+        # Topics are given as command line option
+        lc_.reset_mock()
+        try:
+            run(prod_list, topics=['/topic3'])
+        except KeyboardInterrupt:
+            pass
+        lc_.assert_called_with(topics=['/topic3'])
 
     @mock.patch('trollflow2.launcher.yaml.load')
     @mock.patch('trollflow2.launcher.open')

@@ -50,11 +50,11 @@ LOG = getLogger("launcher")
 DEFAULT_PRIORITY = 999
 
 
-def run(prod_list):
+def run(prod_list, topics=None):
 
     with open(prod_list) as fid:
         config = yaml.load(fid.read(), Loader=UnsafeLoader)
-    topics = config['common'].pop('subscribe_topics', None)
+    topics = topics or config['common'].pop('subscribe_topics', None)
 
     listener = ListenerContainer(topics=topics)
 
