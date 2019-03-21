@@ -480,8 +480,10 @@ class TestCovers(unittest.TestCase):
         job = {"product_list": self.product_list,
                "input_mda": self.input_mda,
                "scene": scn}
-        job['input_mda']['collection_area_id'] = 'euron1'
         # Nothing should happen here
+        covers(job)
+        # Area that matches the product list, nothing should happen
+        job['input_mda']['collection_area_id'] = 'euron1'
         covers(job)
         # Area not in the product list should raise AbortProcessing
         job['input_mda']['collection_area_id'] = 'not_in_pl'
