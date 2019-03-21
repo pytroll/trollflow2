@@ -469,6 +469,25 @@ class TestCovers(unittest.TestCase):
         get_area_def.assert_called_with(5)
         area_coverage.assert_called_with(6)
 
+    @mock.patch('trollflow2.get_scene_coverage')
+    @mock.patch('trollflow2.Pass')
+    def test_covers_collection_area_id(self, ts_pass, get_scene_coverage):
+        from trollflow2 import covers
+        from trollflow2 import AbortProcessing
+        get_scene_coverage.return_value = 100.0
+        scn = mock.MagicMock()
+        scn.attrs = {}
+        job = {"product_list": self.product_list,
+               "input_mda": self.input_mda,
+               "scene": scn}
+        job['input_mda']['collection_area_id'] = 'euron1'
+        # Nothing should happen here
+        covers(job)
+        # Area not in the product list should raise AbortProcessing
+        job['input_mda']['collection_area_id'] = 'not_in_pl'
+        with self.assertRaises(AbortProcessing):
+            covers(job)
+
 
 class TestCheckPlatform(unittest.TestCase):
 
