@@ -134,10 +134,11 @@ def process(msg, prod_list):
         for prio in sorted(jobs.keys()):
             job = jobs[prio]
             job['processing_priority'] = prio
-            for wrk in config['workers']:
-                cwrk = wrk.copy()
-                cwrk.pop('fun')(job, **cwrk)
-    except AbortProcessing as err:
-        LOG.info(str(err))
+            try:
+                for wrk in config['workers']:
+                    cwrk = wrk.copy()
+                    cwrk.pop('fun')(job, **cwrk)
+            except AbortProcessing as err:
+                LOG.info(str(err))
     except Exception:
         LOG.exception("Process crashed")
