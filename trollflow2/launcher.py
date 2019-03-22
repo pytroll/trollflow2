@@ -67,7 +67,7 @@ def run(prod_list, topics=None):
         except queue_empty:
             continue
 
-        proc = Process(target=process, args=(msg, prod_list))
+        proc = Process(target=process, args=(msg, config))
         proc.start()
         proc.join()
         time.sleep(5)
