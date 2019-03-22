@@ -141,3 +141,22 @@ def process(msg, prod_list):
         LOG.info(str(err))
     except Exception:
         LOG.exception("Process crashed")
+        if "crash_email_settings" in config['common']:
+            email_crash(config['common']['crash_email_settings'])
+            LOG.info("Sent email about the crash.")
+
+
+def email_crash(email_settings, error):
+    """Send email about crashes"""
+    from email.mime.text import MIMEText
+    from subprocess import Popen, PIPE
+
+    msg = MIMEText(email_settings["header"] + "\n\n" + error)
+    msg["From"] = email_settings["from"]
+    msg["To"] = email_settings["to"]
+    msg["Subject"] = email_settings["subject"]
+    sendmail = email_settings.get("sendmail", "/usr/bin/sendmail")
+
+    pid = Popen([sendmail, "-t", "-oi"], stdin=PIPE)
+    pid.communicate(msg.as_bytes())
+    pid.terminate()

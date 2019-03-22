@@ -27,6 +27,13 @@ common:
   #   Default is to create them after resampling (`True`), which is much
   #   faster in most cases
   # delay_composites: False
+  # Send emails about crashes using sendmail
+  #crash_email_settings:
+  #  from: "user@server"
+  #  to: "user@institute"
+  #  subject: "Crash report"
+  #  header: "Header text before the error message"
+  #  sendmail: "/usr/sbin/sendmail"
 
 product_list: &product_list
   omerc_bb:
