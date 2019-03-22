@@ -139,10 +139,10 @@ def process(msg, prod_list):
                 cwrk.pop('fun')(job, **cwrk)
     except AbortProcessing as err:
         LOG.info(str(err))
-    except Exception:
+    except Exception as err:
         LOG.exception("Process crashed")
         if "crash_email_settings" in config['common']:
-            email_crash(config['common']['crash_email_settings'])
+            email_crash(config['common']['crash_email_settings'], err)
             LOG.info("Sent email about the crash.")
 
 
