@@ -123,6 +123,7 @@ def save_datasets(job):
     base_config = job['input_mda'].copy()
     base_config.update(job['product_list']['common'])
     base_config.pop('dataset', None)
+    base_config.pop('filenam', None)
 
     for fmat, fmat_config in plist_iter(job['product_list']['product_list'], base_config):
         fname_pattern = fmat['fname_pattern']
