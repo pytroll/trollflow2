@@ -129,7 +129,7 @@ def save_datasets(job):
         filename = compose(os.path.join(fmat['output_dir'], fname_pattern), fmat)
         fmat.pop('format', None)
         try:
-            objs.append(scns[fmat['area']].save_dataset(fmat['product'], filename=filename, compute=False, **fmat))
+            objs.append(scns[fmat['area']].save_dataset(fmat['product'], compute=False, **fmat))
         except KeyError as err:
             LOG.info('Skipping %s: %s', fmat['productname'], str(err))
         else:
