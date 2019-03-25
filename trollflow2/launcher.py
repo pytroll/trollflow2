@@ -30,9 +30,10 @@ from six.moves.queue import Empty as queue_empty
 from multiprocessing import Process
 import yaml
 try:
-    from yaml import UnsafeLoader
+    from yaml import UnsafeLoader, SafeLoader
 except ImportError:
     from yaml import Loader as UnsafeLoader
+    from yaml import SafeLoader
 import time
 from trollflow2 import gen_dict_extract, plist_iter, AbortProcessing
 from collections import OrderedDict
@@ -53,7 +54,7 @@ DEFAULT_PRIORITY = 999
 def run(prod_list, topics=None):
 
     with open(prod_list) as fid:
-        config = yaml.load(fid.read(), Loader=UnsafeLoader)
+        config = yaml.load(fid.read(), Loader=SafeLoader)
     topics = topics or config['common'].pop('subscribe_topics', None)
 
     listener = ListenerContainer(topics=topics)
@@ -67,7 +68,7 @@ def run(prod_list, topics=None):
         except queue_empty:
             continue
 
-        proc = Process(target=process, args=(msg, config))
+        proc = Process(target=process, args=(msg, prod_list))
         proc.start()
         proc.join()
         time.sleep(5)
@@ -129,8 +130,10 @@ def expand(yml):
     return yml
 
 
-def process(msg, config):
+def process(msg, prod_list):
     try:
+        with open(prod_list) as fid:
+            config = yaml.load(fid.read(), Loader=UnsafeLoader)
         config = expand(config)
         jobs = message_to_jobs(msg, config)
         for prio in sorted(jobs.keys()):
