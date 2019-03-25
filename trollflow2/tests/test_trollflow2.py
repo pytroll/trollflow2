@@ -579,7 +579,6 @@ class TestFilePublisher(unittest.TestCase):
 
     def setUp(self):
         self.product_list = yaml.load(yaml_test2, Loader=UnsafeLoader)
-        self.product_list['common']['publish_topic'] = '/{areaname}/{productname}'
         # Skip omerc_bb are, there's no fname_pattern
         del self.product_list['product_list']['omerc_bb']
         self.input_mda = input_mda.copy()
@@ -587,13 +586,15 @@ class TestFilePublisher(unittest.TestCase):
 
     @mock.patch('trollflow2.Message')
     @mock.patch('trollflow2.NoisyPublisher')
-    def test_filepublisher(self, noisy_pub, message):
+    def test_filepublisher_with_compose(self, noisy_pub, message):
         from trollflow2 import FilePublisher, plist_iter
         from trollsift import compose
         import os.path
         pub = FilePublisher()
         pub.pub.start.assert_called_once()
-        job = {'product_list': self.product_list,
+        product_list = self.product_list.copy()
+        product_list['common']['publish_topic'] = '/{areaname}/{productname}'
+        job = {'product_list': product_list,
                'input_mda': self.input_mda}
         topic_pattern = job['product_list']['common']['publish_topic']
         topics = []
@@ -619,6 +620,41 @@ class TestFilePublisher(unittest.TestCase):
                     self.assertTrue(topics[i] in str(message.mock_calls[i]))
                     i += 1
 
+    @mock.patch('trollflow2.Message')
+    @mock.patch('trollflow2.NoisyPublisher')
+    def test_filepublisher_without_compose(self, noisy_pub, message):
+        from trollflow2 import FilePublisher, plist_iter
+        from trollsift import compose
+        import os.path
+        pub = FilePublisher()
+        pub.pub.start.assert_called_once()
+        product_list = self.product_list.copy()
+        product_list['common']['publish_topic'] = '/static_topic'
+        job = {'product_list': product_list,
+               'input_mda': self.input_mda}
+        topic_pattern = job['product_list']['common']['publish_topic']
+        topics = []
+        # Create filenames and topics
+        for fmat, fmat_config in plist_iter(job['product_list']['product_list'],
+                                            job['input_mda'].copy()):
+            fname_pattern = fmat['fname_pattern']
+            filename = compose(os.path.join(fmat['output_dir'],
+                                            fname_pattern), fmat)
+            fmat.pop('format', None)
+            fmat_config['filename'] = filename
+            topics.append(compose(topic_pattern, fmat))
+
+        pub(job)
+        message.assert_called()
+        pub.pub.send.assert_called()
+        pub.pub.stop.assert_called()
+        i = 0
+        for area in job['product_list']['product_list']:
+            for prod in job['product_list']['product_list'][area]:
+                # Skip calls to __str__
+                if 'call().__str__()' != str(message.mock_calls[i]):
+                    self.assertTrue(topics[i] in str(message.mock_calls[i]))
+                    i += 1
 
 def suite():
     """The test suite for test_writers."""
