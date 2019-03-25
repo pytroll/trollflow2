@@ -207,7 +207,7 @@ class TestRun(unittest.TestCase):
         except KeyboardInterrupt:
             pass
         listener.output_queue.called_once()
-        Process.assert_called_with(args=('foo', prod_list), target=process)
+        Process.assert_called_with(args=('foo', self.config), target=process)
         proc_ret.start.assert_called_once()
         proc_ret.join.assert_called_once()
         sleep.called_once_with(5)
