@@ -24,6 +24,10 @@
 import unittest
 import yaml
 try:
+    from yaml import UnsafeLoader
+except ImportError:
+    from yaml import Loader as UnsafeLoader
+try:
     from unittest import mock
 except ImportError:
     import mock
@@ -112,7 +116,7 @@ class TestGetAreaPriorities(unittest.TestCase):
 
     def test_get_area_priorities(self):
         from trollflow2.launcher import get_area_priorities
-        prodlist = yaml.load(yaml_test1)
+        prodlist = yaml.load(yaml_test1, Loader=UnsafeLoader)
 
         priorities = get_area_priorities(prodlist)
         self.assertTrue(1 in priorities)
@@ -128,7 +132,7 @@ class TestMessageToJobs(unittest.TestCase):
 
     def test_message_to_jobs(self):
         from trollflow2.launcher import message_to_jobs
-        prodlist = yaml.load(yaml_test1)
+        prodlist = yaml.load(yaml_test1, Loader=UnsafeLoader)
         msg = mock.MagicMock()
         msg.data = {'uri': 'foo'}
 
@@ -152,7 +156,7 @@ class TestMessageToJobs(unittest.TestCase):
 
     def test_message_to_jobs_minimal(self):
         from trollflow2.launcher import message_to_jobs
-        prodlist = yaml.load(yaml_test_minimal)
+        prodlist = yaml.load(yaml_test_minimal, Loader=UnsafeLoader)
         msg = mock.MagicMock()
         msg.data = {'uri': 'foo'}
         jobs = message_to_jobs(msg, prodlist)
