@@ -151,7 +151,7 @@ def email_crash(email_settings, error):
     from email.mime.text import MIMEText
     from subprocess import Popen, PIPE
 
-    msg = MIMEText(email_settings["header"] + "\n\n" + error)
+    msg = MIMEText(email_settings["header"] + "\n\n" + str(error))
     msg["From"] = email_settings["from"]
     msg["To"] = email_settings["to"]
     msg["Subject"] = email_settings["subject"]
