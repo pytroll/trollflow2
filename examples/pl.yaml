@@ -2,6 +2,9 @@ common:
   output_dir: &output_dir
     /tmp/satnfs/polar_out/pps2018/direct_readout/
   publish_topic: /NWC-CF/L3
+  subscribe_topics:
+    - /foo/bar
+    - /bar/foo
   use_extern_calib: false
   # Scene creation settings
   reader: nwcsaf-pps_nc
