@@ -178,6 +178,15 @@ def covers(job):
         LOG.info("Keeping all areas")
         return
 
+    col_area = job['product_list']['common'].get('coverage_by_collection_area',
+                                                 False)
+    if col_area and 'collection_area_id' in job['input_mda']:
+        if job['input_mda']['collection_area_id'] not in job['product_list']['product_list']:
+            raise AbortProcessing(
+                "Area collection ID '%s' does not match "
+                "production area(s) %s" % (job['input_mda']['collection_area_id'],
+                                        str(list(job['product_list']['product_list']))))
+
     product_list = job['product_list'].copy()
 
     scn_mda = job['scene'].attrs.copy()
