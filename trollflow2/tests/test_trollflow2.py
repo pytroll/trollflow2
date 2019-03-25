@@ -485,8 +485,12 @@ class TestCovers(unittest.TestCase):
         # Area that matches the product list, nothing should happen
         job['input_mda']['collection_area_id'] = 'euron1'
         covers(job)
-        # Area not in the product list should raise AbortProcessing
+        # By default collection_area_id isn't checked so nothing should happen
         job['input_mda']['collection_area_id'] = 'not_in_pl'
+        covers(job)
+        # Turn coverage check on, so area not in the product list should raise
+        # AbortProcessing
+        job['product_list']['common']['coverage_by_collection_area'] = True
         with self.assertRaises(AbortProcessing):
             covers(job)
 
