@@ -38,6 +38,7 @@ from trollflow2 import gen_dict_extract, plist_iter, AbortProcessing
 from collections import OrderedDict
 import copy
 from six.moves.urllib.parse import urlparse
+import traceback
 
 """The order of basic things is:
 - Create the scene
@@ -142,16 +143,18 @@ def process(msg, prod_list):
     except Exception as err:
         LOG.exception("Process crashed")
         if "crash_email_settings" in config['common']:
-            email_crash(config['common']['crash_email_settings'], err)
+            trace = traceback.format_exc()
+            email_crash(config['common']['crash_email_settings'], err, trace)
             LOG.info("Sent email about the crash.")
 
 
-def email_crash(email_settings, error):
+def email_crash(email_settings, error, trace):
     """Send email about crashes"""
     from email.mime.text import MIMEText
     from subprocess import Popen, PIPE
 
-    msg = MIMEText(email_settings["header"] + "\n\n" + str(error))
+    msg = MIMEText(email_settings["header"] + "\n\n" + str(error) +
+                   "\n\n" + trace)
     msg["From"] = email_settings["from"]
     msg["To"] = email_settings["to"]
     msg["Subject"] = email_settings["subject"]
