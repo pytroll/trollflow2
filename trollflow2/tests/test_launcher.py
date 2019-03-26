@@ -24,6 +24,10 @@
 import unittest
 import yaml
 try:
+    from yaml import UnsafeLoader
+except ImportError:
+    from yaml import Loader as UnsafeLoader
+try:
     from unittest import mock
 except ImportError:
     import mock
@@ -31,6 +35,9 @@ except ImportError:
 yaml_test1 = """common:
   something: foo
   min_coverage: 5.0
+  subscribe_topics:
+    - /topic1
+    - /topic2
 product_list:
   euron1:
     areaname: euron1
@@ -112,7 +119,7 @@ class TestGetAreaPriorities(unittest.TestCase):
 
     def test_get_area_priorities(self):
         from trollflow2.launcher import get_area_priorities
-        prodlist = yaml.load(yaml_test1)
+        prodlist = yaml.load(yaml_test1, Loader=UnsafeLoader)
 
         priorities = get_area_priorities(prodlist)
         self.assertTrue(1 in priorities)
@@ -128,7 +135,7 @@ class TestMessageToJobs(unittest.TestCase):
 
     def test_message_to_jobs(self):
         from trollflow2.launcher import message_to_jobs
-        prodlist = yaml.load(yaml_test1)
+        prodlist = yaml.load(yaml_test1, Loader=UnsafeLoader)
         msg = mock.MagicMock()
         msg.data = {'uri': 'foo'}
 
@@ -152,7 +159,7 @@ class TestMessageToJobs(unittest.TestCase):
 
     def test_message_to_jobs_minimal(self):
         from trollflow2.launcher import message_to_jobs
-        prodlist = yaml.load(yaml_test_minimal)
+        prodlist = yaml.load(yaml_test_minimal, Loader=UnsafeLoader)
         msg = mock.MagicMock()
         msg.data = {'uri': 'foo'}
         jobs = message_to_jobs(msg, prodlist)
@@ -175,11 +182,16 @@ class TestMessageToJobs(unittest.TestCase):
 
 class TestRun(unittest.TestCase):
 
+    def setUp(self):
+        self.config = yaml.load(yaml_test1, Loader=UnsafeLoader)
+
+    @mock.patch('trollflow2.launcher.yaml.load')
+    @mock.patch('trollflow2.launcher.open')
     @mock.patch('trollflow2.launcher.process')
     @mock.patch('trollflow2.launcher.time.sleep')
     @mock.patch('trollflow2.launcher.Process')
     @mock.patch('trollflow2.launcher.ListenerContainer')
-    def test_run(self, lc_, Process, sleep, process):
+    def test_run(self, lc_, Process, sleep, process, _open, yaml_load):
         from trollflow2.launcher import run
         listener = mock.MagicMock()
         listener.output_queue.get.return_value = 'foo'
@@ -188,10 +200,10 @@ class TestRun(unittest.TestCase):
         Process.return_value = proc_ret
         # stop looping
         sleep.side_effect = KeyboardInterrupt
+        yaml_load.return_value = self.config
         prod_list = 'bar'
-        topics = 'baz'
         try:
-            run(topics, prod_list)
+            run(prod_list)
         except KeyboardInterrupt:
             pass
         listener.output_queue.called_once()
@@ -199,16 +211,28 @@ class TestRun(unittest.TestCase):
         proc_ret.start.assert_called_once()
         proc_ret.join.assert_called_once()
         sleep.called_once_with(5)
+        lc_.assert_called_with(topics=['/topic1', '/topic2'])
+        # Subscriber topics are removed from config
+        self.assertTrue('subscribe_topics' not in self.config['common'])
+        # Topics are given as command line option
+        lc_.reset_mock()
+        try:
+            run(prod_list, topics=['/topic3'])
+        except KeyboardInterrupt:
+            pass
+        lc_.assert_called_with(topics=['/topic3'])
 
+    @mock.patch('trollflow2.launcher.yaml.load')
+    @mock.patch('trollflow2.launcher.open')
     @mock.patch('trollflow2.launcher.ListenerContainer')
-    def test_run_keyboard_interrupt(self, lc_):
+    def test_run_keyboard_interrupt(self, lc_, _open, yaml_load):
         from trollflow2.launcher import run
         listener = mock.MagicMock()
         get = mock.Mock()
         get.side_effect = KeyboardInterrupt
         listener.output_queue.get = get
         lc_.return_value = listener
-        run(0, 1)
+        run(0)
         listener.stop.assert_called_once()
 
 
@@ -244,7 +268,7 @@ class TestProcess(unittest.TestCase):
         message_to_jobs.assert_called_with("msg", {"workers": [{"fun": fun1}]})
         fun1.assert_called_with({'job1': {}, 'processing_priority': 1})
         # Test that errors are propagated
-        yaml.load.side_effect = KeyboardInterrupt
+        fun1.side_effect = KeyboardInterrupt
         with self.assertRaises(KeyboardInterrupt):
             process("msg", "prod_list")
 

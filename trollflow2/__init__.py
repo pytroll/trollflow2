@@ -153,14 +153,19 @@ class FilePublisher(object):
         mda = job['input_mda'].copy()
         mda.pop('dataset', None)
         mda.pop('collection', None)
-        topic = job['product_list']['common']['publish_topic']
         for fmat, fmat_config in plist_iter(job['product_list']['product_list']):
+            prod_path = "/product_list/%s/%s" % (fmat['area'], fmat['product'])
+            topic_pattern = get_config_value(job['product_list'],
+                                             prod_path,
+                                             "publish_topic")
+
             file_mda = mda.copy()
             try:
                 file_mda['uri'] = fmat['filename']
             except KeyError:
                 continue
             file_mda['uid'] = os.path.basename(fmat['filename'])
+            topic = compose(topic_pattern, fmat)
             msg = Message(topic, 'file', file_mda)
             LOG.debug('Publishing %s', str(msg))
             self.pub.send(str(msg))
@@ -175,6 +180,15 @@ def covers(job):
         LOG.error("Trollsched import failed, coverage calculation not possible")
         LOG.info("Keeping all areas")
         return
+
+    col_area = job['product_list']['common'].get('coverage_by_collection_area',
+                                                 False)
+    if col_area and 'collection_area_id' in job['input_mda']:
+        if job['input_mda']['collection_area_id'] not in job['product_list']['product_list']:
+            raise AbortProcessing(
+                "Area collection ID '%s' does not match "
+                "production area(s) %s" % (job['input_mda']['collection_area_id'],
+                                        str(list(job['product_list']['product_list']))))
 
     product_list = job['product_list'].copy()
 
