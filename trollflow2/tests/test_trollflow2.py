@@ -715,11 +715,8 @@ def suite():
     my_suite.addTest(loader.loadTestsFromTestCase(TestMetadataAlias))
     my_suite.addTest(loader.loadTestsFromTestCase(TestGetPluginConf))
     my_suite.addTest(loader.loadTestsFromTestCase(TestSZACheck))
-<<<<<<< HEAD
     my_suite.addTest(loader.loadTestsFromTestCase(TestOverviews))
-=======
     my_suite.addTest(loader.loadTestsFromTestCase(TestFilePublisher))
->>>>>>> master
 
     return my_suite
 
