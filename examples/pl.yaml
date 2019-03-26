@@ -74,6 +74,9 @@ product_list: &product_list
         formats:
           - format: tif
             writer: geotiff
+            # Add small scale embedded images to the file
+            # To use add `add_overviews` to workers after `save_datasets`
+            # overviews: [4, 8, 16, 32, 64, 128, 256]
   # null:  # satellite projection
   #   areaname: satellite_projection
   #   products:
