@@ -31,12 +31,6 @@ common:
   #   faster in most cases
   # delay_composites: False
   # Send emails about crashes using sendmail
-  #crash_email_settings:
-  #  from: "user@server"
-  #  to: "user@institute"
-  #  subject: "Crash report"
-  #  header: "Header text before the error message"
-  #  sendmail: "/usr/sbin/sendmail"
   # Check area coverage by `collection_area_id` in the input metadata.
   #   Default: False
   # coverage_by_collection_area: True
@@ -150,3 +144,15 @@ workers:
   - fun: !!python/name:trollflow2.resample
   - fun: !!python/name:trollflow2.save_datasets
   - fun: !!python/object:trollflow2.FilePublisher {}
+
+# Things to run in case of a crash
+#crash_handlers:
+#  config:
+#    sendmail:
+#      from: "user@server"
+#        to: "user@institute"
+#        subject: "Crash report"
+#        header: "Header text before the error message"
+#        sendmail: "/usr/sbin/sendmail"
+#  handlers:
+#    - fun: !!python/name:trollflow2.launcher.sendmail

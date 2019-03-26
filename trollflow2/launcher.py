@@ -148,19 +148,19 @@ def process(msg, prod_list):
                 LOG.info(str(err))
     except Exception:
         LOG.exception("Process crashed")
-        if "crash_email_settings" in config['common']:
+        if "crash_handlers" in config:
             trace = traceback.format_exc()
-            email_crash(config['common']['crash_email_settings'], err, trace)
-            LOG.info("Sent email about the crash.")
+            for hand in config['crash_handlers']['handlers']:
+                hand['fun'](config['crash_handlers']['config'], trace)
 
 
-def email_crash(email_settings, error, trace):
-    """Send email about crashes"""
+def sendmail(config, trace):
+    """Send email about crashes using `sendmail`"""
     from email.mime.text import MIMEText
     from subprocess import Popen, PIPE
 
-    msg = MIMEText(email_settings["header"] + "\n\n" + str(error) +
-                   "\n\n" + trace)
+    email_settings = config['email']
+    msg = MIMEText(email_settings["header"] + "\n\n" + "\n\n" + trace)
     msg["From"] = email_settings["from"]
     msg["To"] = email_settings["to"]
     msg["Subject"] = email_settings["subject"]

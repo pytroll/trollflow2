@@ -247,11 +247,14 @@ class TestExpand(unittest.TestCase):
 
 class TestProcess(unittest.TestCase):
 
+    @mock.patch('trollflow2.launcher.traceback')
+    @mock.patch('trollflow2.launcher.sendmail')
     @mock.patch('trollflow2.launcher.expand')
     @mock.patch('trollflow2.launcher.yaml')
     @mock.patch('trollflow2.launcher.message_to_jobs')
     @mock.patch('trollflow2.launcher.open')
-    def test_process(self, open_, message_to_jobs, yaml, expand):
+    def test_process(self, open_, message_to_jobs, yaml, expand, sendmail,
+                     traceback):
         from trollflow2.launcher import process
         fid = mock.MagicMock()
         fid.read.return_value = yaml_test1
@@ -271,6 +274,15 @@ class TestProcess(unittest.TestCase):
         fun1.side_effect = KeyboardInterrupt
         with self.assertRaises(KeyboardInterrupt):
             process("msg", "prod_list")
+        # Test crash hander call.  This will raise KeyError as there
+        # are no configured workers in the config returned by expand()
+        traceback.format_exc.return_value = 'baz'
+        crash_handlers = {"crash_handlers": {"config": {"foo": "bar"},
+                                             "handlers": [{"fun": sendmail}]}}
+        expand.return_value = crash_handlers
+        process("msg", "prod_list")
+        config = crash_handlers['crash_handlers']['config']
+        sendmail.assert_called_once_with(config, 'baz')
 
 
 def suite():
