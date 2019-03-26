@@ -614,9 +614,14 @@ class TestOverviews(unittest.TestCase):
         rasterio.open.return_value.__enter__.return_value = dst
 
         product_list = self.product_list['product_list']
-        product_list['germ']['products']['cloud_top_height']['formats']['overviews'] = [4]
+        product_list['germ']['products']['cloudtype']['formats'][0]['overviews'] = [4]
+        # Add filename, otherwise added by `save_datasets()`
+        product_list['germ']['products']['cloudtype']['formats'][0]['filename'] = 'foo'
         job = {"product_list": self.product_list}
         add_overviews(job)
+        dst.build_overviews.assert_called_once_with([4], resampling.average)
+        dst.update_tags.assert_called_once_with(ns='rio_overview',
+                                                resampling='average')
 
 
 class TestFilePublisher(unittest.TestCase):
