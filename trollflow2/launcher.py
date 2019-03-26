@@ -29,8 +29,13 @@ except ImportError:
 from six.moves.queue import Empty as queue_empty
 from multiprocessing import Process
 import yaml
+try:
+    from yaml import UnsafeLoader, SafeLoader
+except ImportError:
+    from yaml import Loader as UnsafeLoader
+    from yaml import SafeLoader
 import time
-from trollflow2 import gen_dict_extract, plist_iter
+from trollflow2 import gen_dict_extract, plist_iter, AbortProcessing
 from collections import OrderedDict
 import copy
 from six.moves.urllib.parse import urlparse
@@ -46,7 +51,11 @@ LOG = getLogger("launcher")
 DEFAULT_PRIORITY = 999
 
 
-def run(topics, prod_list):
+def run(prod_list, topics=None):
+
+    with open(prod_list) as fid:
+        config = yaml.load(fid.read(), Loader=SafeLoader)
+    topics = topics or config['common'].pop('subscribe_topics', None)
 
     listener = ListenerContainer(topics=topics)
 
@@ -114,7 +123,7 @@ def expand(yml):
     PFE http://disq.us/p/1tdbxgx
     """
     if isinstance(yml, dict):
-        for key, value in yml.iteritems():
+        for key, value in yml.items():
             if isinstance(value, dict):
                 expand(value)
                 yml[key] = copy.deepcopy(yml[key])
@@ -123,15 +132,18 @@ def expand(yml):
 
 def process(msg, prod_list):
     try:
-        with open(prod_list) as fd:
-            config = yaml.load(fd.read())
+        with open(prod_list) as fid:
+            config = yaml.load(fid.read(), Loader=UnsafeLoader)
         config = expand(config)
         jobs = message_to_jobs(msg, config)
         for prio in sorted(jobs.keys()):
             job = jobs[prio]
             job['processing_priority'] = prio
-            for wrk in config['workers']:
-                cwrk = wrk.copy()
-                cwrk.pop('fun')(job, **cwrk)
+            try:
+                for wrk in config['workers']:
+                    cwrk = wrk.copy()
+                    cwrk.pop('fun')(job, **cwrk)
+            except AbortProcessing as err:
+                LOG.info(str(err))
     except Exception:
         LOG.exception("Process crashed")

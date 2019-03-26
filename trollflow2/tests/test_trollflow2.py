@@ -24,6 +24,10 @@
 import unittest
 import yaml
 try:
+    from yaml import UnsafeLoader
+except ImportError:
+    from yaml import Loader as UnsafeLoader
+try:
     from unittest import mock
 except ImportError:
     import mock
@@ -34,11 +38,11 @@ yaml_test1 = """common:
   min_coverage: 5.0
 product_list:
   euron1:
-    areaname: euron1
+    areaname: euron1_in_fname
     min_coverage: 20.0
     products:
-      ctth:
-        productname: cloud_top_height
+      cloud_top_height:
+        productname: cloud_top_height_in_fname
         output_dir: /tmp/satdmz/pps/www/latest_2018/
         formats:
           - format: png
@@ -46,18 +50,64 @@ product_list:
           - format: jpg
             writer: simple_image
             fill_value: 0
-        fname_pattern: "{platform_name:s}_{start_time:%Y%m%d_%H%M}_{areaname:s}_ctth.{format}"
+        fname_pattern: "{platform_name:s}_{start_time:%Y%m%d_%H%M}_{areaname:s}_ctth_static.{format}"
 
   germ:
-    areaname: germ
+    areaname: germ_in_fname
     fname_pattern: "{start_time:%Y%m%d_%H%M}_{areaname:s}_{productname}.{format}"
     products:
       cloudtype:
-        productname: cloudtype
+        productname: cloudtype_in_fname
         output_dir: /tmp/satdmz/pps/www/latest_2018/
         formats:
           - format: png
             writer: simple_image
+
+  omerc_bb:
+    areaname: omerc_bb
+    output_dir: /tmp
+    products:
+      ct:
+        productname: ct
+        formats:
+          - format: nc
+            writer: cf
+      cloud_top_height:
+        productname: cloud_top_height
+        formats:
+          - format: tif
+            writer: geotiff
+"""
+
+yaml_test2 = """common:
+  something: foo
+  min_coverage: 5.0
+product_list:
+  euron1:
+    areaname: euron1_in_fname
+    min_coverage: 20.0
+    products:
+      cloud_top_height:
+        productname: cloud_top_height_in_fname
+        output_dir: /tmp/satdmz/pps/www/latest_2018/
+        formats:
+          - format: png
+            writer: simple_image
+          - format: jpg
+            writer: simple_image
+            fill_value: 0
+        fname_pattern: "{platform_name:s}_{start_time:%Y%m%d_%H%M}_{areaname:s}_ctth_static.{format}"
+
+  germ:
+    areaname: germ_in_fname
+    fname_pattern: "{start_time:%Y%m%d_%H%M}_{areaname:s}_{productname}.{format}"
+    formats:
+      - format: png
+        writer: simple_image
+    products:
+      cloudtype:
+        productname: cloudtype_in_fname
+        output_dir: /tmp/satdmz/pps/www/latest_2018/
 
   omerc_bb:
     areaname: omerc_bb
@@ -107,21 +157,28 @@ class TestProdList(unittest.TestCase):
 
     def test_iter(self):
         from trollflow2 import plist_iter
-        prodlist = yaml.load(yaml_test1)['product_list']
-        expected = [{'areaname': 'euron1', 'productname': 'cloud_top_height',
+        prodlist = yaml.load(yaml_test1, Loader=UnsafeLoader)['product_list']
+        expected = [{'areaname': 'euron1_in_fname', 'area': 'euron1', 'productname': 'cloud_top_height_in_fname', 'product': 'cloud_top_height',
                      'min_coverage': 20.0,
                      'output_dir': '/tmp/satdmz/pps/www/latest_2018/', 'format': 'png', 'writer': 'simple_image',
-                     'fname_pattern': '{platform_name:s}_{start_time:%Y%m%d_%H%M}_{areaname:s}_ctth.{format}'},
-                    {'areaname': 'euron1', 'productname': 'cloud_top_height', 'fill_value': 0,
+                     'fname_pattern': '{platform_name:s}_{start_time:%Y%m%d_%H%M}_{areaname:s}_ctth_static.{format}'},
+                    {'areaname': 'euron1_in_fname', 'area': 'euron1', 'productname': 'cloud_top_height_in_fname', 'product': 'cloud_top_height', 'fill_value': 0,
                      'min_coverage': 20.0,
                      'output_dir': '/tmp/satdmz/pps/www/latest_2018/', 'format': 'jpg', 'writer': 'simple_image',
-                     'fname_pattern': '{platform_name:s}_{start_time:%Y%m%d_%H%M}_{areaname:s}_ctth.{format}'},
-                    {'areaname': 'germ', 'productname': 'cloudtype', 'output_dir': '/tmp/satdmz/pps/www/latest_2018/',
+                     'fname_pattern': '{platform_name:s}_{start_time:%Y%m%d_%H%M}_{areaname:s}_ctth_static.{format}'},
+                    {'areaname': 'germ_in_fname', 'area': 'germ', 'productname': 'cloudtype_in_fname', 'product': 'cloudtype',
+                     'output_dir': '/tmp/satdmz/pps/www/latest_2018/',
                      'fname_pattern': '{start_time:%Y%m%d_%H%M}_{areaname:s}_{productname}.{format}',
                      'format': 'png', 'writer': 'simple_image'},
-                    {'areaname': 'omerc_bb', 'productname': 'ct', 'output_dir': '/tmp', 'format': 'nc', 'writer': 'cf'},
-                    {'areaname': 'omerc_bb', 'productname': 'cloud_top_height', 'output_dir': '/tmp', 'format': 'tif',
+                    {'areaname': 'omerc_bb', 'area': 'omerc_bb', 'productname': 'ct', 'product': 'ct',
+                     'output_dir': '/tmp', 'format': 'nc', 'writer': 'cf'},
+                    {'areaname': 'omerc_bb', 'area': 'omerc_bb', 'productname': 'cloud_top_height', 'product': 'cloud_top_height',
+                     'output_dir': '/tmp', 'format': 'tif',
                      'writer': 'geotiff'}]
+        for i, exp in zip(plist_iter(prodlist), expected):
+            self.assertDictEqual(i[0], exp)
+
+        prodlist = yaml.load(yaml_test2, Loader=UnsafeLoader)['product_list']
         for i, exp in zip(plist_iter(prodlist), expected):
             self.assertDictEqual(i[0], exp)
 
@@ -129,36 +186,37 @@ class TestProdList(unittest.TestCase):
 class TestSaveDatasets(unittest.TestCase):
     @mock.patch('trollflow2.compute_writer_results')
     def test_save_datasets(self, cwr_mock):
+        self.maxDiff = None
         from trollflow2 import save_datasets
         job = {}
         job['input_mda'] = input_mda
         job['product_list'] = {
-            'product_list': yaml.load(yaml_test1)['product_list'],
-            'common': yaml.load(yaml_common)['common'],
+            'product_list': yaml.load(yaml_test1, Loader=UnsafeLoader)['product_list'],
+            'common': yaml.load(yaml_common, Loader=UnsafeLoader)['common'],
         }
         job['resampled_scenes'] = {}
         for area in job['product_list']['product_list']:
             job['resampled_scenes'][area] = mock.Mock()
         save_datasets(job)
-        dexpected = {'euron1': {'areaname': 'euron1',
+        dexpected = {'euron1': {'areaname': 'euron1_in_fname',
                                 'min_coverage': 20.0,
-                                'products': {'ctth': {'fname_pattern': '{platform_name:s}_{start_time:%Y%m%d_%H%M}_{areaname:s}_ctth.{format}',
-                                                      'formats': [{'filename': '/tmp/satdmz/pps/www/latest_2018/NOAA-15_20190217_0600_euron1_ctth.png',
-                                                                   'format': 'png',
-                                                                   'writer': 'simple_image'},
-                                                                  {'filename': '/tmp/satdmz/pps/www/latest_2018/NOAA-15_20190217_0600_euron1_ctth.jpg',
-                                                                   'fill_value': 0,
-                                                                   'format': 'jpg',
-                                                                   'writer': 'simple_image'}],
-                                                      'output_dir': '/tmp/satdmz/pps/www/latest_2018/',
-                                                      'productname': 'cloud_top_height'}}},
-                     'germ': {'areaname': 'germ',
+                                'products': {'cloud_top_height': {'fname_pattern': '{platform_name:s}_{start_time:%Y%m%d_%H%M}_{areaname:s}_ctth_static.{format}',
+                                                                  'formats': [{'filename': '/tmp/satdmz/pps/www/latest_2018/NOAA-15_20190217_0600_euron1_in_fname_ctth_static.png',
+                                                                               'format': 'png',
+                                                                               'writer': 'simple_image'},
+                                                                              {'filename': '/tmp/satdmz/pps/www/latest_2018/NOAA-15_20190217_0600_euron1_in_fname_ctth_static.jpg',
+                                                                               'fill_value': 0,
+                                                                               'format': 'jpg',
+                                                                               'writer': 'simple_image'}],
+                                                                  'output_dir': '/tmp/satdmz/pps/www/latest_2018/',
+                                                                  'productname': 'cloud_top_height_in_fname'}}},
+                     'germ': {'areaname': 'germ_in_fname',
                               'fname_pattern': '{start_time:%Y%m%d_%H%M}_{areaname:s}_{productname}.{format}',
-                              'products': {'cloudtype': {'formats': [{'filename': '/tmp/satdmz/pps/www/latest_2018/20190217_0600_germ_cloudtype.png',
+                              'products': {'cloudtype': {'formats': [{'filename': '/tmp/satdmz/pps/www/latest_2018/20190217_0600_germ_in_fname_cloudtype_in_fname.png',
                                                                       'format': 'png',
                                                                       'writer': 'simple_image'}],
                                                          'output_dir': '/tmp/satdmz/pps/www/latest_2018/',
-                                                         'productname': 'cloudtype'}}},
+                                                         'productname': 'cloudtype_in_fname'}}},
                      'omerc_bb': {'areaname': 'omerc_bb',
                                   'output_dir': '/tmp',
                                   'products': {'cloud_top_height': {'formats': [{'filename': '/tmp/NOAA-15_20190217_0600_omerc_bb_cloud_top_height.tif',
@@ -175,7 +233,7 @@ class TestSaveDatasets(unittest.TestCase):
 class TestConfigValue(unittest.TestCase):
 
     def setUp(self):
-        self.prodlist = yaml.load(yaml_test1)
+        self.prodlist = yaml.load(yaml_test1, Loader=UnsafeLoader)
         self.path = "/product_list/germ/products/cloudtype"
 
     def test_config_value_same_level(self):
@@ -229,20 +287,29 @@ class TestCreateScene(unittest.TestCase):
 class TestLoadComposites(unittest.TestCase):
 
     def setUp(self):
-        self.product_list = yaml.load(yaml_test1)
+        self.product_list = yaml.load(yaml_test1, Loader=UnsafeLoader)
 
     def test_load_composites(self):
         from trollflow2 import load_composites
         scn = mock.MagicMock()
         job = {"product_list": self.product_list, "scene": scn}
         load_composites(job)
-        scn.load.assert_called_with({'ct', 'cloudtype', 'cloud_top_height'})
+        scn.load.assert_called_with({'ct', 'cloudtype', 'cloud_top_height'}, resolution=None, generate=False)
+
+    def test_load_composites_with_config(self):
+        from trollflow2 import load_composites
+        scn = mock.MagicMock()
+        self.product_list['common']['resolution'] = 1000
+        self.product_list['common']['delay_composites'] = False
+        job = {"product_list": self.product_list, "scene": scn}
+        load_composites(job)
+        scn.load.assert_called_with({'ct', 'cloudtype', 'cloud_top_height'}, resolution=1000, generate=True)
 
 
 class TestResample(unittest.TestCase):
 
     def setUp(self):
-        self.product_list = yaml.load(yaml_test1)
+        self.product_list = yaml.load(yaml_test1, Loader=UnsafeLoader)
 
     def test_resample(self):
         from trollflow2 import resample
@@ -360,7 +427,7 @@ class TestResample(unittest.TestCase):
 class TestCovers(unittest.TestCase):
 
     def setUp(self):
-        self.product_list = yaml.load(yaml_test1)
+        self.product_list = yaml.load(yaml_test1, Loader=UnsafeLoader)
         self.input_mda = {"platform_name": "NOAA-15",
                           "sensor": "avhrr-3",
                           "start_time": dt.datetime(2019, 1, 19, 11),
@@ -407,6 +474,31 @@ class TestCovers(unittest.TestCase):
         ts_pass.assert_called_with(1, 2, 3, instrument=4)
         get_area_def.assert_called_with(5)
         area_coverage.assert_called_with(6)
+
+    @mock.patch('trollflow2.get_scene_coverage')
+    @mock.patch('trollflow2.Pass')
+    def test_covers_collection_area_id(self, ts_pass, get_scene_coverage):
+        from trollflow2 import covers
+        from trollflow2 import AbortProcessing
+        get_scene_coverage.return_value = 100.0
+        scn = mock.MagicMock()
+        scn.attrs = {}
+        job = {"product_list": self.product_list,
+               "input_mda": self.input_mda,
+               "scene": scn}
+        # Nothing should happen here
+        covers(job)
+        # Area that matches the product list, nothing should happen
+        job['input_mda']['collection_area_id'] = 'euron1'
+        covers(job)
+        # By default collection_area_id isn't checked so nothing should happen
+        job['input_mda']['collection_area_id'] = 'not_in_pl'
+        covers(job)
+        # Turn coverage check on, so area not in the product list should raise
+        # AbortProcessing
+        job['product_list']['common']['coverage_by_collection_area'] = True
+        with self.assertRaises(AbortProcessing):
+            covers(job)
 
 
 class TestCheckPlatform(unittest.TestCase):
@@ -473,7 +565,7 @@ class TestSZACheck(unittest.TestCase):
         scene = mock.MagicMock()
         scene.attrs = {'start_time': 42}
         job['scene'] = scene
-        product_list = yaml.load(yaml_test1)
+        product_list = yaml.load(yaml_test1, Loader=UnsafeLoader)
         job['product_list'] = product_list.copy()
         # Run without any settings
         sza_check(job)
@@ -525,8 +617,88 @@ class TestOverviews(unittest.TestCase):
         product_list['germ']['products']['cloud_top_height']['formats']['overviews'] = [4]
         job = {"product_list": self.product_list}
         add_overviews(job)
-        import pbd; pdb.set_trace()
 
+
+class TestFilePublisher(unittest.TestCase):
+
+    def setUp(self):
+        self.product_list = yaml.load(yaml_test2, Loader=UnsafeLoader)
+        # Skip omerc_bb are, there's no fname_pattern
+        del self.product_list['product_list']['omerc_bb']
+        self.input_mda = input_mda.copy()
+        self.input_mda['uri'] = 'foo.nc'
+
+    @mock.patch('trollflow2.Message')
+    @mock.patch('trollflow2.NoisyPublisher')
+    def test_filepublisher_with_compose(self, noisy_pub, message):
+        from trollflow2 import FilePublisher, plist_iter
+        from trollsift import compose
+        import os.path
+        pub = FilePublisher()
+        pub.pub.start.assert_called_once()
+        product_list = self.product_list.copy()
+        product_list['common']['publish_topic'] = '/{areaname}/{productname}'
+        job = {'product_list': product_list,
+               'input_mda': self.input_mda}
+        topic_pattern = job['product_list']['common']['publish_topic']
+        topics = []
+        # Create filenames and topics
+        for fmat, fmat_config in plist_iter(job['product_list']['product_list'],
+                                            job['input_mda'].copy()):
+            fname_pattern = fmat['fname_pattern']
+            filename = compose(os.path.join(fmat['output_dir'],
+                                            fname_pattern), fmat)
+            fmat.pop('format', None)
+            fmat_config['filename'] = filename
+            topics.append(compose(topic_pattern, fmat))
+
+        pub(job)
+        message.assert_called()
+        pub.pub.send.assert_called()
+        pub.pub.stop.assert_called()
+        i = 0
+        for area in job['product_list']['product_list']:
+            for prod in job['product_list']['product_list'][area]:
+                # Skip calls to __str__
+                if 'call().__str__()' != str(message.mock_calls[i]):
+                    self.assertTrue(topics[i] in str(message.mock_calls[i]))
+                    i += 1
+
+    @mock.patch('trollflow2.Message')
+    @mock.patch('trollflow2.NoisyPublisher')
+    def test_filepublisher_without_compose(self, noisy_pub, message):
+        from trollflow2 import FilePublisher, plist_iter
+        from trollsift import compose
+        import os.path
+        pub = FilePublisher()
+        pub.pub.start.assert_called_once()
+        product_list = self.product_list.copy()
+        product_list['common']['publish_topic'] = '/static_topic'
+        job = {'product_list': product_list,
+               'input_mda': self.input_mda}
+        topic_pattern = job['product_list']['common']['publish_topic']
+        topics = []
+        # Create filenames and topics
+        for fmat, fmat_config in plist_iter(job['product_list']['product_list'],
+                                            job['input_mda'].copy()):
+            fname_pattern = fmat['fname_pattern']
+            filename = compose(os.path.join(fmat['output_dir'],
+                                            fname_pattern), fmat)
+            fmat.pop('format', None)
+            fmat_config['filename'] = filename
+            topics.append(compose(topic_pattern, fmat))
+
+        pub(job)
+        message.assert_called()
+        pub.pub.send.assert_called()
+        pub.pub.stop.assert_called()
+        i = 0
+        for area in job['product_list']['product_list']:
+            for prod in job['product_list']['product_list'][area]:
+                # Skip calls to __str__
+                if 'call().__str__()' != str(message.mock_calls[i]):
+                    self.assertTrue(topics[i] in str(message.mock_calls[i]))
+                    i += 1
 
 def suite():
     """The test suite for test_writers."""
@@ -543,7 +715,11 @@ def suite():
     my_suite.addTest(loader.loadTestsFromTestCase(TestMetadataAlias))
     my_suite.addTest(loader.loadTestsFromTestCase(TestGetPluginConf))
     my_suite.addTest(loader.loadTestsFromTestCase(TestSZACheck))
+<<<<<<< HEAD
     my_suite.addTest(loader.loadTestsFromTestCase(TestOverviews))
+=======
+    my_suite.addTest(loader.loadTestsFromTestCase(TestFilePublisher))
+>>>>>>> master
 
     return my_suite
 

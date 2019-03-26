@@ -67,18 +67,26 @@ def create_scene(job):
     product_list = job['product_list']
     conf = _get_plugin_conf(product_list, '/common', defaults)
     LOG.info('Generating scene')
-    job['scene'] = Scene(filenames=job['input_filenames'], **conf)
+    try:
+        job['scene'] = Scene(filenames=job['input_filenames'], **conf)
+    except ValueError as err:
+        raise AbortProcessing("Failed creating scene: %s" % str(err))
 
 
 def load_composites(job):
-    composites = set(dpath.util.values(job['product_list'], '/product_list/*/products/*/productname'))
+    """Load composites given in the job's product_list."""
+    composites = set().union(*(set(d.keys())
+                               for d in dpath.util.values(job['product_list'], '/product_list/*/products')))
     LOG.info('Loading %s', str(composites))
     scn = job['scene']
-    scn.load(composites)
+    resolution = job['product_list']['common'].get('resolution', None)
+    generate = job['product_list']['common'].get('delay_composites', True) is False
+    scn.load(composites, resolution=resolution, generate=generate)
     job['scene'] = scn
 
 
 def resample(job):
+    """Resample the scene to some areas."""
     defaults = {"radius_of_influence": None,
                 "resampler": "nearest",
                 "reduce_data": True,
@@ -113,21 +121,23 @@ def resample(job):
 
 
 def save_datasets(job):
+    """Save the datasets (and trigger the computation)."""
     scns = job['resampled_scenes']
     objs = []
     base_config = job['input_mda'].copy()
     base_config.update(job['product_list']['common'])
     base_config.pop('dataset', None)
+
     for fmat, fmat_config in plist_iter(job['product_list']['product_list'], base_config):
         fname_pattern = fmat['fname_pattern']
-        outdir = fmat['output_dir']
-        filename = compose(os.path.join(outdir, fname_pattern), fmat)
+        filename = compose(os.path.join(fmat['output_dir'], fname_pattern), fmat)
         fmat.pop('format', None)
         try:
-            objs.append(scns[fmat['areaname']].save_dataset(fmat['productname'], filename=filename, compute=False, **fmat))
+            objs.append(scns[fmat['area']].save_dataset(fmat['product'], filename=filename, compute=False, **fmat))
         except KeyError as err:
             LOG.info('Skipping %s: %s', fmat['productname'], str(err))
-        fmat_config['filename'] = filename
+        else:
+            fmat_config['filename'] = filename
     compute_writer_results(objs)
 
 
@@ -144,14 +154,19 @@ class FilePublisher(object):
         mda = job['input_mda'].copy()
         mda.pop('dataset', None)
         mda.pop('collection', None)
-        topic = job['product_list']['common']['publish_topic']
         for fmat, fmat_config in plist_iter(job['product_list']['product_list']):
+            prod_path = "/product_list/%s/%s" % (fmat['area'], fmat['product'])
+            topic_pattern = get_config_value(job['product_list'],
+                                             prod_path,
+                                             "publish_topic")
+
             file_mda = mda.copy()
             try:
                 file_mda['uri'] = fmat['filename']
             except KeyError:
                 continue
             file_mda['uid'] = os.path.basename(fmat['filename'])
+            topic = compose(topic_pattern, fmat)
             msg = Message(topic, 'file', file_mda)
             LOG.debug('Publishing %s', str(msg))
             self.pub.send(str(msg))
@@ -167,9 +182,19 @@ def covers(job):
         LOG.info("Keeping all areas")
         return
 
+    col_area = job['product_list']['common'].get('coverage_by_collection_area',
+                                                 False)
+    if col_area and 'collection_area_id' in job['input_mda']:
+        if job['input_mda']['collection_area_id'] not in job['product_list']['product_list']:
+            raise AbortProcessing(
+                "Area collection ID '%s' does not match "
+                "production area(s) %s" % (job['input_mda']['collection_area_id'],
+                                        str(list(job['product_list']['product_list']))))
+
     product_list = job['product_list'].copy()
-    scn_mda = job['input_mda'].copy()
-    scn_mda.update(job['scene'].attrs)
+
+    scn_mda = job['scene'].attrs.copy()
+    scn_mda.update(job['input_mda'])
 
     platform_name = scn_mda['platform_name']
     start_time = scn_mda['start_time']
@@ -202,6 +227,7 @@ def covers(job):
 
 def get_scene_coverage(platform_name, start_time, end_time, sensor, area_id):
     """Get scene area coverage in percentages"""
+
     overpass = Pass(platform_name, start_time, end_time, instrument=sensor)
     area_def = get_area_def(area_id)
 
@@ -311,20 +337,22 @@ def plist_iter(product_list, base_mda=None, level=None):
         aconfig = base_mda.copy()
         aconfig.update(area_config)
         aconfig.pop('products', None)
+        aconfig['area'] = area
         if level == 'area':
             yield aconfig, area_config
             continue
         for prod, prod_config in area_config['products'].items():
             pconfig = aconfig.copy()
             pconfig.update(prod_config)
-            pconfig.pop('formats', None)
+            pconfig['product'] = prod
             if level == 'product':
                 yield pconfig, prod_config
                 continue
-            for idx, fmat_config in enumerate(prod_config['formats']):
+            for idx, file_config in enumerate(pconfig.get('formats', [{'format': 'tif', 'writer': 'geotiff'}])):
                 fconfig = pconfig.copy()
-                fconfig.update(fmat_config)
-                yield fconfig, fmat_config
+                fconfig.pop('formats', None)
+                fconfig.update(file_config)
+                yield fconfig, file_config
 
 
 def gen_dict_extract(var, key):
