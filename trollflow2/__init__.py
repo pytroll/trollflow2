@@ -315,7 +315,7 @@ def add_overviews(job):
             if formats is None:
                 continue
             for fmt in formats:
-                if "overviews" in fmt:
+                if "overviews" in fmt and 'filename' in fmt:
                     fname = fmt['filename']
                     overviews = fmt['overviews']
                     try:
