@@ -159,7 +159,7 @@ def sendmail(config, trace):
     from email.mime.text import MIMEText
     from subprocess import Popen, PIPE
 
-    email_settings = config['email']
+    email_settings = config['sendmail']
     msg = MIMEText(email_settings["header"] + "\n\n" + "\n\n" + trace)
     msg["From"] = email_settings["from"]
     msg["To"] = email_settings["to"]
