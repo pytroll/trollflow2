@@ -30,10 +30,10 @@ from six.moves.queue import Empty as queue_empty
 from multiprocessing import Process
 import yaml
 try:
-    from yaml import UnsafeLoader, SafeLoader
+    from yaml import UnsafeLoader, BaseLoader
 except ImportError:
     from yaml import Loader as UnsafeLoader
-    from yaml import SafeLoader
+    from yaml import BaseLoader
 import time
 from trollflow2 import gen_dict_extract, plist_iter, AbortProcessing
 from collections import OrderedDict
@@ -54,7 +54,7 @@ DEFAULT_PRIORITY = 999
 def run(prod_list, topics=None):
 
     with open(prod_list) as fid:
-        config = yaml.load(fid.read(), Loader=SafeLoader)
+        config = yaml.load(fid.read(), Loader=BaseLoader)
     topics = topics or config['common'].pop('subscribe_topics', None)
 
     listener = ListenerContainer(topics=topics)
