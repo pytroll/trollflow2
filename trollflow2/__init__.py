@@ -30,6 +30,8 @@ try:
     from posttroll.message import Message
     from posttroll.publisher import NoisyPublisher
     from pyorbital.astronomy import sun_zenith_angle
+    import rasterio
+    from rasterio.enums import Resampling
 except ImportError:
     Scene = None
     compute_writer_results = None
@@ -37,6 +39,8 @@ except ImportError:
     Message = None
     NoisyPublisher = None
     sun_zenith_angle = None
+    rasterio = None
+    Resampling = None
 
 try:
     from trollsched.satpass import Pass
@@ -63,7 +67,10 @@ def create_scene(job):
     product_list = job['product_list']
     conf = _get_plugin_conf(product_list, '/common', defaults)
     LOG.info('Generating scene')
-    job['scene'] = Scene(filenames=job['input_filenames'], **conf)
+    try:
+        job['scene'] = Scene(filenames=job['input_filenames'], **conf)
+    except ValueError as err:
+        raise AbortProcessing("Failed creating scene: %s" % str(err))
 
 
 def load_composites(job):
@@ -125,8 +132,11 @@ def save_datasets(job):
         fname_pattern = fmat['fname_pattern']
         filename = compose(os.path.join(fmat['output_dir'], fname_pattern), fmat)
         fmat.pop('format', None)
+        fmat.pop('filename', None)
         try:
-            objs.append(scns[fmat['area']].save_dataset(fmat['product'], filename=filename, compute=False, **fmat))
+            objs.append(scns[fmat['area']].save_dataset(fmat['product'],
+                                                        filename=filename,
+                                                        compute=False, **fmat))
         except KeyError as err:
             LOG.info('Skipping %s: %s', fmat['productname'], str(err))
         else:
@@ -147,14 +157,19 @@ class FilePublisher(object):
         mda = job['input_mda'].copy()
         mda.pop('dataset', None)
         mda.pop('collection', None)
-        topic = job['product_list']['common']['publish_topic']
         for fmat, fmat_config in plist_iter(job['product_list']['product_list']):
+            prod_path = "/product_list/%s/%s" % (fmat['area'], fmat['product'])
+            topic_pattern = get_config_value(job['product_list'],
+                                             prod_path,
+                                             "publish_topic")
+
             file_mda = mda.copy()
             try:
                 file_mda['uri'] = fmat['filename']
             except KeyError:
                 continue
             file_mda['uid'] = os.path.basename(fmat['filename'])
+            topic = compose(topic_pattern, fmat)
             msg = Message(topic, 'file', file_mda)
             LOG.debug('Publishing %s', str(msg))
             self.pub.send(str(msg))
@@ -169,6 +184,15 @@ def covers(job):
         LOG.error("Trollsched import failed, coverage calculation not possible")
         LOG.info("Keeping all areas")
         return
+
+    col_area = job['product_list']['common'].get('coverage_by_collection_area',
+                                                 False)
+    if col_area and 'collection_area_id' in job['input_mda']:
+        if job['input_mda']['collection_area_id'] not in job['product_list']['product_list']:
+            raise AbortProcessing(
+                "Area collection ID '%s' does not match "
+                "production area(s) %s" % (job['input_mda']['collection_area_id'],
+                                        str(list(job['product_list']['product_list']))))
 
     product_list = job['product_list'].copy()
 
@@ -235,7 +259,13 @@ def metadata_alias(job):
         return
     for key in aliases:
         if key in mda_out:
-            mda_out[key] = aliases[key].get(mda_out[key], mda_out[key])
+            val = mda_out[key]
+            if isinstance(val, (list, tuple, set)):
+                typ = type(val)
+                new_vals = typ([aliases[key].get(itm, itm) for itm in val])
+                mda_out[key] = new_vals
+            else:
+                mda_out[key] = aliases[key].get(mda_out[key], mda_out[key])
     job['input_mda'] = mda_out.copy()
 
 
@@ -282,6 +312,29 @@ def sza_check(job):
         if len(product_list['product_list'][area]['products']) == 0:
             LOG.info("Removing empty area: %s", area)
             dpath.util.delete(product_list, '/product_list/%s' % area)
+
+
+def add_overviews(job):
+    """Add overviews to images already written to disk."""
+    # Get the formats, including filenames and overview settings
+    product_list = job['product_list']['product_list']
+    for area in product_list:
+        for product in product_list[area]['products']:
+            formats = product_list[area]['products'][product].get("formats", None)
+            if formats is None:
+                continue
+            for fmt in formats:
+                if "overviews" in fmt and 'filename' in fmt:
+                    fname = fmt['filename']
+                    overviews = fmt['overviews']
+                    try:
+                        with rasterio.open(fname, 'r+') as dst:
+                            dst.build_overviews(overviews, Resampling.average)
+                            dst.update_tags(ns='rio_overview',
+                                            resampling='average')
+                        LOG.info("Added overviews to %s", fname)
+                    except rasterio.RasterioIOError:
+                        pass
 
 
 def plist_iter(product_list, base_mda=None, level=None):
