@@ -30,6 +30,8 @@ try:
     from posttroll.message import Message
     from posttroll.publisher import NoisyPublisher
     from pyorbital.astronomy import sun_zenith_angle
+    import rasterio
+    from rasterio.enums import Resampling
 except ImportError:
     Scene = None
     compute_writer_results = None
@@ -37,6 +39,8 @@ except ImportError:
     Message = None
     NoisyPublisher = None
     sun_zenith_angle = None
+    rasterio = None
+    Resampling = None
 
 try:
     from trollsched.satpass import Pass
@@ -299,6 +303,29 @@ def sza_check(job):
         if len(product_list['product_list'][area]['products']) == 0:
             LOG.info("Removing empty area: %s", area)
             dpath.util.delete(product_list, '/product_list/%s' % area)
+
+
+def add_overviews(job):
+    """Add overviews to images already written to disk."""
+    # Get the formats, including filenames and overview settings
+    product_list = job['product_list']['product_list']
+    for area in product_list:
+        for product in product_list[area]['products']:
+            formats = product_list[area]['products'][product].get("formats", None)
+            if formats is None:
+                continue
+            for fmt in formats:
+                if "overviews" in fmt and 'filename' in fmt:
+                    fname = fmt['filename']
+                    overviews = fmt['overviews']
+                    try:
+                        with rasterio.open(fname, 'r+') as dst:
+                            dst.build_overviews(overviews, Resampling.average)
+                            dst.update_tags(ns='rio_overview',
+                                            resampling='average')
+                        LOG.info("Added overviews to %s", fname)
+                    except rasterio.RasterioIOError:
+                        pass
 
 
 def plist_iter(product_list, base_mda=None, level=None):

@@ -600,6 +600,30 @@ class TestSZACheck(unittest.TestCase):
         self.assertFalse('germ' in job['product_list']['product_list'])
 
 
+class TestOverviews(unittest.TestCase):
+
+    def setUp(self):
+        self.product_list = yaml.load(yaml_test1)
+
+    @mock.patch('trollflow2.Resampling')
+    @mock.patch('trollflow2.rasterio')
+    def test_add_overviews(self, rasterio, resampling):
+        from trollflow2 import add_overviews
+        # Mock the rasterio.open context manager
+        dst = mock.MagicMock()
+        rasterio.open.return_value.__enter__.return_value = dst
+
+        product_list = self.product_list['product_list']
+        product_list['germ']['products']['cloudtype']['formats'][0]['overviews'] = [4]
+        # Add filename, otherwise added by `save_datasets()`
+        product_list['germ']['products']['cloudtype']['formats'][0]['filename'] = 'foo'
+        job = {"product_list": self.product_list}
+        add_overviews(job)
+        dst.build_overviews.assert_called_once_with([4], resampling.average)
+        dst.update_tags.assert_called_once_with(ns='rio_overview',
+                                                resampling='average')
+
+
 class TestFilePublisher(unittest.TestCase):
 
     def setUp(self):
@@ -696,6 +720,7 @@ def suite():
     my_suite.addTest(loader.loadTestsFromTestCase(TestMetadataAlias))
     my_suite.addTest(loader.loadTestsFromTestCase(TestGetPluginConf))
     my_suite.addTest(loader.loadTestsFromTestCase(TestSZACheck))
+    my_suite.addTest(loader.loadTestsFromTestCase(TestOverviews))
     my_suite.addTest(loader.loadTestsFromTestCase(TestFilePublisher))
 
     return my_suite
