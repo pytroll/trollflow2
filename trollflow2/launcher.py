@@ -39,6 +39,7 @@ from trollflow2 import gen_dict_extract, plist_iter, AbortProcessing
 from collections import OrderedDict
 import copy
 from six.moves.urllib.parse import urlparse
+import traceback
 
 """The order of basic things is:
 - Create the scene
@@ -147,3 +148,24 @@ def process(msg, prod_list):
                 LOG.info(str(err))
     except Exception:
         LOG.exception("Process crashed")
+        if "crash_handlers" in config:
+            trace = traceback.format_exc()
+            for hand in config['crash_handlers']['handlers']:
+                hand['fun'](config['crash_handlers']['config'], trace)
+
+
+def sendmail(config, trace):
+    """Send email about crashes using `sendmail`"""
+    from email.mime.text import MIMEText
+    from subprocess import Popen, PIPE
+
+    email_settings = config['sendmail']
+    msg = MIMEText(email_settings["header"] + "\n\n" + "\n\n" + trace)
+    msg["From"] = email_settings["from"]
+    msg["To"] = email_settings["to"]
+    msg["Subject"] = email_settings["subject"]
+    sendmail = email_settings.get("sendmail", "/usr/bin/sendmail")
+
+    pid = Popen([sendmail, "-t", "-oi"], stdin=PIPE)
+    pid.communicate(msg.as_bytes())
+    pid.terminate()
