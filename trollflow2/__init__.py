@@ -256,7 +256,13 @@ def metadata_alias(job):
         return
     for key in aliases:
         if key in mda_out:
-            mda_out[key] = aliases[key].get(mda_out[key], mda_out[key])
+            val = mda_out[key]
+            if isinstance(val, (list, tuple, set)):
+                typ = type(val)
+                new_vals = typ([aliases[key].get(itm, itm) for itm in val])
+                mda_out[key] = new_vals
+            else:
+                mda_out[key] = aliases[key].get(mda_out[key], mda_out[key])
     job['input_mda'] = mda_out.copy()
 
 

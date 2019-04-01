@@ -538,6 +538,17 @@ class TestMetadataAlias(unittest.TestCase):
         self.assertTrue(mda['not_changed'])
         self.assertTrue('not_in_mda' not in mda)
 
+    def test_iterable_metadata(self):
+        from trollflow2 import metadata_alias
+        mda = {'sensor': ('a/b',), 'foo': set(['c/d'])}
+        product_list = {'common': {'metadata_aliases':
+                                   {'sensor': {'a/b': 'a-b'},
+                                    'foo': {'c/d': 'c\d'}}}}
+        job = {'input_mda': mda, 'product_list': product_list}
+        metadata_alias(job)
+        self.assertEqual(job['input_mda']['sensor'], ('a-b',))
+        self.assertEqual(job['input_mda']['foo'], set(['c\d']))
+
 
 class TestGetPluginConf(unittest.TestCase):
 
