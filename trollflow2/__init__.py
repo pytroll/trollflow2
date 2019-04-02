@@ -157,23 +157,26 @@ class FilePublisher(object):
         mda = job['input_mda'].copy()
         mda.pop('dataset', None)
         mda.pop('collection', None)
-        for fmat, fmat_config in plist_iter(job['product_list']['product_list']):
-            prod_path = "/product_list/%s/%s" % (fmat['area'], fmat['product'])
-            topic_pattern = get_config_value(job['product_list'],
-                                             prod_path,
-                                             "publish_topic")
-
-            file_mda = mda.copy()
-            try:
-                file_mda['uri'] = fmat['filename']
-            except KeyError:
-                continue
-            file_mda['uid'] = os.path.basename(fmat['filename'])
-            topic = compose(topic_pattern, fmat)
-            msg = Message(topic, 'file', file_mda)
-            LOG.debug('Publishing %s', str(msg))
-            self.pub.send(str(msg))
+        prod_list = job['product_list']
+        _send_messages(self.pub, prod_list, mda)
         self.pub.stop()
+
+
+def _send_messages(pub, prod_list, mda):
+    """Send messages using publisher *pub*"""
+    for fmat, _ in plist_iter(prod_list['product_list']):
+        prod_path = "/product_list/%s/%s" % (fmat['area'], fmat['product'])
+        topic_pattern = get_config_value(prod_list, prod_path, "publish_topic")
+        file_mda = mda.copy()
+        try:
+            file_mda['uri'] = fmat['filename']
+        except KeyError:
+            continue
+        file_mda['uid'] = os.path.basename(fmat['filename'])
+        topic = compose(topic_pattern, fmat)
+        msg = Message(topic, 'file', file_mda)
+        LOG.debug('Publishing %s', str(msg))
+        pub.send(str(msg))
 
 
 def covers(job):

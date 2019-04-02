@@ -639,7 +639,7 @@ class TestFilePublisher(unittest.TestCase):
 
     def setUp(self):
         self.product_list = yaml.load(yaml_test2, Loader=UnsafeLoader)
-        # Skip omerc_bb are, there's no fname_pattern
+        # Skip omerc_bb area, there's no fname_pattern
         del self.product_list['product_list']['omerc_bb']
         self.input_mda = input_mda.copy()
         self.input_mda['uri'] = 'foo.nc'
