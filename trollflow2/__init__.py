@@ -144,7 +144,7 @@ def save_datasets(job):
     compute_writer_results(objs)
 
 
-class FilePublisher(object):
+class NoisyFilePublisher(object):
     # todo add support for custom port and nameserver
     def __new__(cls):
         self = super().__new__(cls)

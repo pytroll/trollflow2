@@ -635,7 +635,7 @@ class TestOverviews(unittest.TestCase):
                                                 resampling='average')
 
 
-class TestFilePublisher(unittest.TestCase):
+class TestNoisyFilePublisher(unittest.TestCase):
 
     def setUp(self):
         self.product_list = yaml.load(yaml_test2, Loader=UnsafeLoader)
@@ -647,10 +647,10 @@ class TestFilePublisher(unittest.TestCase):
     @mock.patch('trollflow2.Message')
     @mock.patch('trollflow2.NoisyPublisher')
     def test_filepublisher_with_compose(self, noisy_pub, message):
-        from trollflow2 import FilePublisher, plist_iter
+        from trollflow2 import NoisyFilePublisher, plist_iter
         from trollsift import compose
         import os.path
-        pub = FilePublisher()
+        pub = NoisyFilePublisher()
         pub.pub.start.assert_called_once()
         product_list = self.product_list.copy()
         product_list['common']['publish_topic'] = '/{areaname}/{productname}'
@@ -683,10 +683,10 @@ class TestFilePublisher(unittest.TestCase):
     @mock.patch('trollflow2.Message')
     @mock.patch('trollflow2.NoisyPublisher')
     def test_filepublisher_without_compose(self, noisy_pub, message):
-        from trollflow2 import FilePublisher, plist_iter
+        from trollflow2 import NoisyFilePublisher, plist_iter
         from trollsift import compose
         import os.path
-        pub = FilePublisher()
+        pub = NoisyFilePublisher()
         pub.pub.start.assert_called_once()
         product_list = self.product_list.copy()
         product_list['common']['publish_topic'] = '/static_topic'
@@ -732,7 +732,7 @@ def suite():
     my_suite.addTest(loader.loadTestsFromTestCase(TestGetPluginConf))
     my_suite.addTest(loader.loadTestsFromTestCase(TestSZACheck))
     my_suite.addTest(loader.loadTestsFromTestCase(TestOverviews))
-    my_suite.addTest(loader.loadTestsFromTestCase(TestFilePublisher))
+    my_suite.addTest(loader.loadTestsFromTestCase(TestNoisyFilePublisher))
 
     return my_suite
 

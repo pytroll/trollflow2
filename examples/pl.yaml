@@ -146,7 +146,7 @@ workers:
   - fun: !!python/name:trollflow2.load_composites
   - fun: !!python/name:trollflow2.resample
   - fun: !!python/name:trollflow2.save_datasets
-  - fun: !!python/object:trollflow2.FilePublisher {}
+  - fun: !!python/object:trollflow2.NoisyFilePublisher {}
 
 # Things to run in case of a crash
 #crash_handlers:
