@@ -54,6 +54,8 @@ from collections import OrderedDict
 from trollsift import compose
 import dpath
 import os
+import time
+
 
 LOG = getLogger("trollflow2_plugins")
 
@@ -171,6 +173,8 @@ def file_publisher(job):
     mda.pop('collection', None)
     prod_list = job['product_list']
     with Publish("l2processor") as pub:
+        # Wait for a while so that publisher is registered properly
+        time.sleep(0.1)
         _send_messages(pub, prod_list, mda)
 
 
