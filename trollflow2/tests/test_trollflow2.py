@@ -716,6 +716,21 @@ class TestNoisyFilePublisher(unittest.TestCase):
                     self.assertTrue(topics[i] in str(message.mock_calls[i]))
                     i += 1
 
+
+class TestFilePublisher(unittest.TestCase):
+
+    @mock.patch('trollflow2._send_messages')
+    @mock.patch('trollflow2.Publish')
+    def test_file_publisher(self, Publish, send_messages):
+        from trollflow2 import file_publisher
+        Publish.return_value.__enter__.return_value = 'pub'
+        mda = {'dataset': None, 'collection': None, 'bar': 'baz'}
+        prod_list = 'foo'
+        file_publisher({'input_mda': mda, 'product_list': prod_list})
+        # dataset and collection are removed from the metadata dict
+        send_messages.assert_called_with('pub', 'foo', {'bar': 'baz'})
+
+
 def suite():
     """The test suite for test_writers."""
     loader = unittest.TestLoader()
@@ -733,6 +748,7 @@ def suite():
     my_suite.addTest(loader.loadTestsFromTestCase(TestSZACheck))
     my_suite.addTest(loader.loadTestsFromTestCase(TestOverviews))
     my_suite.addTest(loader.loadTestsFromTestCase(TestNoisyFilePublisher))
+    my_suite.addTest(loader.loadTestsFromTestCase(TestFilePublisher))
 
     return my_suite
 

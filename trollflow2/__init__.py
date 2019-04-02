@@ -29,6 +29,7 @@ try:
     from satpy.resample import get_area_def
     from posttroll.message import Message
     from posttroll.publisher import NoisyPublisher
+    from posttroll.publisher import Publish
     from pyorbital.astronomy import sun_zenith_angle
     import rasterio
     from rasterio.enums import Resampling
@@ -38,6 +39,7 @@ except ImportError:
     get_area_def = None
     Message = None
     NoisyPublisher = None
+    Publish = None
     sun_zenith_angle = None
     rasterio = None
     Resampling = None
@@ -160,6 +162,16 @@ class NoisyFilePublisher(object):
         prod_list = job['product_list']
         _send_messages(self.pub, prod_list, mda)
         self.pub.stop()
+
+
+def file_publisher(job):
+    """Simple message publisher"""
+    mda = job['input_mda'].copy()
+    mda.pop('dataset', None)
+    mda.pop('collection', None)
+    prod_list = job['product_list']
+    with Publish("l2processor") as pub:
+        _send_messages(pub, prod_list, mda)
 
 
 def _send_messages(pub, prod_list, mda):
