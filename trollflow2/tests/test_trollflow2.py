@@ -637,6 +637,22 @@ class TestOverviews(unittest.TestCase):
 
 class TestNoisyFilePublisher(unittest.TestCase):
 
+    @mock.patch('trollflow2._send_messages')
+    @mock.patch('trollflow2.NoisyPublisher')
+    def test_noisy_file_publisher(self, NoisyPublisher, send_messages):
+        from trollflow2 import NoisyFilePublisher
+        pub = NoisyFilePublisher()
+        pub.pub.start.assert_called_once()
+        mda = {'dataset': None, 'collection': None, 'bar': 'baz'}
+        prod_list = 'foo'
+        pub({'input_mda': mda, 'product_list': prod_list})
+        # dataset and collection are removed from the metadata dict
+        send_messages.assert_called_with(pub.pub, 'foo', {'bar': 'baz'})
+        pub.pub.stop.assert_called_once()
+
+
+class TestSendMessages(unittest.TestCase):
+
     def setUp(self):
         self.product_list = yaml.load(yaml_test2, Loader=UnsafeLoader)
         # Skip omerc_bb area, there's no fname_pattern
@@ -645,13 +661,11 @@ class TestNoisyFilePublisher(unittest.TestCase):
         self.input_mda['uri'] = 'foo.nc'
 
     @mock.patch('trollflow2.Message')
-    @mock.patch('trollflow2.NoisyPublisher')
-    def test_filepublisher_with_compose(self, noisy_pub, message):
-        from trollflow2 import NoisyFilePublisher, plist_iter
+    def test_filepublisher_with_compose(self, message):
+        from trollflow2 import _send_messages, plist_iter
         from trollsift import compose
         import os.path
-        pub = NoisyFilePublisher()
-        pub.pub.start.assert_called_once()
+        pub = mock.MagicMock()
         product_list = self.product_list.copy()
         product_list['common']['publish_topic'] = '/{areaname}/{productname}'
         job = {'product_list': product_list,
@@ -668,26 +682,23 @@ class TestNoisyFilePublisher(unittest.TestCase):
             fmat_config['filename'] = filename
             topics.append(compose(topic_pattern, fmat))
 
-        pub(job)
+        _send_messages(pub, self.product_list, self.input_mda)
         message.assert_called()
-        pub.pub.send.assert_called()
-        pub.pub.stop.assert_called()
+        pub.send.assert_called()
         i = 0
         for area in job['product_list']['product_list']:
-            for prod in job['product_list']['product_list'][area]:
+            for _ in job['product_list']['product_list'][area]:
                 # Skip calls to __str__
                 if 'call().__str__()' != str(message.mock_calls[i]):
                     self.assertTrue(topics[i] in str(message.mock_calls[i]))
                     i += 1
 
     @mock.patch('trollflow2.Message')
-    @mock.patch('trollflow2.NoisyPublisher')
-    def test_filepublisher_without_compose(self, noisy_pub, message):
-        from trollflow2 import NoisyFilePublisher, plist_iter
+    def test_filepublisher_without_compose(self, message):
+        from trollflow2 import _send_messages, plist_iter
         from trollsift import compose
         import os.path
-        pub = NoisyFilePublisher()
-        pub.pub.start.assert_called_once()
+        pub = mock.MagicMock()
         product_list = self.product_list.copy()
         product_list['common']['publish_topic'] = '/static_topic'
         job = {'product_list': product_list,
@@ -704,13 +715,12 @@ class TestNoisyFilePublisher(unittest.TestCase):
             fmat_config['filename'] = filename
             topics.append(compose(topic_pattern, fmat))
 
-        pub(job)
+        _send_messages(pub, self.product_list, self.input_mda)
         message.assert_called()
-        pub.pub.send.assert_called()
-        pub.pub.stop.assert_called()
+        pub.send.assert_called()
         i = 0
         for area in job['product_list']['product_list']:
-            for prod in job['product_list']['product_list'][area]:
+            for _ in job['product_list']['product_list'][area]:
                 # Skip calls to __str__
                 if 'call().__str__()' != str(message.mock_calls[i]):
                     self.assertTrue(topics[i] in str(message.mock_calls[i]))
@@ -749,6 +759,7 @@ def suite():
     my_suite.addTest(loader.loadTestsFromTestCase(TestOverviews))
     my_suite.addTest(loader.loadTestsFromTestCase(TestNoisyFilePublisher))
     my_suite.addTest(loader.loadTestsFromTestCase(TestFilePublisher))
+    my_suite.addTest(loader.loadTestsFromTestCase(TestSendMessages))
 
     return my_suite
 
