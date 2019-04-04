@@ -1,18 +1,29 @@
 common:
-  output_dir: &output_dir
+  output_dir:
     /mnt/output/
+  subscribe_topics:
+    - /dataset/msg0deg
   publish_topic: /MSG_0deg/L3
   reader: seviri_l1b_hrit
   fname_pattern:
     "{start_time:%Y%m%d_%H%M}_{platform_name}_{areaname}_{productname}.{format}"
   sunzen_check_lon: 5.0
   sunzen_check_lat: 56.0
+  # Delay composite generation until resampling is done.  This is often faster
+  delay_composites: True
 
 product_list:
+
   euro4:
+
     # Add a priority. Not relevant for one area, but just to show the option
     priority: 1
     areaname: euro4
+    # Search radius for resampling
+    radius_of_influence: 20000
+    # Resampling method
+    resampler: nearest
+
     products:
       overview:
         productname: overview
