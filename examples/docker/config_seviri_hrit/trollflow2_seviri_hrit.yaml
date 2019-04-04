@@ -2,8 +2,8 @@ common:
   output_dir:
     /mnt/output/
   subscribe_topics:
-    - /dataset/msg0deg
-  publish_topic: /MSG_0deg/L3
+    - /dataset/seviri_hrit
+  publish_topic: /image/seviri_hrit
   reader: seviri_l1b_hrit
   fname_pattern:
     "{start_time:%Y%m%d_%H%M}_{platform_name}_{areaname}_{productname}.{format}"

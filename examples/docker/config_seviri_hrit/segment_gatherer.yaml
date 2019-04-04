@@ -1,5 +1,5 @@
 patterns:
-  msg:
+  seviri_hrit:
     pattern:
       "H-000-{orig_platform_name:4s}__-{orig_platform_name:4s}_{service:3s}____-{channel_name:_<9s}-{segment:_<9s}-{start_time:%Y%m%d%H%M}-{compression:1s}_"
     critical_files: :EPI,:PRO
@@ -15,7 +15,7 @@ time_name:
 
 posttroll:
   topics:
-    - /segment/msg0deg
+    - /segment/seviri_hrit
   publish_topic:
-    /dataset/msg0deg
+    /dataset/seviri_hrit
 
