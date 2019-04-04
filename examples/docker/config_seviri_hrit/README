@@ -21,14 +21,8 @@ Configuration file for segment_gatherer, which collects the messages
 coming from trollstalker to one message that contains metadata of all
 the required files to produce the images.
 
-flow_processor.yaml and flow_processor_logging.ini
+trollflow2_seviri_hrit.yaml
 --------------------------------------------------
-
-Definition of the processing chain and its logging: creation of
-composites, resampling to target area, writing to files.
-
-products.yaml
--------------
 
 Definition of the products to be generated: composites, target areas,
 file formats, filename patterns.
