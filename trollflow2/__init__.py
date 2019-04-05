@@ -203,6 +203,10 @@ def covers(job):
     start_time = scn_mda['start_time']
     end_time = scn_mda['end_time']
     sensor = scn_mda['sensor']
+    if isinstance(sensor, (list, tuple, set)):
+        sensor = list(sensor)[0]
+        LOG.warning("Possibly many sensors given, taking only one for "
+                    "coverage calculations: %s", sensor)
 
     areas = list(product_list['product_list'].keys())
     for area in areas:
