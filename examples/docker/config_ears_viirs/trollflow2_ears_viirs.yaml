@@ -42,8 +42,8 @@ product_list:
             writer: geotiff
         sunzen_maximum_angle: 90.0
 
-      day_microphysical:
-        productname: day_microphysical
+      day_microphysics:
+        productname: day_microphysics
         sunzen_maximum_angle: 90
         formats:
           - format: tif
