@@ -52,12 +52,6 @@ product_list:
             writer: geotiff
         sunzen_maximum_angle: 90.0
 
-      airmass:
-        productname: airmass
-        formats:
-          - format: tif
-            writer: geotiff
-
       natural_color:
         productname: natural_color
         formats:
@@ -65,8 +59,15 @@ product_list:
             writer: geotiff
         sunzen_maximum_angle: 90.0
 
-      night_fog:
-        productname: night_fog
+      night_microphysical:
+        productname: night_microphysical
+        formats:
+          - format: tif
+            writer: geotiff
+        sunzen_minimum_angle: 90.0
+
+      cloudtop:
+        productname: cloudtop
         formats:
           - format: tif
             writer: geotiff
