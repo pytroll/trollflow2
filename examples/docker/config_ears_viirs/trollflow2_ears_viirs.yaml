@@ -19,6 +19,8 @@ common:
   # Check coverage for each area, and check "collection_area_id"
   # before any actual calculations
   coverage_by_collection_area: True
+  # Mask invalid data before resampling - removes bowtie problems for VIIRS
+  mask_area: True
 
 product_list:
 
@@ -60,8 +62,8 @@ product_list:
           - format: tif
             writer: geotiff
 
-      dnb_overview:
-        productname: dnb_overview
+      night_overview:
+        productname: night_overview
         sunzen_minimum_angle: 90
         formats:
           - format: tif
