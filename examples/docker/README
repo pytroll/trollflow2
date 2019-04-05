@@ -46,6 +46,8 @@ b) Build the docker image "trollflow2"
   configurations for the following satellite instruments and formats:
 
   - MSG SEVIRI in uncompressed HRIT format
+  - EARS/AVHRR granules preprocessed with AAPP
+  - EARS/VIIRS granules in compact SDR format
 
   All the configuration files use UNIX paths, as the Docker image is
   based on Ubuntu linux.
@@ -72,7 +74,7 @@ a) Start the trollflow2 Docker image
   - in windows:
 
   docker run \
-    --mount type=bind,source=%cd%}config_seviri_hrit,target=/mnt/config/ \
+    --mount type=bind,source=%cd%\config_seviri_hrit,target=/mnt/config/ \
     --mount type=bind,source=%cd%\logs,target=/mnt/logs/ \
     --mount type=bind,source=%cd%\input,target=/mnt/input/ \
     --mount type=bind,source=%cd%\output,target=/mnt/output/ \
@@ -119,3 +121,6 @@ c) The results
 
   - Remember to match the mount-points in the "docker run" command to
     the paths defined in the configuration files
+
+  - For options in the used package, consult the documentation and/or
+    example configs of corresponding package
