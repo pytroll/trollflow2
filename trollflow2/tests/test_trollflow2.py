@@ -424,6 +424,27 @@ class TestResample(unittest.TestCase):
                         scn.resample.mock_calls)
 
 
+class TestSunlightCovers(unittest.TestCase):
+    """Test the sunlight coverage."""
+
+    def setUp(self):
+        self.product_list = yaml.load(yaml_test1, Loader=UnsafeLoader)
+        self.input_mda = {"platform_name": "NOAA-15",
+                          "sensor": "avhrr-3",
+                          "start_time": dt.datetime(2019, 4, 7, 20, 52),
+                          "end_time": dt.datetime(2019, 4, 7, 20, 58),
+                         }
+
+    def test_coverage(self):
+        from trollflow2 import _get_sunlight_coverage
+        from satpy.resample import get_area_def
+        import numpy as np
+        euron1 = get_area_def('euron1')
+        np.testing.assert_allclose(_get_sunlight_coverage(euron1,
+                                                          dt.datetime(2019, 4, 7, 20, 8)),
+                                   0.08402211214323578)
+
+
 class TestCovers(unittest.TestCase):
 
     def setUp(self):
@@ -731,6 +752,7 @@ def suite():
     my_suite.addTest(loader.loadTestsFromTestCase(TestMetadataAlias))
     my_suite.addTest(loader.loadTestsFromTestCase(TestGetPluginConf))
     my_suite.addTest(loader.loadTestsFromTestCase(TestSZACheck))
+    my_suite.addTest(loader.loadTestsFromTestCase(TestSunlightCovers))
     my_suite.addTest(loader.loadTestsFromTestCase(TestOverviews))
     my_suite.addTest(loader.loadTestsFromTestCase(TestFilePublisher))
 

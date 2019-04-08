@@ -321,8 +321,6 @@ def check_sunlight_coverage(job):
     product list, expressed in % (so between 0 and 100). Everything under it not
     matching this sunlight coverage will be discarded.
     """
-    from pyresample.boundary import AreaDefBoundary
-    from trollsched.spherical import get_twilight_poly
 
     scn = job['scene']
     start_time = scn.attrs['start_time']
@@ -336,24 +334,31 @@ def check_sunlight_coverage(job):
             if min_day is None:
                 continue
             area_def = job['resampled_scenes'][area][product].attrs['area']
-            adp = AreaDefBoundary(area_def, frequency=100)
-            poly = get_twilight_poly(start_time)
-
-            daylight = adp.contour_poly.intersection(poly)
-            if daylight is None:
-                if sun_zenith_angle(start_time, *area_def.get_lonlat(0, 0)) < 90:
-                    continue
-                else:
-                    coverage = 1
-            else:
-                daylight_area = daylight.area()
-                total_area = adp.contour_poly.area()
-                coverage = daylight_area / total_area
+            coverage = _get_sunlight_coverage(area_def, start_time)
             if coverage < (min_day / 100.0):
                 LOG.info("Not enough sunlight coverage in "
                          "product '%s', removed.", product)
                 dpath.util.delete(product_list, prod_path)
 
+
+def _get_sunlight_coverage(area_def, start_time):
+    """Get the sunlight coverage of *area_def* at *start_time*."""
+    from pyresample.boundary import AreaDefBoundary
+    from trollsched.spherical import get_twilight_poly
+
+    adp = AreaDefBoundary(area_def, frequency=100)
+    poly = get_twilight_poly(start_time)
+
+    daylight = adp.contour_poly.intersection(poly)
+    if daylight is None:
+        if sun_zenith_angle(start_time, *area_def.get_lonlat(0, 0)) < 90:
+            return 1
+        else:
+            return 0
+    else:
+        daylight_area = daylight.area()
+        total_area = adp.contour_poly.area()
+        return daylight_area / total_area
 
 
 def add_overviews(job):
