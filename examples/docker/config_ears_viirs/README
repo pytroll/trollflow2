@@ -1,5 +1,5 @@
-This directory contains an example production chain setup for AVHRR L1b
-granules from EARS that have been preprocessed with AAPP.
+This directory contains an example production chain setup for VIIRS L1b
+granules from EARS.
 
 supervisord.conf
 ----------------
