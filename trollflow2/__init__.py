@@ -314,6 +314,48 @@ def sza_check(job):
             dpath.util.delete(product_list, '/product_list/%s' % area)
 
 
+def check_sunlight_coverage(job):
+    """Remove products with too low daytime coverage.
+
+    This plugins looks for a parameter called `min_sunlight_coverage` in the
+    product list, expressed in % (so between 0 and 100). Everything under it not
+    matching this sunlight coverage will be discarded.
+    """
+    from pyresample.boundary import AreaDefBoundary
+    from trollsched.spherical import get_twilight_poly
+
+    scn = job['scene']
+    start_time = scn.attrs['start_time']
+    product_list = job['product_list']
+    areas = list(product_list['product_list'].keys())
+    for area in areas:
+        products = list(product_list['product_list'][area]['products'].keys())
+        for product in products:
+            prod_path = "/product_list/%s/products/%s" % (area, product)
+            min_day = get_config_value(product_list, prod_path, "min_sunlight_coverage")
+            if min_day is None:
+                continue
+            area_def = job['resampled_scenes'][area][product].attrs['area']
+            adp = AreaDefBoundary(area_def, frequency=100)
+            poly = get_twilight_poly(start_time)
+
+            daylight = adp.contour_poly.intersection(poly)
+            if daylight is None:
+                if sun_zenith_angle(start_time, *area_def.get_lonlat(0, 0)) < 90:
+                    continue
+                else:
+                    coverage = 1
+            else:
+                daylight_area = daylight.area()
+                total_area = adp.contour_poly.area()
+                coverage = daylight_area / total_area
+            if coverage < (min_day / 100.0):
+                LOG.info("Not enough sunlight coverage in "
+                         "product '%s', removed.", product)
+                dpath.util.delete(product_list, prod_path)
+
+
+
 def add_overviews(job):
     """Add overviews to images already written to disk."""
     # Get the formats, including filenames and overview settings
