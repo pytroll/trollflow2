@@ -1,0 +1,85 @@
+common:
+  output_dir:
+    /mnt/output/
+  subscribe_topics:
+    - /collection/noaa-19/avhrr
+    - /collection/metop-a/avhrr
+    - /collection/metop-b/avhrr
+    - /collection/metop-c/avhrr
+  publish_topic: /image/avhrr
+  reader: avhrr_l1b_aapp
+  fname_pattern:
+    "{start_time:%Y%m%d_%H%M}_{platform_name}_{areaname}_{productname}.{format}"
+  # Location where to check sun zenith angle
+  sunzen_check_lon: 0.0
+  sunzen_check_lat: 55.0
+  # Replace some values in input metadata
+  metadata_aliases:
+    sensor:
+      avhrr/3: avhrr-3
+  # Process only these platforms
+  processed_platforms:
+    - NOAA-19
+    - Metop-A
+    - Metop-B
+    - Metop-C
+  # Minimum area coverage when data are processed
+  min_coverage: 20.0
+  # Delay composite generation until resampling is done.  This is
+  # faster when many products share the same channels
+  delay_composites: True
+  # Check coverage for each area, and check "collection_area_id"
+  # before any actual calculations
+  coverage_by_collection_area: True
+
+product_list:
+
+  eurol:
+
+    # Each area can have an optional priority in which they are
+    # processed.  All the areas with same priority are processed
+    # together.
+    priority: 1
+    areaname: eurol
+    radius_of_influence: 20000
+
+    products:
+
+      overview:
+        productname: overview
+        formats:
+          - format: tif
+            writer: geotiff
+        sunzen_maximum_angle: 90.0
+
+      natural_color:
+        productname: natural_color
+        formats:
+          - format: tif
+            writer: geotiff
+        sunzen_maximum_angle: 90.0
+
+      night_microphysical:
+        productname: night_microphysical
+        formats:
+          - format: tif
+            writer: geotiff
+        sunzen_minimum_angle: 90.0
+
+      cloudtop:
+        productname: cloudtop
+        formats:
+          - format: tif
+            writer: geotiff
+        sunzen_minimum_angle: 90.0
+
+workers:
+  - fun: !!python/name:trollflow2.metadata_alias
+  - fun: !!python/name:trollflow2.check_platform
+  - fun: !!python/name:trollflow2.create_scene
+  - fun: !!python/name:trollflow2.covers
+  - fun: !!python/name:trollflow2.sza_check
+  - fun: !!python/name:trollflow2.load_composites
+  - fun: !!python/name:trollflow2.resample
+  - fun: !!python/name:trollflow2.save_datasets
+  - fun: !!python/object:trollflow2.FilePublisher {}

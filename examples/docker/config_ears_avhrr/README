@@ -1,0 +1,26 @@
+This directory contains an example production chain setup for AVHRR L1b
+granules from EARS that have been preprocessed with AAPP.
+
+supervisord.conf
+----------------
+
+Configuration file for Supervisord, which starts all the processing steps.
+
+trollstalker.ini and trollstalker_logging.ini
+---------------------------------------------
+
+Configuration file for Trollstalker, which creates posttroll messages
+for incoming files, and logging config for it.
+
+gatherer.yaml
+---------------------
+
+Configuration file for gatherer.py, which collects the granules to cover
+one or more areas of interest.  The collected metadata are then sent and
+received by trollflow2.
+
+trollflow2_ears_avhrr.yaml
+--------------------------------------------------
+
+Definition of the products to be generated: composites, target areas,
+file formats, filename patterns.
