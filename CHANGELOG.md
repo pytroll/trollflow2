@@ -1,3 +1,26 @@
+## Version <0.4.0> (2019/04/08)
+
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR 30](https://github.com/pytroll/trollflow2/pull/30) - Use only one sensor for coverage calculations
+* [PR 26](https://github.com/pytroll/trollflow2/pull/26) - Handle aliases for iterable metadata values
+
+#### Features added
+
+* [PR 30](https://github.com/pytroll/trollflow2/pull/30) - Use only one sensor for coverage calculations
+* [PR 27](https://github.com/pytroll/trollflow2/pull/27) - Add overviews to output images
+* [PR 26](https://github.com/pytroll/trollflow2/pull/26) - Handle aliases for iterable metadata values
+* [PR 25](https://github.com/pytroll/trollflow2/pull/25) - Add a possibility to send emails about crashes
+* [PR 24](https://github.com/pytroll/trollflow2/pull/24) - Check `collection_area_id` in the input metadata
+* [PR 23](https://github.com/pytroll/trollflow2/pull/23) - Add a possibility to define subscribe topics in config file
+* [PR 22](https://github.com/pytroll/trollflow2/pull/22) - Make publish topic composable
+* [PR 6](https://github.com/pytroll/trollflow2/pull/6) - Add a docker example
+
+In this release 10 pull requests were closed.
+
 ## Version 0.3.0 (2019/03/19)
 
 
