@@ -459,6 +459,19 @@ class TestCovers(unittest.TestCase):
         self.assertTrue("germ" in job['product_list']['product_list'])
         self.assertTrue("omerc_bb" in job['product_list']['product_list'])
 
+        # Test that only one sensor is used
+        input_mda = self.input_mda.copy()
+        input_mda['sensor'] = {'avhrr-4'}
+        job = {"product_list": self.product_list,
+               "input_mda": input_mda,
+               "scene": scn}
+        get_scene_coverage.reset_mock()
+        covers(job)
+        get_scene_coverage.assert_called_with(input_mda['platform_name'],
+                                              input_mda['start_time'],
+                                              input_mda['end_time'],
+                                              'avhrr-4', 'omerc_bb')
+
     @mock.patch('trollflow2.get_area_def')
     @mock.patch('trollflow2.Pass')
     def test_scene_coverage(self, ts_pass, get_area_def):
