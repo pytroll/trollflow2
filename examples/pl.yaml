@@ -55,6 +55,8 @@ product_list: &product_list
             writer: cf
         # Remove product if SZA is more than this
         #sunzen_maximum_angle: 90.0
+        # Remove product if sunligth coverage is less that this
+        #min_sunlight_coverage: 10.0
       ctth_alti:
         productname: ctth_alti
         output_dir: *output_dir

@@ -32,6 +32,7 @@ try:
     from pyorbital.astronomy import sun_zenith_angle
     import rasterio
     from rasterio.enums import Resampling
+    from pyresample.boundary import AreaDefBoundary
 except ImportError:
     Scene = None
     compute_writer_results = None
@@ -41,11 +42,16 @@ except ImportError:
     sun_zenith_angle = None
     rasterio = None
     Resampling = None
+    AreaDefBoundary = None
 
 try:
     from trollsched.satpass import Pass
+    from trollsched.spherical import get_twilight_poly
 except ImportError:
     Pass = None
+    get_twilight_poly = None
+
+
 from logging import getLogger
 #from multiprocessing import Process
 from collections import OrderedDict
@@ -316,6 +322,53 @@ def sza_check(job):
         if len(product_list['product_list'][area]['products']) == 0:
             LOG.info("Removing empty area: %s", area)
             dpath.util.delete(product_list, '/product_list/%s' % area)
+
+
+def check_sunlight_coverage(job):
+    """Remove products with too low daytime coverage.
+
+    This plugins looks for a parameter called `min_sunlight_coverage` in the
+    product list, expressed in % (so between 0 and 100). If the sunlit fraction
+    is less than configured, the affected products will be discarded.
+    """
+    if get_twilight_poly is None:
+        LOG.error("Trollsched import failed, sunlight coverage calculation not possible")
+        LOG.info("Keeping all products")
+        return
+    scn = job['scene']
+    start_time = scn.attrs['start_time']
+    product_list = job['product_list']
+    areas = list(product_list['product_list'].keys())
+    for area in areas:
+        products = list(product_list['product_list'][area]['products'].keys())
+        for product in products:
+            prod_path = "/product_list/%s/products/%s" % (area, product)
+            min_day = get_config_value(product_list, prod_path, "min_sunlight_coverage")
+            if min_day is None:
+                continue
+            area_def = job['resampled_scenes'][area][product].attrs['area']
+            coverage = _get_sunlight_coverage(area_def, start_time)
+            if coverage < (min_day / 100.0):
+                LOG.info("Not enough sunlight coverage in "
+                         "product '%s', removed.", product)
+                dpath.util.delete(product_list, prod_path)
+
+
+def _get_sunlight_coverage(area_def, start_time):
+    """Get the sunlight coverage of *area_def* at *start_time*."""
+    adp = AreaDefBoundary(area_def, frequency=100)
+    poly = get_twilight_poly(start_time)
+
+    daylight = adp.contour_poly.intersection(poly)
+    if daylight is None:
+        if sun_zenith_angle(start_time, *area_def.get_lonlat(0, 0)) < 90:
+            return 1.0
+        else:
+            return 0.0
+    else:
+        daylight_area = daylight.area()
+        total_area = adp.contour_poly.area()
+        return daylight_area / total_area
 
 
 def add_overviews(job):
