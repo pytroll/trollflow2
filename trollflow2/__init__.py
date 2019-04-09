@@ -352,9 +352,9 @@ def _get_sunlight_coverage(area_def, start_time):
     daylight = adp.contour_poly.intersection(poly)
     if daylight is None:
         if sun_zenith_angle(start_time, *area_def.get_lonlat(0, 0)) < 90:
-            return 1
+            return 1.0
         else:
-            return 0
+            return 0.0
     else:
         daylight_area = daylight.area()
         total_area = adp.contour_poly.area()
