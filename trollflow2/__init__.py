@@ -44,8 +44,13 @@ except ImportError:
 
 try:
     from trollsched.satpass import Pass
+    from trollsched.spherical import get_twilight_poly
 except ImportError:
     Pass = None
+    get_twilight_poly = None
+
+from pyresample.boundary import AreaDefBoundary
+
 from logging import getLogger
 #from multiprocessing import Process
 from collections import OrderedDict
@@ -321,7 +326,10 @@ def check_sunlight_coverage(job):
     product list, expressed in % (so between 0 and 100). If the sunlit fraction
     is less than configured, the affected products will be discarded.
     """
-
+    if get_twilight_poly is None:
+        LOG.error("Trollsched import failed, sunlight coverage calculation not possible")
+        LOG.info("Keeping all products")
+        return
     scn = job['scene']
     start_time = scn.attrs['start_time']
     product_list = job['product_list']
@@ -343,9 +351,6 @@ def check_sunlight_coverage(job):
 
 def _get_sunlight_coverage(area_def, start_time):
     """Get the sunlight coverage of *area_def* at *start_time*."""
-    from pyresample.boundary import AreaDefBoundary
-    from trollsched.spherical import get_twilight_poly
-
     adp = AreaDefBoundary(area_def, frequency=100)
     poly = get_twilight_poly(start_time)
 

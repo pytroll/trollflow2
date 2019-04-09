@@ -435,20 +435,15 @@ class TestSunlightCovers(unittest.TestCase):
                           "end_time": dt.datetime(2019, 4, 7, 20, 58),
                          }
 
-    @mock.patch('trollsched.spherical.get_twilight_poly')
-    def test_coverage(self, get_twilight_poly):
+    @mock.patch('trollflow2.AreaDefBoundary')
+    @mock.patch('trollflow2.get_twilight_poly')
+    def test_coverage(self, get_twilight_poly, area_def_boundary):
         from trollflow2 import _get_sunlight_coverage
-        from satpy.resample import get_area_def
-        from pyresample.spherical import SphPolygon
         import numpy as np
-        euron1 = get_area_def('euron1')
-        vertices = np.array([[2.59241461, 0.],
-                             [1.02161829, 1.44940768],
-                             [-0.54917804, 0.],
-                             [-2.11997437, -1.44940768]])
 
-        get_twilight_poly.return_value = SphPolygon(vertices)
-        np.testing.assert_allclose(_get_sunlight_coverage(euron1,
+        area_def_boundary.return_value.contour_poly.intersection.return_value.area.return_value = 0.01937669598653713
+        area_def_boundary.return_value.contour_poly.area.return_value = 0.23061422854442526
+        np.testing.assert_allclose(_get_sunlight_coverage('euron1',
                                                           dt.datetime(2019, 4, 7, 20, 8)),
                                    0.0840221182744777)
 
