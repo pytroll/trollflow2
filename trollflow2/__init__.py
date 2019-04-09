@@ -318,8 +318,8 @@ def check_sunlight_coverage(job):
     """Remove products with too low daytime coverage.
 
     This plugins looks for a parameter called `min_sunlight_coverage` in the
-    product list, expressed in % (so between 0 and 100). Everything under it not
-    matching this sunlight coverage will be discarded.
+    product list, expressed in % (so between 0 and 100). If the sunlit fraction
+    is less than configured, the affected products will be discarded.
     """
 
     scn = job['scene']
