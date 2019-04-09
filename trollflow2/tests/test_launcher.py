@@ -188,10 +188,9 @@ class TestRun(unittest.TestCase):
     @mock.patch('trollflow2.launcher.yaml.load')
     @mock.patch('trollflow2.launcher.open')
     @mock.patch('trollflow2.launcher.process')
-    @mock.patch('trollflow2.launcher.time.sleep')
     @mock.patch('trollflow2.launcher.Process')
     @mock.patch('trollflow2.launcher.ListenerContainer')
-    def test_run(self, lc_, Process, sleep, process, _open, yaml_load):
+    def test_run(self, lc_, Process, process, _open, yaml_load):
         from trollflow2.launcher import run
         listener = mock.MagicMock()
         listener.output_queue.get.return_value = 'foo'
@@ -199,7 +198,7 @@ class TestRun(unittest.TestCase):
         proc_ret = mock.MagicMock()
         Process.return_value = proc_ret
         # stop looping
-        sleep.side_effect = KeyboardInterrupt
+        proc_ret.join.side_effect = KeyboardInterrupt
         yaml_load.return_value = self.config
         prod_list = 'bar'
         try:
@@ -210,7 +209,6 @@ class TestRun(unittest.TestCase):
         Process.assert_called_with(args=('foo', prod_list), target=process)
         proc_ret.start.assert_called_once()
         proc_ret.join.assert_called_once()
-        sleep.called_once_with(5)
         lc_.assert_called_with(topics=['/topic1', '/topic2'])
         # Subscriber topics are removed from config
         self.assertTrue('subscribe_topics' not in self.config['common'])

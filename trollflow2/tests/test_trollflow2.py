@@ -684,6 +684,7 @@ class TestFilePublisher(unittest.TestCase):
         pub(job)
         message.assert_called()
         pub.pub.send.assert_called()
+        pub.__del__()
         pub.pub.stop.assert_called()
         i = 0
         for area in job['product_list']['product_list']:
@@ -720,6 +721,7 @@ class TestFilePublisher(unittest.TestCase):
         pub(job)
         message.assert_called()
         pub.pub.send.assert_called()
+        pub.__del__()
         pub.pub.stop.assert_called()
         i = 0
         for area in job['product_list']['product_list']:
