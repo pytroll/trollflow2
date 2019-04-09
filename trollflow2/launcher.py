@@ -145,13 +145,16 @@ def process(msg, prod_list):
                     cwrk = wrk.copy()
                     cwrk.pop('fun')(job, **cwrk)
             except AbortProcessing as err:
-                LOG.info(str(err))
+                LOG.info("Worker %s failed: %s", str(wrk['fun']), str(err))
     except Exception:
         LOG.exception("Process crashed")
         if "crash_handlers" in config:
             trace = traceback.format_exc()
             for hand in config['crash_handlers']['handlers']:
                 hand['fun'](config['crash_handlers']['config'], trace)
+
+    # Remove config so all remaining references are removed
+    del config
 
 
 def sendmail(config, trace):
