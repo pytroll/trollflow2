@@ -72,7 +72,6 @@ def run(prod_list, topics=None):
         proc = Process(target=process, args=(msg, prod_list))
         proc.start()
         proc.join()
-        time.sleep(5)
 
 
 def get_area_priorities(product_list):
