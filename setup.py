@@ -51,7 +51,7 @@ setup(name="trollflow2",
       data_files=[],
       zip_safe=False,
       install_requires=install_requires,
-      tests_require=['mock', 'pytroll-schedule', 'pyresample'],
+      tests_require=['mock'],
       python_requires='>=3.4',
       test_suite='trollflow2.tests.suite',
       )
