@@ -173,6 +173,9 @@ class FilePublisher(object):
             msg = Message(topic, 'file', file_mda)
             LOG.debug('Publishing %s', str(msg))
             self.pub.send(str(msg))
+
+    def __del__(self):
+        """Stop the publisher when last reference is deleted."""
         self.pub.stop()
 
 
