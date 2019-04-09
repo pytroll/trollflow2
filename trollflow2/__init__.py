@@ -32,6 +32,7 @@ try:
     from pyorbital.astronomy import sun_zenith_angle
     import rasterio
     from rasterio.enums import Resampling
+    from pyresample.boundary import AreaDefBoundary
 except ImportError:
     Scene = None
     compute_writer_results = None
@@ -41,6 +42,7 @@ except ImportError:
     sun_zenith_angle = None
     rasterio = None
     Resampling = None
+    AreaDefBoundary = None
 
 try:
     from trollsched.satpass import Pass
@@ -49,7 +51,6 @@ except ImportError:
     Pass = None
     get_twilight_poly = None
 
-from pyresample.boundary import AreaDefBoundary
 
 from logging import getLogger
 #from multiprocessing import Process
