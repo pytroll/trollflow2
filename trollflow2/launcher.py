@@ -144,7 +144,7 @@ def process(msg, prod_list):
                     cwrk = wrk.copy()
                     cwrk.pop('fun')(job, **cwrk)
             except AbortProcessing as err:
-                LOG.info("Worker %s failed: %s", str(wrk['fun']), str(err))
+                LOG.info(str(err))
     except (IOError, yaml.YAMLError):
         # Either open() or yaml.load() failed
         LOG.exception("Process crashed, check YAML file.")
