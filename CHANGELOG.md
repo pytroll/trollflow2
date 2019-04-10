@@ -1,4 +1,19 @@
-## Version <0.4.0> (2019/04/08)
+## Version 0.4.1 (2019/04/10)
+
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR 33](https://github.com/pytroll/trollflow2/pull/33) - Fix hanging publisher
+
+#### Features added
+
+* [PR 32](https://github.com/pytroll/trollflow2/pull/32) - Feature sunlight coverage
+
+In this release 2 pull requests were closed.
+
+## Version 0.4.0 (2019/04/08)
 
 
 ### Pull Requests Merged
