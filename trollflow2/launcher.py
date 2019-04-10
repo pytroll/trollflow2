@@ -40,6 +40,7 @@ from collections import OrderedDict
 import copy
 from six.moves.urllib.parse import urlparse
 import traceback
+import gc
 
 """The order of basic things is:
 - Create the scene
@@ -156,8 +157,10 @@ def process(msg, prod_list):
             for hand in config['crash_handlers']['handlers']:
                 hand['fun'](config['crash_handlers']['config'], trace)
 
-    # Remove config so all remaining references are removed
+    # Remove config and run grabage collection so all remaining
+    # references e.g. to FilePublisher should be removed
     del config
+    gc.collect()
 
 
 def sendmail(config, trace):
