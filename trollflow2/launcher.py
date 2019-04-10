@@ -40,6 +40,7 @@ from collections import OrderedDict
 import copy
 from six.moves.urllib.parse import urlparse
 import traceback
+import gc
 
 """The order of basic things is:
 - Create the scene
@@ -72,7 +73,6 @@ def run(prod_list, topics=None):
         proc = Process(target=process, args=(msg, prod_list))
         proc.start()
         proc.join()
-        time.sleep(5)
 
 
 def get_area_priorities(product_list):
@@ -146,12 +146,21 @@ def process(msg, prod_list):
                     cwrk.pop('fun')(job, **cwrk)
             except AbortProcessing as err:
                 LOG.info(str(err))
+    except (IOError, yaml.YAMLError):
+        # Either open() or yaml.load() failed
+        LOG.exception("Process crashed, check YAML file.")
+        return
     except Exception:
         LOG.exception("Process crashed")
         if "crash_handlers" in config:
             trace = traceback.format_exc()
             for hand in config['crash_handlers']['handlers']:
                 hand['fun'](config['crash_handlers']['config'], trace)
+
+    # Remove config and run grabage collection so all remaining
+    # references e.g. to FilePublisher should be removed
+    del config
+    gc.collect()
 
 
 def sendmail(config, trace):

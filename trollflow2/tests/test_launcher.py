@@ -188,10 +188,9 @@ class TestRun(unittest.TestCase):
     @mock.patch('trollflow2.launcher.yaml.load')
     @mock.patch('trollflow2.launcher.open')
     @mock.patch('trollflow2.launcher.process')
-    @mock.patch('trollflow2.launcher.time.sleep')
     @mock.patch('trollflow2.launcher.Process')
     @mock.patch('trollflow2.launcher.ListenerContainer')
-    def test_run(self, lc_, Process, sleep, process, _open, yaml_load):
+    def test_run(self, lc_, Process, process, _open, yaml_load):
         from trollflow2.launcher import run
         listener = mock.MagicMock()
         listener.output_queue.get.return_value = 'foo'
@@ -199,7 +198,7 @@ class TestRun(unittest.TestCase):
         proc_ret = mock.MagicMock()
         Process.return_value = proc_ret
         # stop looping
-        sleep.side_effect = KeyboardInterrupt
+        proc_ret.join.side_effect = KeyboardInterrupt
         yaml_load.return_value = self.config
         prod_list = 'bar'
         try:
@@ -210,7 +209,6 @@ class TestRun(unittest.TestCase):
         Process.assert_called_with(args=('foo', prod_list), target=process)
         proc_ret.start.assert_called_once()
         proc_ret.join.assert_called_once()
-        sleep.called_once_with(5)
         lc_.assert_called_with(topics=['/topic1', '/topic2'])
         # Subscriber topics are removed from config
         self.assertTrue('subscribe_topics' not in self.config['common'])
@@ -253,13 +251,15 @@ class TestProcess(unittest.TestCase):
     @mock.patch('trollflow2.launcher.yaml')
     @mock.patch('trollflow2.launcher.message_to_jobs')
     @mock.patch('trollflow2.launcher.open')
-    def test_process(self, open_, message_to_jobs, yaml, expand, sendmail,
+    def test_process(self, open_, message_to_jobs, yaml_, expand, sendmail,
                      traceback):
         from trollflow2.launcher import process
         fid = mock.MagicMock()
         fid.read.return_value = yaml_test1
         open_.return_value.__enter__.return_value = fid
-        yaml.load.return_value = "foo"
+        mock_config = mock.MagicMock()
+        yaml_.load.return_value = mock_config
+        yaml_.YAMLError = yaml.YAMLError
         fun1 = mock.MagicMock()
         # Return something resembling a config
         expand.return_value = {"workers": [{"fun": fun1}]}
@@ -267,7 +267,7 @@ class TestProcess(unittest.TestCase):
         message_to_jobs.return_value = {1: {"job1": dict([])}}
         process("msg", "prod_list")
         open_.assert_called_with("prod_list")
-        yaml.load.assert_called_once()
+        yaml_.load.assert_called_once()
         message_to_jobs.assert_called_with("msg", {"workers": [{"fun": fun1}]})
         fun1.assert_called_with({'job1': {}, 'processing_priority': 1})
         # Test that errors are propagated
@@ -283,6 +283,14 @@ class TestProcess(unittest.TestCase):
         process("msg", "prod_list")
         config = crash_handlers['crash_handlers']['config']
         sendmail.assert_called_once_with(config, 'baz')
+
+        # Test failure in open(), e.g. a missing file
+        open_.side_effect = IOError
+        process("msg", "prod_list")
+
+        # Test failure in yaml.load(), e.g. bad formatting
+        open_.side_effect = yaml.YAMLError
+        process("msg", "prod_list")
 
 
 def suite():

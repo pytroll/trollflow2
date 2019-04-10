@@ -181,6 +181,10 @@ class FilePublisher(object):
             self.pub.send(str(msg))
         self.pub.stop()
 
+    def __del__(self):
+        """Stop the publisher when last reference is deleted."""
+        self.pub.stop()
+
 
 def covers(job):
     """Check area coverage. Remove areas with too low coverage from the
