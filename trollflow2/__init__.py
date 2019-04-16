@@ -30,6 +30,9 @@ try:
     from posttroll.message import Message
     from posttroll.publisher import NoisyPublisher
     from pyorbital.astronomy import sun_zenith_angle
+    import rasterio
+    from rasterio.enums import Resampling
+    from pyresample.boundary import AreaDefBoundary
 except ImportError:
     Scene = None
     compute_writer_results = None
@@ -37,11 +40,18 @@ except ImportError:
     Message = None
     NoisyPublisher = None
     sun_zenith_angle = None
+    rasterio = None
+    Resampling = None
+    AreaDefBoundary = None
 
 try:
     from trollsched.satpass import Pass
+    from trollsched.spherical import get_twilight_poly
 except ImportError:
     Pass = None
+    get_twilight_poly = None
+
+
 from logging import getLogger
 #from multiprocessing import Process
 from collections import OrderedDict
@@ -63,18 +73,23 @@ def create_scene(job):
     product_list = job['product_list']
     conf = _get_plugin_conf(product_list, '/common', defaults)
     LOG.info('Generating scene')
-    job['scene'] = Scene(filenames=job['input_filenames'], **conf)
+    try:
+        job['scene'] = Scene(filenames=job['input_filenames'], **conf)
+    except ValueError as err:
+        raise AbortProcessing("Failed creating scene: %s" % str(err))
 
 
 def load_composites(job):
     """Load composites given in the job's product_list."""
-    composites = set().union(*(set(d.keys()) for d in dpath.util.values(job['product_list'], '/product_list/*/products')))
+    composites = set().union(*(set(d.keys())
+                               for d in dpath.util.values(job['product_list'], '/product_list/*/products')))
     LOG.info('Loading %s', str(composites))
     scn = job['scene']
     resolution = job['product_list']['common'].get('resolution', None)
     generate = job['product_list']['common'].get('delay_composites', True) is False
     scn.load(composites, resolution=resolution, generate=generate)
     job['scene'] = scn
+
 
 def resample(job):
     """Resample the scene to some areas."""
@@ -118,12 +133,16 @@ def save_datasets(job):
     base_config = job['input_mda'].copy()
     base_config.update(job['product_list']['common'])
     base_config.pop('dataset', None)
+
     for fmat, fmat_config in plist_iter(job['product_list']['product_list'], base_config):
         fname_pattern = fmat['fname_pattern']
         filename = compose(os.path.join(fmat['output_dir'], fname_pattern), fmat)
         fmat.pop('format', None)
+        fmat.pop('filename', None)
         try:
-            objs.append(scns[fmat['area']].save_dataset(fmat['product'], filename=filename, compute=False, **fmat))
+            objs.append(scns[fmat['area']].save_dataset(fmat['product'],
+                                                        filename=filename,
+                                                        compute=False, **fmat))
         except KeyError as err:
             LOG.info('Skipping %s: %s', fmat['productname'], str(err))
         else:
@@ -144,17 +163,26 @@ class FilePublisher(object):
         mda = job['input_mda'].copy()
         mda.pop('dataset', None)
         mda.pop('collection', None)
-        topic = job['product_list']['common']['publish_topic']
         for fmat, fmat_config in plist_iter(job['product_list']['product_list']):
+            prod_path = "/product_list/%s/%s" % (fmat['area'], fmat['product'])
+            topic_pattern = get_config_value(job['product_list'],
+                                             prod_path,
+                                             "publish_topic")
+
             file_mda = mda.copy()
             try:
                 file_mda['uri'] = fmat['filename']
             except KeyError:
                 continue
             file_mda['uid'] = os.path.basename(fmat['filename'])
+            topic = compose(topic_pattern, fmat)
             msg = Message(topic, 'file', file_mda)
             LOG.debug('Publishing %s', str(msg))
             self.pub.send(str(msg))
+        self.pub.stop()
+
+    def __del__(self):
+        """Stop the publisher when last reference is deleted."""
         self.pub.stop()
 
 
@@ -167,14 +195,28 @@ def covers(job):
         LOG.info("Keeping all areas")
         return
 
+    col_area = job['product_list']['common'].get('coverage_by_collection_area',
+                                                 False)
+    if col_area and 'collection_area_id' in job['input_mda']:
+        if job['input_mda']['collection_area_id'] not in job['product_list']['product_list']:
+            raise AbortProcessing(
+                "Area collection ID '%s' does not match "
+                "production area(s) %s" % (job['input_mda']['collection_area_id'],
+                                        str(list(job['product_list']['product_list']))))
+
     product_list = job['product_list'].copy()
-    scn_mda = job['input_mda'].copy()
-    scn_mda.update(job['scene'].attrs)
+
+    scn_mda = job['scene'].attrs.copy()
+    scn_mda.update(job['input_mda'])
 
     platform_name = scn_mda['platform_name']
     start_time = scn_mda['start_time']
     end_time = scn_mda['end_time']
     sensor = scn_mda['sensor']
+    if isinstance(sensor, (list, tuple, set)):
+        sensor = list(sensor)[0]
+        LOG.warning("Possibly many sensors given, taking only one for "
+                    "coverage calculations: %s", sensor)
 
     areas = list(product_list['product_list'].keys())
     for area in areas:
@@ -202,6 +244,7 @@ def covers(job):
 
 def get_scene_coverage(platform_name, start_time, end_time, sensor, area_id):
     """Get scene area coverage in percentages"""
+
     overpass = Pass(platform_name, start_time, end_time, instrument=sensor)
     area_def = get_area_def(area_id)
 
@@ -230,7 +273,13 @@ def metadata_alias(job):
         return
     for key in aliases:
         if key in mda_out:
-            mda_out[key] = aliases[key].get(mda_out[key], mda_out[key])
+            val = mda_out[key]
+            if isinstance(val, (list, tuple, set)):
+                typ = type(val)
+                new_vals = typ([aliases[key].get(itm, itm) for itm in val])
+                mda_out[key] = new_vals
+            else:
+                mda_out[key] = aliases[key].get(mda_out[key], mda_out[key])
     job['input_mda'] = mda_out.copy()
 
 
@@ -277,6 +326,76 @@ def sza_check(job):
         if len(product_list['product_list'][area]['products']) == 0:
             LOG.info("Removing empty area: %s", area)
             dpath.util.delete(product_list, '/product_list/%s' % area)
+
+
+def check_sunlight_coverage(job):
+    """Remove products with too low daytime coverage.
+
+    This plugins looks for a parameter called `min_sunlight_coverage` in the
+    product list, expressed in % (so between 0 and 100). If the sunlit fraction
+    is less than configured, the affected products will be discarded.
+    """
+    if get_twilight_poly is None:
+        LOG.error("Trollsched import failed, sunlight coverage calculation not possible")
+        LOG.info("Keeping all products")
+        return
+    scn = job['scene']
+    start_time = scn.attrs['start_time']
+    product_list = job['product_list']
+    areas = list(product_list['product_list'].keys())
+    for area in areas:
+        products = list(product_list['product_list'][area]['products'].keys())
+        for product in products:
+            prod_path = "/product_list/%s/products/%s" % (area, product)
+            min_day = get_config_value(product_list, prod_path, "min_sunlight_coverage")
+            if min_day is None:
+                continue
+            area_def = job['resampled_scenes'][area][product].attrs['area']
+            coverage = _get_sunlight_coverage(area_def, start_time)
+            if coverage < (min_day / 100.0):
+                LOG.info("Not enough sunlight coverage in "
+                         "product '%s', removed.", product)
+                dpath.util.delete(product_list, prod_path)
+
+
+def _get_sunlight_coverage(area_def, start_time):
+    """Get the sunlight coverage of *area_def* at *start_time*."""
+    adp = AreaDefBoundary(area_def, frequency=100)
+    poly = get_twilight_poly(start_time)
+
+    daylight = adp.contour_poly.intersection(poly)
+    if daylight is None:
+        if sun_zenith_angle(start_time, *area_def.get_lonlat(0, 0)) < 90:
+            return 1.0
+        else:
+            return 0.0
+    else:
+        daylight_area = daylight.area()
+        total_area = adp.contour_poly.area()
+        return daylight_area / total_area
+
+
+def add_overviews(job):
+    """Add overviews to images already written to disk."""
+    # Get the formats, including filenames and overview settings
+    product_list = job['product_list']['product_list']
+    for area in product_list:
+        for product in product_list[area]['products']:
+            formats = product_list[area]['products'][product].get("formats", None)
+            if formats is None:
+                continue
+            for fmt in formats:
+                if "overviews" in fmt and 'filename' in fmt:
+                    fname = fmt['filename']
+                    overviews = fmt['overviews']
+                    try:
+                        with rasterio.open(fname, 'r+') as dst:
+                            dst.build_overviews(overviews, Resampling.average)
+                            dst.update_tags(ns='rio_overview',
+                                            resampling='average')
+                        LOG.info("Added overviews to %s", fname)
+                    except rasterio.RasterioIOError:
+                        pass
 
 
 def plist_iter(product_list, base_mda=None, level=None):

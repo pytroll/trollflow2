@@ -1,0 +1,126 @@
+This example shows how to:
+
+1) Build a Docker image that contains everything needed to run trollflow2
+2) Use the Docker image to produce satellite images from various different
+   satellites
+3) Modify the config files to suit your needs
+
+
+1) Building the Docker image
+
+a) Install Docker
+
+  Install docker following the instructions from the following links for
+  your operating system.
+
+  Ubuntu: https://docs.docker.com/install/linux/docker-ce/ubuntu/
+  Fedora: https://docs.docker.com/install/linux/docker-ce/fedora/
+  OSX: https://docs.docker.com/docker-for-mac/install/
+  Windows: https://docs.docker.com/docker-for-windows/install/
+
+b) Build the docker image "trollflow2"
+
+  After you have a working Docker installation, in commandline, navigate
+  to the directory where this README file is located
+  (trollflow2/examples/docker/) and issue the following command to build
+  the latest release of trollflow2:
+
+  In linux or OSX:
+
+    docker build -t trollflow2 -f build_dir/Dockerfile_stable build_dir
+
+  In windows:
+
+    docker build -t trollflow2 -f build_dir\Dockerfile_stable build_dir
+
+  Depending on the computer and network connection, the build takes
+  from 5 minutes to 20 minutes.  To build the development version, use
+  Dockerfile_dev.  The development version will not download
+  pyspectral look-up tables.
+
+
+2) Running production
+
+  To test the Docker image to produce images from satellite data,
+  you'll need some satellite data.  This example contains example
+  configurations for the following satellite instruments and formats:
+
+  - MSG SEVIRI in uncompressed HRIT format
+  - EARS/AVHRR granules preprocessed with AAPP
+  - EARS/VIIRS granules in compact SDR format
+
+  All the configuration files use UNIX paths, as the Docker image is
+  based on Ubuntu linux.
+
+a) Start the trollflow2 Docker image
+
+  This example shows how to run production for MSG SEVIRI data in
+  uncompressed HRIT format.  To run other examples, replace the
+  "source" mount-point in the first line after "docker run" to point
+  to any of the other supplied directories.
+
+  - in linux or OSX:
+
+  docker run \
+    -e LOCAL_USER_ID=`id -u $USER` \
+    --mount type=bind,source=`pwd`/config_seviri_hrit/,target=/mnt/config/ \
+    --mount type=bind,source=`pwd`/logs/,target=/mnt/logs/ \
+    --mount type=bind,source=`pwd`/input/,target=/mnt/input/ \
+    --mount type=bind,source=`pwd`/output/,target=/mnt/output/ \
+    -p 9001:9001 \
+    --rm \
+    trollflow2
+
+  - in windows:
+
+  docker run \
+    --mount type=bind,source=%cd%\config_seviri_hrit,target=/mnt/config/ \
+    --mount type=bind,source=%cd%\logs,target=/mnt/logs/ \
+    --mount type=bind,source=%cd%\input,target=/mnt/input/ \
+    --mount type=bind,source=%cd%\output,target=/mnt/output/ \
+    -p 9001:9001 \
+    --rm \
+    trollflow2
+
+  This will start trollflow2 and mount the four subdirectories within
+  this directory to the trollflow2 Docker container.
+
+  The processes running inside the container can be controlled and
+  monitored by opening the following URL in a browser:
+
+    http://127.0.0.1:9001
+
+  The login credentials, given in supervisord.conf, are "username" and
+  "password".
+
+b) Copy files to "input" directory
+
+  Copying files to the mounted "output" subdirectory starts the
+  processing.  Log files are written to "logs" directory, and
+  following them shows the progress of the processing.  The log
+  messages are also printed in the terminal where the trollflow2 Docker
+  container is running.
+
+c) The results
+
+  In the case of succesful run, the resulting images are saved to
+  "output" directory.
+
+
+3) Adapting the configuration files
+
+  The example configuration files can be modified as the user sees
+  fit, but the following things need to be noted:
+
+  - The trollflow2 Docker image is built to start Supervisord (which
+    handles the startup of all the necessary software) using the
+    configuration file placed in /mnt/config/supervisord.conf
+
+  - If the paths for the input, output and/or logs are changed, these
+    need to be updated also in the configuration files
+
+  - Remember to match the mount-points in the "docker run" command to
+    the paths defined in the configuration files
+
+  - For options in the used package, consult the documentation and/or
+    example configs of corresponding package

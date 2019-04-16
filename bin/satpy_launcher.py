@@ -32,9 +32,17 @@ LOG = getLogger(__name__)
 
 
 def main():
-    topics = sys.argv[1].split(',')
-    prod_list = sys.argv[2]
-    run(topics, prod_list)
+    # Product list is always the last argument
+    prod_list = sys.argv[-1]
+    if len(sys.argv) > 2:
+        # Collect all the topics, which can be either comma or space separated
+        topics = []
+        for arg in sys.argv[1:-1]:
+            topics += arg.split(',')
+    else:
+        topics = None
+
+    run(prod_list, topics=topics)
 
 
 if __name__ == "__main__":

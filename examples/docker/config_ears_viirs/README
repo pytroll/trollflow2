@@ -1,0 +1,36 @@
+This directory contains an example production chain setup for VIIRS L1b
+granules from EARS.
+
+supervisord.conf
+----------------
+
+Configuration file for Supervisord, which starts all the processing steps.
+
+trollstalker.ini and trollstalker_logging.ini
+---------------------------------------------
+
+Configuration file for Trollstalker, which creates posttroll messages
+for incoming files, and logging config for it.
+
+segment_gatherer.ini
+--------------------
+
+Configuration file for segment_gatherer, which collects the messages
+coming from trollstalker to one message that contains metadata of all
+the required files for one time step.  That is, it collects M and DNB
+channels together.  If DNB channel is not available (like during the
+day), collection times out and sends only the M channel in the
+dataset.
+
+gatherer_ears_viirs.ini
+-----------------------
+
+Configuration file for gatherer.py, which collects the granules to cover
+one or more areas of interest.  The collected metadata are then sent and
+received by trollflow2.
+
+trollflow2_ears_viirs.yaml
+--------------------------
+
+Definition of the products to be generated: composites, target areas,
+file formats, filename patterns.

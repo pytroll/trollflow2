@@ -30,14 +30,17 @@ from six.moves.queue import Empty as queue_empty
 from multiprocessing import Process
 import yaml
 try:
-    from yaml import UnsafeLoader
+    from yaml import UnsafeLoader, BaseLoader
 except ImportError:
     from yaml import Loader as UnsafeLoader
+    from yaml import BaseLoader
 import time
-from trollflow2 import gen_dict_extract, plist_iter
+from trollflow2 import gen_dict_extract, plist_iter, AbortProcessing
 from collections import OrderedDict
 import copy
 from six.moves.urllib.parse import urlparse
+import traceback
+import gc
 
 """The order of basic things is:
 - Create the scene
@@ -50,7 +53,11 @@ LOG = getLogger("launcher")
 DEFAULT_PRIORITY = 999
 
 
-def run(topics, prod_list):
+def run(prod_list, topics=None):
+
+    with open(prod_list) as fid:
+        config = yaml.load(fid.read(), Loader=BaseLoader)
+    topics = topics or config['common'].pop('subscribe_topics', None)
 
     listener = ListenerContainer(topics=topics)
 
@@ -66,7 +73,6 @@ def run(topics, prod_list):
         proc = Process(target=process, args=(msg, prod_list))
         proc.start()
         proc.join()
-        time.sleep(5)
 
 
 def get_area_priorities(product_list):
@@ -127,15 +133,48 @@ def expand(yml):
 
 def process(msg, prod_list):
     try:
-        with open(prod_list) as fd:
-            config = yaml.load(fd.read(), Loader=UnsafeLoader)
+        with open(prod_list) as fid:
+            config = yaml.load(fid.read(), Loader=UnsafeLoader)
         config = expand(config)
         jobs = message_to_jobs(msg, config)
         for prio in sorted(jobs.keys()):
             job = jobs[prio]
             job['processing_priority'] = prio
-            for wrk in config['workers']:
-                cwrk = wrk.copy()
-                cwrk.pop('fun')(job, **cwrk)
+            try:
+                for wrk in config['workers']:
+                    cwrk = wrk.copy()
+                    cwrk.pop('fun')(job, **cwrk)
+            except AbortProcessing as err:
+                LOG.info(str(err))
+    except (IOError, yaml.YAMLError):
+        # Either open() or yaml.load() failed
+        LOG.exception("Process crashed, check YAML file.")
+        return
     except Exception:
         LOG.exception("Process crashed")
+        if "crash_handlers" in config:
+            trace = traceback.format_exc()
+            for hand in config['crash_handlers']['handlers']:
+                hand['fun'](config['crash_handlers']['config'], trace)
+
+    # Remove config and run grabage collection so all remaining
+    # references e.g. to FilePublisher should be removed
+    del config
+    gc.collect()
+
+
+def sendmail(config, trace):
+    """Send email about crashes using `sendmail`"""
+    from email.mime.text import MIMEText
+    from subprocess import Popen, PIPE
+
+    email_settings = config['sendmail']
+    msg = MIMEText(email_settings["header"] + "\n\n" + "\n\n" + trace)
+    msg["From"] = email_settings["from"]
+    msg["To"] = email_settings["to"]
+    msg["Subject"] = email_settings["subject"]
+    sendmail = email_settings.get("sendmail", "/usr/bin/sendmail")
+
+    pid = Popen([sendmail, "-t", "-oi"], stdin=PIPE)
+    pid.communicate(msg.as_bytes())
+    pid.terminate()

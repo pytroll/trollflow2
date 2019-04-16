@@ -1,0 +1,28 @@
+This directory contains an example production chain setup for MSG
+SEVIRI HRIT files that have been already decompressed.  The
+decompression isn't included, as the xRITDecompress software needs to
+be downloaded personnally from Eumetsat.
+
+supervisord.conf
+----------------
+
+Configuration file for Supervisord, which starts all the processing steps.
+
+trollstalker.ini and trollstalker_logging.ini
+---------------------------------------------
+
+Configuration file for Trollstalker, which creates posttroll messages
+for incoming files, and logging config for it.
+
+segment_gatherer.yaml
+---------------------
+
+Configuration file for segment_gatherer, which collects the messages
+coming from trollstalker to one message that contains metadata of all
+the required files to produce the images.
+
+trollflow2_seviri_hrit.yaml
+--------------------------------------------------
+
+Definition of the products to be generated: composites, target areas,
+file formats, filename patterns.

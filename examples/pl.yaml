@@ -2,6 +2,9 @@ common:
   output_dir: &output_dir
     /tmp/satnfs/polar_out/pps2018/direct_readout/
   publish_topic: /NWC-CF/L3
+  subscribe_topics:
+    - /foo/bar
+    - /bar/foo
   use_extern_calib: false
   # Scene creation settings
   reader: nwcsaf-pps_nc
@@ -27,6 +30,10 @@ common:
   #   Default is to create them after resampling (`True`), which is much
   #   faster in most cases
   # delay_composites: False
+  # Send emails about crashes using sendmail
+  # Check area coverage by `collection_area_id` in the input metadata.
+  #   Default: False
+  # coverage_by_collection_area: True
 
 product_list: &product_list
   omerc_bb:
@@ -48,6 +55,8 @@ product_list: &product_list
             writer: cf
         # Remove product if SZA is more than this
         #sunzen_maximum_angle: 90.0
+        # Remove product if sunligth coverage is less that this
+        #min_sunlight_coverage: 10.0
       ctth_alti:
         productname: ctth_alti
         output_dir: *output_dir
@@ -68,6 +77,9 @@ product_list: &product_list
         formats:
           - format: tif
             writer: geotiff
+            # Add small scale embedded images to the file
+            # To use add `add_overviews` to workers after `save_datasets`
+            # overviews: [4, 8, 16, 32, 64, 128, 256]
   # null:  # satellite projection
   #   areaname: satellite_projection
   #   products:
@@ -137,3 +149,15 @@ workers:
   - fun: !!python/name:trollflow2.resample
   - fun: !!python/name:trollflow2.save_datasets
   - fun: !!python/object:trollflow2.FilePublisher {}
+
+# Things to run in case of a crash
+#crash_handlers:
+#  config:
+#    sendmail:
+#      from: "user@server"
+#        to: "user@institute"
+#        subject: "Crash report"
+#        header: "Header text before the error message"
+#        sendmail: "/usr/sbin/sendmail"
+#  handlers:
+#    - fun: !!python/name:trollflow2.launcher.sendmail

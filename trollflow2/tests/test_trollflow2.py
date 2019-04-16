@@ -24,6 +24,10 @@
 import unittest
 import yaml
 try:
+    from yaml import UnsafeLoader
+except ImportError:
+    from yaml import Loader as UnsafeLoader
+try:
     from unittest import mock
 except ImportError:
     import mock
@@ -153,7 +157,7 @@ class TestProdList(unittest.TestCase):
 
     def test_iter(self):
         from trollflow2 import plist_iter
-        prodlist = yaml.load(yaml_test1)['product_list']
+        prodlist = yaml.load(yaml_test1, Loader=UnsafeLoader)['product_list']
         expected = [{'areaname': 'euron1_in_fname', 'area': 'euron1', 'productname': 'cloud_top_height_in_fname', 'product': 'cloud_top_height',
                      'min_coverage': 20.0,
                      'output_dir': '/tmp/satdmz/pps/www/latest_2018/', 'format': 'png', 'writer': 'simple_image',
@@ -173,9 +177,11 @@ class TestProdList(unittest.TestCase):
                      'writer': 'geotiff'}]
         for i, exp in zip(plist_iter(prodlist), expected):
             self.assertDictEqual(i[0], exp)
-        prodlist = yaml.load(yaml_test2)['product_list']
+
+        prodlist = yaml.load(yaml_test2, Loader=UnsafeLoader)['product_list']
         for i, exp in zip(plist_iter(prodlist), expected):
             self.assertDictEqual(i[0], exp)
+
 
 class TestSaveDatasets(unittest.TestCase):
     @mock.patch('trollflow2.compute_writer_results')
@@ -185,8 +191,8 @@ class TestSaveDatasets(unittest.TestCase):
         job = {}
         job['input_mda'] = input_mda
         job['product_list'] = {
-            'product_list': yaml.load(yaml_test1)['product_list'],
-            'common': yaml.load(yaml_common)['common'],
+            'product_list': yaml.load(yaml_test1, Loader=UnsafeLoader)['product_list'],
+            'common': yaml.load(yaml_common, Loader=UnsafeLoader)['common'],
         }
         job['resampled_scenes'] = {}
         for area in job['product_list']['product_list']:
@@ -227,7 +233,7 @@ class TestSaveDatasets(unittest.TestCase):
 class TestConfigValue(unittest.TestCase):
 
     def setUp(self):
-        self.prodlist = yaml.load(yaml_test1)
+        self.prodlist = yaml.load(yaml_test1, Loader=UnsafeLoader)
         self.path = "/product_list/germ/products/cloudtype"
 
     def test_config_value_same_level(self):
@@ -281,7 +287,7 @@ class TestCreateScene(unittest.TestCase):
 class TestLoadComposites(unittest.TestCase):
 
     def setUp(self):
-        self.product_list = yaml.load(yaml_test1)
+        self.product_list = yaml.load(yaml_test1, Loader=UnsafeLoader)
 
     def test_load_composites(self):
         from trollflow2 import load_composites
@@ -303,7 +309,7 @@ class TestLoadComposites(unittest.TestCase):
 class TestResample(unittest.TestCase):
 
     def setUp(self):
-        self.product_list = yaml.load(yaml_test1)
+        self.product_list = yaml.load(yaml_test1, Loader=UnsafeLoader)
 
     def test_resample(self):
         from trollflow2 import resample
@@ -418,10 +424,34 @@ class TestResample(unittest.TestCase):
                         scn.resample.mock_calls)
 
 
+class TestSunlightCovers(unittest.TestCase):
+    """Test the sunlight coverage."""
+
+    def setUp(self):
+        self.product_list = yaml.load(yaml_test1, Loader=UnsafeLoader)
+        self.input_mda = {"platform_name": "NOAA-15",
+                          "sensor": "avhrr-3",
+                          "start_time": dt.datetime(2019, 4, 7, 20, 52),
+                          "end_time": dt.datetime(2019, 4, 7, 20, 58),
+                         }
+
+    @mock.patch('trollflow2.AreaDefBoundary')
+    @mock.patch('trollflow2.get_twilight_poly')
+    def test_coverage(self, get_twilight_poly, area_def_boundary):
+        from trollflow2 import _get_sunlight_coverage
+        import numpy as np
+
+        area_def_boundary.return_value.contour_poly.intersection.return_value.area.return_value = 0.01937669598653713
+        area_def_boundary.return_value.contour_poly.area.return_value = 0.23061422854442526
+        np.testing.assert_allclose(_get_sunlight_coverage('euron1',
+                                                          dt.datetime(2019, 4, 7, 20, 8)),
+                                   0.0840221182744777)
+
+
 class TestCovers(unittest.TestCase):
 
     def setUp(self):
-        self.product_list = yaml.load(yaml_test1)
+        self.product_list = yaml.load(yaml_test1, Loader=UnsafeLoader)
         self.input_mda = {"platform_name": "NOAA-15",
                           "sensor": "avhrr-3",
                           "start_time": dt.datetime(2019, 1, 19, 11),
@@ -453,6 +483,19 @@ class TestCovers(unittest.TestCase):
         self.assertTrue("germ" in job['product_list']['product_list'])
         self.assertTrue("omerc_bb" in job['product_list']['product_list'])
 
+        # Test that only one sensor is used
+        input_mda = self.input_mda.copy()
+        input_mda['sensor'] = {'avhrr-4'}
+        job = {"product_list": self.product_list,
+               "input_mda": input_mda,
+               "scene": scn}
+        get_scene_coverage.reset_mock()
+        covers(job)
+        get_scene_coverage.assert_called_with(input_mda['platform_name'],
+                                              input_mda['start_time'],
+                                              input_mda['end_time'],
+                                              'avhrr-4', 'omerc_bb')
+
     @mock.patch('trollflow2.get_area_def')
     @mock.patch('trollflow2.Pass')
     def test_scene_coverage(self, ts_pass, get_area_def):
@@ -468,6 +511,31 @@ class TestCovers(unittest.TestCase):
         ts_pass.assert_called_with(1, 2, 3, instrument=4)
         get_area_def.assert_called_with(5)
         area_coverage.assert_called_with(6)
+
+    @mock.patch('trollflow2.get_scene_coverage')
+    @mock.patch('trollflow2.Pass')
+    def test_covers_collection_area_id(self, ts_pass, get_scene_coverage):
+        from trollflow2 import covers
+        from trollflow2 import AbortProcessing
+        get_scene_coverage.return_value = 100.0
+        scn = mock.MagicMock()
+        scn.attrs = {}
+        job = {"product_list": self.product_list,
+               "input_mda": self.input_mda,
+               "scene": scn}
+        # Nothing should happen here
+        covers(job)
+        # Area that matches the product list, nothing should happen
+        job['input_mda']['collection_area_id'] = 'euron1'
+        covers(job)
+        # By default collection_area_id isn't checked so nothing should happen
+        job['input_mda']['collection_area_id'] = 'not_in_pl'
+        covers(job)
+        # Turn coverage check on, so area not in the product list should raise
+        # AbortProcessing
+        job['product_list']['common']['coverage_by_collection_area'] = True
+        with self.assertRaises(AbortProcessing):
+            covers(job)
 
 
 class TestCheckPlatform(unittest.TestCase):
@@ -507,6 +575,17 @@ class TestMetadataAlias(unittest.TestCase):
         self.assertTrue(mda['not_changed'])
         self.assertTrue('not_in_mda' not in mda)
 
+    def test_iterable_metadata(self):
+        from trollflow2 import metadata_alias
+        mda = {'sensor': ('a/b',), 'foo': set(['c/d'])}
+        product_list = {'common': {'metadata_aliases':
+                                   {'sensor': {'a/b': 'a-b'},
+                                    'foo': {'c/d': 'c\d'}}}}
+        job = {'input_mda': mda, 'product_list': product_list}
+        metadata_alias(job)
+        self.assertEqual(job['input_mda']['sensor'], ('a-b',))
+        self.assertEqual(job['input_mda']['foo'], set(['c\d']))
+
 
 class TestGetPluginConf(unittest.TestCase):
 
@@ -534,7 +613,7 @@ class TestSZACheck(unittest.TestCase):
         scene = mock.MagicMock()
         scene.attrs = {'start_time': 42}
         job['scene'] = scene
-        product_list = yaml.load(yaml_test1)
+        product_list = yaml.load(yaml_test1, Loader=UnsafeLoader)
         job['product_list'] = product_list.copy()
         # Run without any settings
         sza_check(job)
@@ -569,6 +648,113 @@ class TestSZACheck(unittest.TestCase):
         self.assertFalse('germ' in job['product_list']['product_list'])
 
 
+class TestOverviews(unittest.TestCase):
+
+    def setUp(self):
+        self.product_list = yaml.load(yaml_test1)
+
+    @mock.patch('trollflow2.Resampling')
+    @mock.patch('trollflow2.rasterio')
+    def test_add_overviews(self, rasterio, resampling):
+        from trollflow2 import add_overviews
+        # Mock the rasterio.open context manager
+        dst = mock.MagicMock()
+        rasterio.open.return_value.__enter__.return_value = dst
+
+        product_list = self.product_list['product_list']
+        product_list['germ']['products']['cloudtype']['formats'][0]['overviews'] = [4]
+        # Add filename, otherwise added by `save_datasets()`
+        product_list['germ']['products']['cloudtype']['formats'][0]['filename'] = 'foo'
+        job = {"product_list": self.product_list}
+        add_overviews(job)
+        dst.build_overviews.assert_called_once_with([4], resampling.average)
+        dst.update_tags.assert_called_once_with(ns='rio_overview',
+                                                resampling='average')
+
+
+class TestFilePublisher(unittest.TestCase):
+
+    def setUp(self):
+        self.product_list = yaml.load(yaml_test2, Loader=UnsafeLoader)
+        # Skip omerc_bb are, there's no fname_pattern
+        del self.product_list['product_list']['omerc_bb']
+        self.input_mda = input_mda.copy()
+        self.input_mda['uri'] = 'foo.nc'
+
+    @mock.patch('trollflow2.Message')
+    @mock.patch('trollflow2.NoisyPublisher')
+    def test_filepublisher_with_compose(self, noisy_pub, message):
+        from trollflow2 import FilePublisher, plist_iter
+        from trollsift import compose
+        import os.path
+        pub = FilePublisher()
+        pub.pub.start.assert_called_once()
+        product_list = self.product_list.copy()
+        product_list['common']['publish_topic'] = '/{areaname}/{productname}'
+        job = {'product_list': product_list,
+               'input_mda': self.input_mda}
+        topic_pattern = job['product_list']['common']['publish_topic']
+        topics = []
+        # Create filenames and topics
+        for fmat, fmat_config in plist_iter(job['product_list']['product_list'],
+                                            job['input_mda'].copy()):
+            fname_pattern = fmat['fname_pattern']
+            filename = compose(os.path.join(fmat['output_dir'],
+                                            fname_pattern), fmat)
+            fmat.pop('format', None)
+            fmat_config['filename'] = filename
+            topics.append(compose(topic_pattern, fmat))
+
+        pub(job)
+        message.assert_called()
+        pub.pub.send.assert_called()
+        pub.__del__()
+        pub.pub.stop.assert_called()
+        i = 0
+        for area in job['product_list']['product_list']:
+            for prod in job['product_list']['product_list'][area]:
+                # Skip calls to __str__
+                if 'call().__str__()' != str(message.mock_calls[i]):
+                    self.assertTrue(topics[i] in str(message.mock_calls[i]))
+                    i += 1
+
+    @mock.patch('trollflow2.Message')
+    @mock.patch('trollflow2.NoisyPublisher')
+    def test_filepublisher_without_compose(self, noisy_pub, message):
+        from trollflow2 import FilePublisher, plist_iter
+        from trollsift import compose
+        import os.path
+        pub = FilePublisher()
+        pub.pub.start.assert_called_once()
+        product_list = self.product_list.copy()
+        product_list['common']['publish_topic'] = '/static_topic'
+        job = {'product_list': product_list,
+               'input_mda': self.input_mda}
+        topic_pattern = job['product_list']['common']['publish_topic']
+        topics = []
+        # Create filenames and topics
+        for fmat, fmat_config in plist_iter(job['product_list']['product_list'],
+                                            job['input_mda'].copy()):
+            fname_pattern = fmat['fname_pattern']
+            filename = compose(os.path.join(fmat['output_dir'],
+                                            fname_pattern), fmat)
+            fmat.pop('format', None)
+            fmat_config['filename'] = filename
+            topics.append(compose(topic_pattern, fmat))
+
+        pub(job)
+        message.assert_called()
+        pub.pub.send.assert_called()
+        pub.__del__()
+        pub.pub.stop.assert_called()
+        i = 0
+        for area in job['product_list']['product_list']:
+            for prod in job['product_list']['product_list'][area]:
+                # Skip calls to __str__
+                if 'call().__str__()' != str(message.mock_calls[i]):
+                    self.assertTrue(topics[i] in str(message.mock_calls[i]))
+                    i += 1
+
 def suite():
     """The test suite for test_writers."""
     loader = unittest.TestLoader()
@@ -584,6 +770,9 @@ def suite():
     my_suite.addTest(loader.loadTestsFromTestCase(TestMetadataAlias))
     my_suite.addTest(loader.loadTestsFromTestCase(TestGetPluginConf))
     my_suite.addTest(loader.loadTestsFromTestCase(TestSZACheck))
+    my_suite.addTest(loader.loadTestsFromTestCase(TestSunlightCovers))
+    my_suite.addTest(loader.loadTestsFromTestCase(TestOverviews))
+    my_suite.addTest(loader.loadTestsFromTestCase(TestFilePublisher))
 
     return my_suite
 

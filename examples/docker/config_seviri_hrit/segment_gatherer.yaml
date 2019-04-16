@@ -1,0 +1,21 @@
+patterns:
+  seviri_hrit:
+    pattern:
+      "H-000-{orig_platform_name:4s}__-{orig_platform_name:4s}_{service:3s}____-{channel_name:_<9s}-{segment:_<9s}-{start_time:%Y%m%d%H%M}-{compression:1s}_"
+    critical_files: :EPI,:PRO
+    wanted_files: VIS006:000001-000008,VIS008:000001-000008,IR_016:000001-000008,IR_039:000001-000008,WV_062:000001-000008,WV_073:000001-000008,IR_087:000001-000008,IR_097:000001-000008,IR_108:000001-000008,IR_120:000001-000008,IR_134:000001-000008,HRV:000001-000024,:PRO,:EPI
+    all_files: VIS006:000001-000008,VIS008:000001-000008,IR_016:000001-000008,IR_039:000001-000008,WV_062:000001-000008,WV_073:000001-000008,IR_087:000001-000008,IR_097:000001-000008,IR_108:000001-000008,IR_120:000001-000008,IR_134:000001-000008,HRV:000001-000024,:PRO,:EPI
+    variable_tags: ["compression"]
+
+timeliness:
+  20
+
+time_name:
+  start_time
+
+posttroll:
+  topics:
+    - /segment/seviri_hrit
+  publish_topic:
+    /dataset/seviri_hrit
+

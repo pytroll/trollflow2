@@ -1,0 +1,5 @@
+posttroll
+pytroll-schedule
+pytroll-collectors
+trollmoves
+trollflow2

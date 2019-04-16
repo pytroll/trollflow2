@@ -1,0 +1,14 @@
+git+https://github.com/storpipfugl/pykdtree.git#egg=pykdtree
+git+https://github.com/pytroll/trollsift.git#egg=trollsift
+git+https://github.com/pytroll/trollimage.git#egg=trollimage
+git+https://github.com/pytroll/pyorbital.git#egg=pyorbital
+git+https://github.com/pytroll/pycoast.git#egg=pycoast
+git+https://github.com/pytroll/pyresample.git#egg=pyresample
+git+https://github.com/pytroll/satpy.git#egg=satpy
+git+https://github.com/pytroll/posttroll.git#egg=posttroll
+git+https://github.com/pytroll/pytroll-schedule.git#egg=pytroll-schedule
+git+https://github.com/pytroll/pytroll-collectors.git#egg=pytroll-collectors
+git+https://github.com/pytroll/trollmoves.git#egg=trollmoves
+git+https://github.com/pytroll/trollflow2.git#egg=trollflow2
+git+https://github.com/Supervisor/supervisor.git#egg=supervisor
+git+https://github.com/Supervisor/superlance.git#egg=superlance
