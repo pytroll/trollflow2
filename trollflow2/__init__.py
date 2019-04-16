@@ -202,7 +202,7 @@ def covers(job):
             raise AbortProcessing(
                 "Area collection ID '%s' does not match "
                 "production area(s) %s" % (job['input_mda']['collection_area_id'],
-                                        str(list(job['product_list']['product_list']))))
+                                           str(list(job['product_list']['product_list']))))
 
     product_list = job['product_list'].copy()
 
@@ -238,6 +238,10 @@ def covers(job):
                 cov, min_coverage)
             LOG.info("Removing area %s from the worklist", area)
             dpath.util.delete(product_list, area_path)
+
+        else:
+            LOG.debug("Area coverage %.2f %% above threshold %.2f %% - Carry on",
+                      cov, min_coverage)
 
     job['product_list'] = product_list
 
