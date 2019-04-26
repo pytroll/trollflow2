@@ -343,31 +343,53 @@ def check_sunlight_coverage(job):
         LOG.error("Trollsched import failed, sunlight coverage calculation not possible")
         LOG.info("Keeping all products")
         return
-    scn = job['scene']
-    start_time = scn.attrs['start_time']
+
+    scn_mda = job['scene'].attrs.copy()
+    scn_mda.update(job['input_mda'])
+    platform_name = scn_mda['platform_name']
+    start_time = scn_mda['start_time']
+    end_time = scn_mda['end_time']
+    sensor = scn_mda['sensor']
+
+    if isinstance(sensor, (list, tuple, set)):
+        sensor = list(sensor)[0]
+        LOG.warning("Possibly many sensors given, taking only one for "
+                    "coverage calculations: %s", sensor)
+
     product_list = job['product_list']
     areas = list(product_list['product_list'].keys())
+
     for area in areas:
         products = list(product_list['product_list'][area]['products'].keys())
         for product in products:
             prod_path = "/product_list/%s/products/%s" % (area, product)
-            min_day = get_config_value(product_list, prod_path, "min_sunlight_coverage")
+            config = get_config_value(product_list, prod_path, "sunlight_coverage")
+            min_day = config['min']
+            use_pass = config.get('check_pass', False)
+            if use_pass:
+                overpass = Pass(platform_name, start_time, end_time, instrument=sensor)
+            else:
+                overpass = None
             if min_day is None:
                 continue
             area_def = job['resampled_scenes'][area][product].attrs['area']
-            coverage = _get_sunlight_coverage(area_def, start_time)
+            coverage = _get_sunlight_coverage(area_def, start_time, overpass)
             if coverage < (min_day / 100.0):
                 LOG.info("Not enough sunlight coverage in "
                          "product '%s', removed.", product)
                 dpath.util.delete(product_list, prod_path)
 
 
-def _get_sunlight_coverage(area_def, start_time):
+def _get_sunlight_coverage(area_def, start_time, overpass=None):
     """Get the sunlight coverage of *area_def* at *start_time*."""
-    adp = AreaDefBoundary(area_def, frequency=100)
+    adp = AreaDefBoundary(area_def, frequency=100).contour_poly
     poly = get_twilight_poly(start_time)
-
-    daylight = adp.contour_poly.intersection(poly)
+    if overpass is not None:
+        ovp = overpass.boundary.contour_poly
+        cut_area_poly = adp.intersection(ovp)
+    else:
+        cut_area_poly = adp
+    daylight = cut_area_poly.intersection(poly)
     if daylight is None:
         if sun_zenith_angle(start_time, *area_def.get_lonlat(0, 0)) < 90:
             return 1.0
@@ -375,7 +397,7 @@ def _get_sunlight_coverage(area_def, start_time):
             return 0.0
     else:
         daylight_area = daylight.area()
-        total_area = adp.contour_poly.area()
+        total_area = adp.area()
         return daylight_area / total_area
 
 
