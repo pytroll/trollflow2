@@ -364,6 +364,8 @@ def check_sunlight_coverage(job):
         for product in products:
             prod_path = "/product_list/%s/products/%s" % (area, product)
             config = get_config_value(product_list, prod_path, "sunlight_coverage")
+            if config is None:
+                continue
             min_day = config['min']
             use_pass = config.get('check_pass', False)
             if use_pass:
