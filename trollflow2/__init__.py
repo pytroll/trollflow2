@@ -393,7 +393,11 @@ def _get_sunlight_coverage(area_def, start_time, overpass=None):
         cut_area_poly = adp
 
     if cut_area_poly is None:
-        return 0.0
+        if not adp._is_inside(ovp):
+            return 0.0
+        else:
+            # Should already have been taken care of in pyresample.spherical.intersection
+            cut_area_poly = adp
 
     daylight = cut_area_poly.intersection(poly)
     if daylight is None:
