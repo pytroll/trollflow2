@@ -365,8 +365,7 @@ def check_sunlight_coverage(job):
             try:
                 area_def = job['resampled_scenes'][area][product].attrs['area']
             except KeyError:
-                LOG.info("No dataset %s for this scene and area %s", product, area)
-                LOG.info("...Probably not enough spectral channels.")
+                LOG.warning("No dataset %s for this scene and area %s", product, area)
                 continue
 
             prod_path = "/product_list/%s/products/%s" % (area, product)
