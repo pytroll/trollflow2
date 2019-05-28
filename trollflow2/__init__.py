@@ -362,6 +362,13 @@ def check_sunlight_coverage(job):
     for area in areas:
         products = list(product_list['product_list'][area]['products'].keys())
         for product in products:
+            try:
+                area_def = job['resampled_scenes'][area][product].attrs['area']
+            except KeyError:
+                LOG.info("No dataset %s for this scene and area %s", product, area)
+                LOG.info("...Probably not enough spectral channels.")
+                continue
+
             prod_path = "/product_list/%s/products/%s" % (area, product)
             config = get_config_value(product_list, prod_path, "sunlight_coverage")
             if config is None:
@@ -374,7 +381,6 @@ def check_sunlight_coverage(job):
                 overpass = None
             if min_day is None:
                 continue
-            area_def = job['resampled_scenes'][area][product].attrs['area']
             coverage = _get_sunlight_coverage(area_def, start_time, overpass)
             if coverage < (min_day / 100.0):
                 LOG.info("Not enough sunlight coverage in "
