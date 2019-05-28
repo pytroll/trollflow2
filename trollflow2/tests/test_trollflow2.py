@@ -125,6 +125,21 @@ product_list:
             writer: geotiff
 """
 
+yaml_test3 = """common:
+  something: foo
+  min_coverage: 5.0
+product_list:
+  euron1:
+    areaname: euron1_in_fname
+    min_coverage: 20.0
+    products:
+      green_snow:
+        productname: green_snow
+        formats:
+          - format: tif
+            writer: geotiff
+"""
+
 yaml_common = """common:
   output_dir: &output_dir
     /tmp/satnfs/polar_out/pps2018/direct_readout/
@@ -433,7 +448,7 @@ class TestSunlightCovers(unittest.TestCase):
                           "sensor": "avhrr-3",
                           "start_time": dt.datetime(2019, 4, 7, 20, 52),
                           "end_time": dt.datetime(2019, 4, 7, 20, 58),
-                         }
+                          }
 
     @mock.patch('trollflow2.AreaDefBoundary')
     @mock.patch('trollflow2.get_twilight_poly')
@@ -456,7 +471,7 @@ class TestCovers(unittest.TestCase):
                           "sensor": "avhrr-3",
                           "start_time": dt.datetime(2019, 1, 19, 11),
                           "end_time": dt.datetime(2019, 1, 19, 12),
-                         }
+                          }
 
     @mock.patch('trollflow2.Pass', new=None)
     def test_covers_no_trollsched(self):
@@ -648,6 +663,41 @@ class TestSZACheck(unittest.TestCase):
         self.assertFalse('germ' in job['product_list']['product_list'])
 
 
+class TestCheckSunlightCoverage(unittest.TestCase):
+
+    def setUp(self):
+        self.product_list = yaml.load(yaml_test3, Loader=UnsafeLoader)
+        self.input_mda = {"platform_name": "NOAA-15",
+                          "sensor": "avhrr-3",
+                          "start_time": dt.datetime(2019, 1, 19, 11),
+                          "end_time": dt.datetime(2019, 1, 19, 12),
+                          'not_changed': True,
+                          }
+
+    @mock.patch('trollflow2.Pass')
+    @mock.patch("trollflow2._get_sunlight_coverage")
+    def test_product_not_loaded(self, _get_sunlight_coverage, ts_pass):
+        from trollflow2 import check_sunlight_coverage
+        from trollflow2 import metadata_alias
+        job = {}
+        scene = mock.MagicMock()
+        scene.attrs = {'start_time': 42}
+        job['scene'] = scene
+        job['product_list'] = self.product_list.copy()
+        job['input_mda'] = self.input_mda.copy()
+        metadata_alias(job)
+
+        job['resampled_scenes'] = {}
+        for area in job['product_list']['product_list']:
+            job['resampled_scenes'][area] = {}
+
+        # Run without any settings
+        check_sunlight_coverage(job)
+
+        _get_sunlight_coverage.assert_not_called()
+        ts_pass.assert_not_called()
+
+
 class TestOverviews(unittest.TestCase):
 
     def setUp(self):
@@ -754,6 +804,7 @@ class TestFilePublisher(unittest.TestCase):
                 if 'call().__str__()' != str(message.mock_calls[i]):
                     self.assertTrue(topics[i] in str(message.mock_calls[i]))
                     i += 1
+
 
 def suite():
     """The test suite for test_writers."""
