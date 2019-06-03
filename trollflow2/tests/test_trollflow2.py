@@ -822,6 +822,7 @@ def suite():
     my_suite.addTest(loader.loadTestsFromTestCase(TestGetPluginConf))
     my_suite.addTest(loader.loadTestsFromTestCase(TestSZACheck))
     my_suite.addTest(loader.loadTestsFromTestCase(TestSunlightCovers))
+    my_suite.addTest(loader.loadTestsFromTestCase(TestCheckSunlightCoverage))
     my_suite.addTest(loader.loadTestsFromTestCase(TestOverviews))
     my_suite.addTest(loader.loadTestsFromTestCase(TestFilePublisher))
 
