@@ -184,53 +184,53 @@ class TestRun(TestCase):
         super().setUp()
         self.config = yaml.load(yaml_test1, Loader=UnsafeLoader)
 
-    @mock.patch('trollflow2.launcher.yaml.load')
-    @mock.patch('trollflow2.launcher.open')
-    @mock.patch('trollflow2.launcher.process')
-    @mock.patch('trollflow2.launcher.Process')
-    @mock.patch('trollflow2.launcher.ListenerContainer')
-    def test_run(self, lc_, Process, process, _open, yaml_load):
+    def test_run(self):
         from trollflow2.launcher import run
-        listener = mock.MagicMock()
-        listener.output_queue.get.return_value = 'foo'
-        lc_.return_value = listener
-        proc_ret = mock.MagicMock()
-        Process.return_value = proc_ret
-        # stop looping
-        proc_ret.join.side_effect = KeyboardInterrupt
-        yaml_load.return_value = self.config
-        prod_list = 'bar'
-        try:
-            run(prod_list)
-        except KeyboardInterrupt:
-            pass
-        listener.output_queue.called_once()
-        Process.assert_called_with(args=('foo', prod_list), target=process)
-        proc_ret.start.assert_called_once()
-        proc_ret.join.assert_called_once()
-        lc_.assert_called_with(topics=['/topic1', '/topic2'])
-        # Subscriber topics are removed from config
-        self.assertTrue('subscribe_topics' not in self.config['common'])
-        # Topics are given as command line option
-        lc_.reset_mock()
-        try:
-            run(prod_list, topics=['/topic3'])
-        except KeyboardInterrupt:
-            pass
-        lc_.assert_called_with(topics=['/topic3'])
+        with mock.patch('trollflow2.launcher.yaml.load') as yaml_load,\
+                mock.patch('trollflow2.launcher.open') as _open,\
+                mock.patch('trollflow2.launcher.process') as process,\
+                mock.patch('trollflow2.launcher.Process') as Process,\
+                mock.patch('trollflow2.launcher.ListenerContainer') as lc_:
+            listener = mock.MagicMock()
+            listener.output_queue.get.return_value = 'foo'
+            lc_.return_value = listener
+            proc_ret = mock.MagicMock()
+            Process.return_value = proc_ret
+            # stop looping
+            proc_ret.join.side_effect = KeyboardInterrupt
+            yaml_load.return_value = self.config
+            prod_list = 'bar'
+            try:
+                run(prod_list)
+            except KeyboardInterrupt:
+                pass
+            listener.output_queue.called_once()
+            Process.assert_called_with(args=('foo', prod_list), target=process)
+            proc_ret.start.assert_called_once()
+            proc_ret.join.assert_called_once()
+            lc_.assert_called_with(topics=['/topic1', '/topic2'])
+            # Subscriber topics are removed from config
+            self.assertTrue('subscribe_topics' not in self.config['common'])
+            # Topics are given as command line option
+            lc_.reset_mock()
+            try:
+                run(prod_list, topics=['/topic3'])
+            except KeyboardInterrupt:
+                pass
+            lc_.assert_called_with(topics=['/topic3'])
 
-    @mock.patch('trollflow2.launcher.yaml.load')
-    @mock.patch('trollflow2.launcher.open')
-    @mock.patch('trollflow2.launcher.ListenerContainer')
-    def test_run_keyboard_interrupt(self, lc_, _open, yaml_load):
+    def test_run_keyboard_interrupt(self):
         from trollflow2.launcher import run
-        listener = mock.MagicMock()
-        get = mock.Mock()
-        get.side_effect = KeyboardInterrupt()
-        listener.output_queue.get = get
-        lc_.return_value = listener
-        run(0)
-        listener.stop.assert_called_once()
+        with mock.patch('trollflow2.launcher.yaml.load'),\
+                mock.patch('trollflow2.launcher.open'),\
+                mock.patch('trollflow2.launcher.ListenerContainer') as lc_:
+            listener = mock.MagicMock()
+            get = mock.Mock()
+            get.side_effect = KeyboardInterrupt
+            listener.output_queue.get = get
+            lc_.return_value = listener
+            run(0)
+            listener.stop.assert_called_once()
 
 
 class TestExpand(TestCase):
