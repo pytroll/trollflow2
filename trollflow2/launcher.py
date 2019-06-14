@@ -35,7 +35,8 @@ except ImportError:
     from yaml import Loader as UnsafeLoader
     from yaml import BaseLoader
 import time
-from trollflow2 import gen_dict_extract, plist_iter, AbortProcessing
+from trollflow2.dict_tools import gen_dict_extract, plist_iter
+from trollflow2.plugins import AbortProcessing
 from collections import OrderedDict
 import copy
 from six.moves.urllib.parse import urlparse
@@ -132,6 +133,7 @@ def expand(yml):
 
 
 def process(msg, prod_list):
+    """Process a message."""
     try:
         with open(prod_list) as fid:
             config = yaml.load(fid.read(), Loader=UnsafeLoader)
@@ -164,7 +166,7 @@ def process(msg, prod_list):
 
 
 def sendmail(config, trace):
-    """Send email about crashes using `sendmail`"""
+    """Send email about crashes using `sendmail`."""
     from email.mime.text import MIMEText
     from subprocess import Popen, PIPE
 

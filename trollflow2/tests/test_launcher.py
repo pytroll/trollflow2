@@ -27,10 +27,8 @@ try:
     from yaml import UnsafeLoader
 except ImportError:
     from yaml import Loader as UnsafeLoader
-try:
-    from unittest import mock
-except ImportError:
-    import mock
+from unittest import mock
+from trollflow2.tests.utils import TestCase
 
 yaml_test1 = """common:
   something: foo
@@ -115,7 +113,7 @@ product_list:
 """
 
 
-class TestGetAreaPriorities(unittest.TestCase):
+class TestGetAreaPriorities(TestCase):
 
     def test_get_area_priorities(self):
         from trollflow2.launcher import get_area_priorities
@@ -131,7 +129,7 @@ class TestGetAreaPriorities(unittest.TestCase):
         self.assertTrue('germ' in priorities[999])
 
 
-class TestMessageToJobs(unittest.TestCase):
+class TestMessageToJobs(TestCase):
 
     def test_message_to_jobs(self):
         from trollflow2.launcher import message_to_jobs
@@ -180,61 +178,62 @@ class TestMessageToJobs(unittest.TestCase):
                                                      'productname': 'overview'}}})])
         self.assertDictEqual(jobs[999]['product_list']['product_list'], expected)
 
-class TestRun(unittest.TestCase):
+class TestRun(TestCase):
 
     def setUp(self):
+        super().setUp()
         self.config = yaml.load(yaml_test1, Loader=UnsafeLoader)
 
-    @mock.patch('trollflow2.launcher.yaml.load')
-    @mock.patch('trollflow2.launcher.open')
-    @mock.patch('trollflow2.launcher.process')
-    @mock.patch('trollflow2.launcher.Process')
-    @mock.patch('trollflow2.launcher.ListenerContainer')
-    def test_run(self, lc_, Process, process, _open, yaml_load):
+    def test_run(self):
         from trollflow2.launcher import run
-        listener = mock.MagicMock()
-        listener.output_queue.get.return_value = 'foo'
-        lc_.return_value = listener
-        proc_ret = mock.MagicMock()
-        Process.return_value = proc_ret
-        # stop looping
-        proc_ret.join.side_effect = KeyboardInterrupt
-        yaml_load.return_value = self.config
-        prod_list = 'bar'
-        try:
-            run(prod_list)
-        except KeyboardInterrupt:
-            pass
-        listener.output_queue.called_once()
-        Process.assert_called_with(args=('foo', prod_list), target=process)
-        proc_ret.start.assert_called_once()
-        proc_ret.join.assert_called_once()
-        lc_.assert_called_with(topics=['/topic1', '/topic2'])
-        # Subscriber topics are removed from config
-        self.assertTrue('subscribe_topics' not in self.config['common'])
-        # Topics are given as command line option
-        lc_.reset_mock()
-        try:
-            run(prod_list, topics=['/topic3'])
-        except KeyboardInterrupt:
-            pass
-        lc_.assert_called_with(topics=['/topic3'])
+        with mock.patch('trollflow2.launcher.yaml.load') as yaml_load,\
+                mock.patch('trollflow2.launcher.open') as _open,\
+                mock.patch('trollflow2.launcher.process') as process,\
+                mock.patch('trollflow2.launcher.Process') as Process,\
+                mock.patch('trollflow2.launcher.ListenerContainer') as lc_:
+            listener = mock.MagicMock()
+            listener.output_queue.get.return_value = 'foo'
+            lc_.return_value = listener
+            proc_ret = mock.MagicMock()
+            Process.return_value = proc_ret
+            # stop looping
+            proc_ret.join.side_effect = KeyboardInterrupt
+            yaml_load.return_value = self.config
+            prod_list = 'bar'
+            try:
+                run(prod_list)
+            except KeyboardInterrupt:
+                pass
+            listener.output_queue.called_once()
+            Process.assert_called_with(args=('foo', prod_list), target=process)
+            proc_ret.start.assert_called_once()
+            proc_ret.join.assert_called_once()
+            lc_.assert_called_with(topics=['/topic1', '/topic2'])
+            # Subscriber topics are removed from config
+            self.assertTrue('subscribe_topics' not in self.config['common'])
+            # Topics are given as command line option
+            lc_.reset_mock()
+            try:
+                run(prod_list, topics=['/topic3'])
+            except KeyboardInterrupt:
+                pass
+            lc_.assert_called_with(topics=['/topic3'])
 
-    @mock.patch('trollflow2.launcher.yaml.load')
-    @mock.patch('trollflow2.launcher.open')
-    @mock.patch('trollflow2.launcher.ListenerContainer')
-    def test_run_keyboard_interrupt(self, lc_, _open, yaml_load):
+    def test_run_keyboard_interrupt(self):
         from trollflow2.launcher import run
-        listener = mock.MagicMock()
-        get = mock.Mock()
-        get.side_effect = KeyboardInterrupt
-        listener.output_queue.get = get
-        lc_.return_value = listener
-        run(0)
-        listener.stop.assert_called_once()
+        with mock.patch('trollflow2.launcher.yaml.load'),\
+                mock.patch('trollflow2.launcher.open'),\
+                mock.patch('trollflow2.launcher.ListenerContainer') as lc_:
+            listener = mock.MagicMock()
+            get = mock.Mock()
+            get.side_effect = KeyboardInterrupt
+            listener.output_queue.get = get
+            lc_.return_value = listener
+            run(0)
+            listener.stop.assert_called_once()
 
 
-class TestExpand(unittest.TestCase):
+class TestExpand(TestCase):
     def test_expand(self):
         from trollflow2.launcher import expand
         inside = {'a': 'b'}
@@ -242,55 +241,53 @@ class TestExpand(unittest.TestCase):
         expanded = expand(outside)
         self.assertIsNot(expanded['d'], expanded['c'])
 
+class TestProcess(TestCase):
 
-class TestProcess(unittest.TestCase):
-
-    @mock.patch('trollflow2.launcher.traceback')
-    @mock.patch('trollflow2.launcher.sendmail')
-    @mock.patch('trollflow2.launcher.expand')
-    @mock.patch('trollflow2.launcher.yaml')
-    @mock.patch('trollflow2.launcher.message_to_jobs')
-    @mock.patch('trollflow2.launcher.open')
-    def test_process(self, open_, message_to_jobs, yaml_, expand, sendmail,
-                     traceback):
+    def test_process(self):
         from trollflow2.launcher import process
-        fid = mock.MagicMock()
-        fid.read.return_value = yaml_test1
-        open_.return_value.__enter__.return_value = fid
-        mock_config = mock.MagicMock()
-        yaml_.load.return_value = mock_config
-        yaml_.YAMLError = yaml.YAMLError
-        fun1 = mock.MagicMock()
-        # Return something resembling a config
-        expand.return_value = {"workers": [{"fun": fun1}]}
+        with mock.patch('trollflow2.launcher.traceback') as traceback,\
+                mock.patch('trollflow2.launcher.sendmail') as sendmail,\
+                mock.patch('trollflow2.launcher.expand') as expand,\
+                mock.patch('trollflow2.launcher.yaml') as yaml_,\
+                mock.patch('trollflow2.launcher.message_to_jobs') as message_to_jobs,\
+                mock.patch('trollflow2.launcher.open') as open_:
+            fid = mock.MagicMock()
+            fid.read.return_value = yaml_test1
+            open_.return_value.__enter__.return_value = fid
+            mock_config = mock.MagicMock()
+            yaml_.load.return_value = mock_config
+            yaml_.YAMLError = yaml.YAMLError
+            fun1 = mock.MagicMock()
+            # Return something resembling a config
+            expand.return_value = {"workers": [{"fun": fun1}]}
 
-        message_to_jobs.return_value = {1: {"job1": dict([])}}
-        process("msg", "prod_list")
-        open_.assert_called_with("prod_list")
-        yaml_.load.assert_called_once()
-        message_to_jobs.assert_called_with("msg", {"workers": [{"fun": fun1}]})
-        fun1.assert_called_with({'job1': {}, 'processing_priority': 1})
-        # Test that errors are propagated
-        fun1.side_effect = KeyboardInterrupt
-        with self.assertRaises(KeyboardInterrupt):
+            message_to_jobs.return_value = {1: {"job1": dict([])}}
             process("msg", "prod_list")
-        # Test crash hander call.  This will raise KeyError as there
-        # are no configured workers in the config returned by expand()
-        traceback.format_exc.return_value = 'baz'
-        crash_handlers = {"crash_handlers": {"config": {"foo": "bar"},
-                                             "handlers": [{"fun": sendmail}]}}
-        expand.return_value = crash_handlers
-        process("msg", "prod_list")
-        config = crash_handlers['crash_handlers']['config']
-        sendmail.assert_called_once_with(config, 'baz')
+            open_.assert_called_with("prod_list")
+            yaml_.load.assert_called_once()
+            message_to_jobs.assert_called_with("msg", {"workers": [{"fun": fun1}]})
+            fun1.assert_called_with({'job1': {}, 'processing_priority': 1})
+            # Test that errors are propagated
+            fun1.side_effect = KeyboardInterrupt
+            with self.assertRaises(KeyboardInterrupt):
+                process("msg", "prod_list")
+            # Test crash hander call.  This will raise KeyError as there
+            # are no configured workers in the config returned by expand()
+            traceback.format_exc.return_value = 'baz'
+            crash_handlers = {"crash_handlers": {"config": {"foo": "bar"},
+                                                 "handlers": [{"fun": sendmail}]}}
+            expand.return_value = crash_handlers
+            process("msg", "prod_list")
+            config = crash_handlers['crash_handlers']['config']
+            sendmail.assert_called_once_with(config, 'baz')
 
-        # Test failure in open(), e.g. a missing file
-        open_.side_effect = IOError
-        process("msg", "prod_list")
+            # Test failure in open(), e.g. a missing file
+            open_.side_effect = IOError
+            process("msg", "prod_list")
 
-        # Test failure in yaml.load(), e.g. bad formatting
-        open_.side_effect = yaml.YAMLError
-        process("msg", "prod_list")
+            # Test failure in yaml.load(), e.g. bad formatting
+            open_.side_effect = yaml.YAMLError
+            process("msg", "prod_list")
 
 
 def suite():

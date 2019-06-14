@@ -18,7 +18,7 @@ See the example playlist (`pl.yaml`) for inspiration.
 Available plugins
 -----------------
 
-.. currentmodule:: trollflow2
+.. currentmodule:: trollflow2.plugins
 
 The `check_sunlight_coverage` plugin
 ************************************

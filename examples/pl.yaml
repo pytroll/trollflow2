@@ -144,11 +144,11 @@ product_list: &product_list
 
 
 workers:
-  - fun: !!python/name:trollflow2.create_scene
-  - fun: !!python/name:trollflow2.load_composites
-  - fun: !!python/name:trollflow2.resample
-  - fun: !!python/name:trollflow2.save_datasets
-  - fun: !!python/object:trollflow2.FilePublisher {}
+  - fun: !!python/name:trollflow2.plugins.create_scene
+  - fun: !!python/name:trollflow2.plugins.load_composites
+  - fun: !!python/name:trollflow2.plugins.resample
+  - fun: !!python/name:trollflow2.plugins.save_datasets
+  - fun: !!python/object:trollflow2.plugins.FilePublisher {}
 
 # Things to run in case of a crash
 #crash_handlers:
