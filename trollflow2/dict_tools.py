@@ -23,6 +23,16 @@
 import dpath
 
 def plist_iter(product_list, base_mda=None, level=None):
+    """Iterate over the product list at a configurable level.
+
+    This function walks through the product-list (depth-wise) and yields
+    two configuration items each time: a flattened version of the configurations
+    accumulated accross the levels and the current item's configuration.
+
+    *base_mda* provides the base configuration to include, and *level* (one of
+    'area', 'product', or None (default, all levels included)) is the max depth
+    to walk the product list at.
+    """
     if base_mda is None:
         base_mda = {}
     else:
@@ -50,6 +60,7 @@ def plist_iter(product_list, base_mda=None, level=None):
 
 
 def gen_dict_extract(var, key):
+    """Generate the values of *key* recusively from the dict *var*."""
     if hasattr(var, 'items'):
         for k, v in var.items():
             if k == key:
