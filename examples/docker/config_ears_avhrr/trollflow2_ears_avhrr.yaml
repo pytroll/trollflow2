@@ -74,12 +74,12 @@ product_list:
         sunzen_minimum_angle: 90.0
 
 workers:
-  - fun: !!python/name:trollflow2.metadata_alias
-  - fun: !!python/name:trollflow2.check_platform
-  - fun: !!python/name:trollflow2.create_scene
-  - fun: !!python/name:trollflow2.covers
-  - fun: !!python/name:trollflow2.sza_check
-  - fun: !!python/name:trollflow2.load_composites
-  - fun: !!python/name:trollflow2.resample
-  - fun: !!python/name:trollflow2.save_datasets
-  - fun: !!python/object:trollflow2.FilePublisher {}
+  - fun: !!python/name:trollflow2.plugins.metadata_alias
+  - fun: !!python/name:trollflow2.plugins.check_platform
+  - fun: !!python/name:trollflow2.plugins.create_scene
+  - fun: !!python/name:trollflow2.plugins.covers
+  - fun: !!python/name:trollflow2.plugins.sza_check
+  - fun: !!python/name:trollflow2.plugins.load_composites
+  - fun: !!python/name:trollflow2.plugins.resample
+  - fun: !!python/name:trollflow2.plugins.save_datasets
+  - fun: !!python/object:trollflow2.plugins.FilePublisher {}

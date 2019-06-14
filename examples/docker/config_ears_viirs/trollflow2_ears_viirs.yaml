@@ -70,10 +70,10 @@ product_list:
             writer: geotiff
 
 workers:
-  - fun: !!python/name:trollflow2.create_scene
-  - fun: !!python/name:trollflow2.covers
-  - fun: !!python/name:trollflow2.sza_check
-  - fun: !!python/name:trollflow2.load_composites
-  - fun: !!python/name:trollflow2.resample
-  - fun: !!python/name:trollflow2.save_datasets
-  - fun: !!python/object:trollflow2.FilePublisher {}
+  - fun: !!python/name:trollflow2.plugins.create_scene
+  - fun: !!python/name:trollflow2.plugins.covers
+  - fun: !!python/name:trollflow2.plugins.sza_check
+  - fun: !!python/name:trollflow2.plugins.load_composites
+  - fun: !!python/name:trollflow2.plugins.resample
+  - fun: !!python/name:trollflow2.plugins.save_datasets
+  - fun: !!python/object:trollflow2.plugins.FilePublisher {}
