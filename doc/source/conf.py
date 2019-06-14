@@ -24,6 +24,8 @@ author = 'Panu Lahtinen, Martin Raspaud'
 # The full version, including alpha/beta/rc tags
 release = '0.5.0'
 
+# Master file
+master_doc = 'index'
 
 # -- General configuration ---------------------------------------------------
 
