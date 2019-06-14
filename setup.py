@@ -21,8 +21,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""Setup for trollflow2.
-"""
+"""Setup for trollflow2."""
+
 from setuptools import setup
 import versioneer
 import sys
