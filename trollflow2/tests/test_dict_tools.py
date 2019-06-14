@@ -39,110 +39,98 @@ try:
 except ImportError:
     pass
 
-yaml_test1 = """common:
+yaml_test1 = """
+product_list:
   something: foo
   min_coverage: 5.0
-product_list:
-  euron1:
-    areaname: euron1_in_fname
-    min_coverage: 20.0
-    products:
-      cloud_top_height:
-        productname: cloud_top_height_in_fname
-        output_dir: /tmp/satdmz/pps/www/latest_2018/
-        formats:
-          - format: png
-            writer: simple_image
-          - format: jpg
-            writer: simple_image
-            fill_value: 0
-        fname_pattern: "{platform_name:s}_{start_time:%Y%m%d_%H%M}_{areaname:s}_ctth_static.{format}"
+  areas:
+      euron1:
+        areaname: euron1_in_fname
+        min_coverage: 20.0
+        products:
+          cloud_top_height:
+            productname: cloud_top_height_in_fname
+            output_dir: /tmp/satdmz/pps/www/latest_2018/
+            formats:
+              - format: png
+                writer: simple_image
+              - format: jpg
+                writer: simple_image
+                fill_value: 0
+            fname_pattern: "{platform_name:s}_{start_time:%Y%m%d_%H%M}_{areaname:s}_ctth_static.{format}"
 
-  germ:
-    areaname: germ_in_fname
-    fname_pattern: "{start_time:%Y%m%d_%H%M}_{areaname:s}_{productname}.{format}"
-    products:
-      cloudtype:
-        productname: cloudtype_in_fname
-        output_dir: /tmp/satdmz/pps/www/latest_2018/
-        formats:
-          - format: png
-            writer: simple_image
+      germ:
+        areaname: germ_in_fname
+        fname_pattern: "{start_time:%Y%m%d_%H%M}_{areaname:s}_{productname}.{format}"
+        products:
+          cloudtype:
+            productname: cloudtype_in_fname
+            output_dir: /tmp/satdmz/pps/www/latest_2018/
+            formats:
+              - format: png
+                writer: simple_image
 
-  omerc_bb:
-    areaname: omerc_bb
-    output_dir: /tmp
-    products:
-      ct:
-        productname: ct
-        formats:
-          - format: nc
-            writer: cf
-      cloud_top_height:
-        productname: cloud_top_height
-        formats:
-          - format: tif
-            writer: geotiff
+      omerc_bb:
+        areaname: omerc_bb
+        output_dir: /tmp
+        products:
+          ct:
+            productname: ct
+            formats:
+              - format: nc
+                writer: cf
+          cloud_top_height:
+            productname: cloud_top_height
+            formats:
+              - format: tif
+                writer: geotiff
 """
 
-yaml_test2 = """common:
+yaml_test2 = """
+product_list:
   something: foo
   min_coverage: 5.0
-product_list:
-  euron1:
-    areaname: euron1_in_fname
-    min_coverage: 20.0
-    products:
-      cloud_top_height:
-        productname: cloud_top_height_in_fname
-        output_dir: /tmp/satdmz/pps/www/latest_2018/
+  areas:
+      euron1:
+        areaname: euron1_in_fname
+        min_coverage: 20.0
+        products:
+          cloud_top_height:
+            productname: cloud_top_height_in_fname
+            output_dir: /tmp/satdmz/pps/www/latest_2018/
+            formats:
+              - format: png
+                writer: simple_image
+              - format: jpg
+                writer: simple_image
+                fill_value: 0
+            fname_pattern: "{platform_name:s}_{start_time:%Y%m%d_%H%M}_{areaname:s}_ctth_static.{format}"
+
+      germ:
+        areaname: germ_in_fname
+        fname_pattern: "{start_time:%Y%m%d_%H%M}_{areaname:s}_{productname}.{format}"
         formats:
           - format: png
             writer: simple_image
-          - format: jpg
-            writer: simple_image
-            fill_value: 0
-        fname_pattern: "{platform_name:s}_{start_time:%Y%m%d_%H%M}_{areaname:s}_ctth_static.{format}"
+        products:
+          cloudtype:
+            productname: cloudtype_in_fname
+            output_dir: /tmp/satdmz/pps/www/latest_2018/
 
-  germ:
-    areaname: germ_in_fname
-    fname_pattern: "{start_time:%Y%m%d_%H%M}_{areaname:s}_{productname}.{format}"
-    formats:
-      - format: png
-        writer: simple_image
-    products:
-      cloudtype:
-        productname: cloudtype_in_fname
-        output_dir: /tmp/satdmz/pps/www/latest_2018/
-
-  omerc_bb:
-    areaname: omerc_bb
-    output_dir: /tmp
-    products:
-      ct:
-        productname: ct
-        formats:
-          - format: nc
-            writer: cf
-      cloud_top_height:
-        productname: cloud_top_height
-        formats:
-          - format: tif
-            writer: geotiff
-"""
-
-yaml_common = """common:
-  output_dir: &output_dir
-    /tmp/satnfs/polar_out/pps2018/direct_readout/
-  publish_topic: /NWC-CF/L3
-  use_extern_calib: false
-  fname_pattern: &fname
-    "{platform_name}_{start_time:%Y%m%d_%H%M}_{areaname}_{productname}.{format}"
-  formats: &formats
-    - format: tif
-      writer: geotiff
-    - format: nc
-      writer: cf
+      omerc_bb:
+        areaname: omerc_bb
+        output_dir: /tmp
+        products:
+          ct:
+            productname: ct
+            formats:
+              - format: nc
+                writer: cf
+          cloud_top_height:
+            productname: cloud_top_height
+            formats:
+              - format: tif
+                writer: geotiff
 """
 
 input_mda = {'orig_platform_name': 'noaa15', 'orbit_number': 7993,
@@ -165,21 +153,21 @@ class TestProdList(unittest.TestCase):
         from trollflow2.dict_tools import plist_iter
         prodlist = yaml.load(yaml_test1, Loader=UnsafeLoader)['product_list']
         expected = [{'areaname': 'euron1_in_fname', 'area': 'euron1', 'productname': 'cloud_top_height_in_fname', 'product': 'cloud_top_height',
-                     'min_coverage': 20.0,
+                     'min_coverage': 20.0, 'something': 'foo',
                      'output_dir': '/tmp/satdmz/pps/www/latest_2018/', 'format': 'png', 'writer': 'simple_image',
                      'fname_pattern': '{platform_name:s}_{start_time:%Y%m%d_%H%M}_{areaname:s}_ctth_static.{format}'},
                     {'areaname': 'euron1_in_fname', 'area': 'euron1', 'productname': 'cloud_top_height_in_fname', 'product': 'cloud_top_height', 'fill_value': 0,
-                     'min_coverage': 20.0,
+                     'min_coverage': 20.0, 'something': 'foo',
                      'output_dir': '/tmp/satdmz/pps/www/latest_2018/', 'format': 'jpg', 'writer': 'simple_image',
                      'fname_pattern': '{platform_name:s}_{start_time:%Y%m%d_%H%M}_{areaname:s}_ctth_static.{format}'},
                     {'areaname': 'germ_in_fname', 'area': 'germ', 'productname': 'cloudtype_in_fname', 'product': 'cloudtype',
-                     'output_dir': '/tmp/satdmz/pps/www/latest_2018/',
+                     'output_dir': '/tmp/satdmz/pps/www/latest_2018/', 'min_coverage': 5.0, 'something': 'foo',
                      'fname_pattern': '{start_time:%Y%m%d_%H%M}_{areaname:s}_{productname}.{format}',
                      'format': 'png', 'writer': 'simple_image'},
-                    {'areaname': 'omerc_bb', 'area': 'omerc_bb', 'productname': 'ct', 'product': 'ct',
+                    {'areaname': 'omerc_bb', 'area': 'omerc_bb', 'productname': 'ct', 'product': 'ct', 'min_coverage': 5.0, 'something': 'foo',
                      'output_dir': '/tmp', 'format': 'nc', 'writer': 'cf'},
                     {'areaname': 'omerc_bb', 'area': 'omerc_bb', 'productname': 'cloud_top_height', 'product': 'cloud_top_height',
-                     'output_dir': '/tmp', 'format': 'tif',
+                     'output_dir': '/tmp', 'format': 'tif', 'min_coverage': 5.0, 'something': 'foo',
                      'writer': 'geotiff'}]
         for i, exp in zip(plist_iter(prodlist), expected):
             self.assertDictEqual(i[0], exp)
@@ -193,7 +181,7 @@ class TestConfigValue(unittest.TestCase):
 
     def setUp(self):
         self.prodlist = yaml.load(yaml_test1, Loader=UnsafeLoader)
-        self.path = "/product_list/germ/products/cloudtype"
+        self.path = "/product_list/areas/germ/products/cloudtype"
 
     def test_config_value_same_level(self):
         from trollflow2.dict_tools import get_config_value

@@ -33,115 +33,118 @@ from unittest import mock
 import datetime as dt
 
 from trollflow2.tests.utils import TestCase
-
-yaml_test1 = """common:
+yaml_test1 = """
+product_list:
   something: foo
   min_coverage: 5.0
+  areas:
+      euron1:
+        areaname: euron1_in_fname
+        min_coverage: 20.0
+        products:
+          cloud_top_height:
+            productname: cloud_top_height_in_fname
+            output_dir: /tmp/satdmz/pps/www/latest_2018/
+            formats:
+              - format: png
+                writer: simple_image
+              - format: jpg
+                writer: simple_image
+                fill_value: 0
+            fname_pattern: "{platform_name:s}_{start_time:%Y%m%d_%H%M}_{areaname:s}_ctth_static.{format}"
+
+      germ:
+        areaname: germ_in_fname
+        fname_pattern: "{start_time:%Y%m%d_%H%M}_{areaname:s}_{productname}.{format}"
+        products:
+          cloudtype:
+            productname: cloudtype_in_fname
+            output_dir: /tmp/satdmz/pps/www/latest_2018/
+            formats:
+              - format: png
+                writer: simple_image
+
+      omerc_bb:
+        areaname: omerc_bb
+        output_dir: /tmp
+        products:
+          ct:
+            productname: ct
+            formats:
+              - format: nc
+                writer: cf
+          cloud_top_height:
+            productname: cloud_top_height
+            formats:
+              - format: tif
+                writer: geotiff
+"""
+
+yaml_test2 = """
 product_list:
-  euron1:
-    areaname: euron1_in_fname
-    min_coverage: 20.0
-    products:
-      cloud_top_height:
-        productname: cloud_top_height_in_fname
-        output_dir: /tmp/satdmz/pps/www/latest_2018/
+  something: foo
+  min_coverage: 5.0
+  areas:
+      euron1:
+        areaname: euron1_in_fname
+        min_coverage: 20.0
+        products:
+          cloud_top_height:
+            productname: cloud_top_height_in_fname
+            output_dir: /tmp/satdmz/pps/www/latest_2018/
+            formats:
+              - format: png
+                writer: simple_image
+              - format: jpg
+                writer: simple_image
+                fill_value: 0
+            fname_pattern: "{platform_name:s}_{start_time:%Y%m%d_%H%M}_{areaname:s}_ctth_static.{format}"
+
+      germ:
+        areaname: germ_in_fname
+        fname_pattern: "{start_time:%Y%m%d_%H%M}_{areaname:s}_{productname}.{format}"
         formats:
           - format: png
             writer: simple_image
-          - format: jpg
-            writer: simple_image
-            fill_value: 0
-        fname_pattern: "{platform_name:s}_{start_time:%Y%m%d_%H%M}_{areaname:s}_ctth_static.{format}"
+        products:
+          cloudtype:
+            productname: cloudtype_in_fname
+            output_dir: /tmp/satdmz/pps/www/latest_2018/
 
-  germ:
-    areaname: germ_in_fname
-    fname_pattern: "{start_time:%Y%m%d_%H%M}_{areaname:s}_{productname}.{format}"
-    products:
-      cloudtype:
-        productname: cloudtype_in_fname
-        output_dir: /tmp/satdmz/pps/www/latest_2018/
-        formats:
-          - format: png
-            writer: simple_image
-
-  omerc_bb:
-    areaname: omerc_bb
-    output_dir: /tmp
-    products:
-      ct:
-        productname: ct
-        formats:
-          - format: nc
-            writer: cf
-      cloud_top_height:
-        productname: cloud_top_height
-        formats:
-          - format: tif
-            writer: geotiff
+      omerc_bb:
+        areaname: omerc_bb
+        output_dir: /tmp
+        products:
+          ct:
+            productname: ct
+            formats:
+              - format: nc
+                writer: cf
+          cloud_top_height:
+            productname: cloud_top_height
+            formats:
+              - format: tif
+                writer: geotiff
 """
 
-yaml_test2 = """common:
+yaml_test3 = """
+product_list:
   something: foo
   min_coverage: 5.0
-product_list:
-  euron1:
-    areaname: euron1_in_fname
-    min_coverage: 20.0
-    products:
-      cloud_top_height:
-        productname: cloud_top_height_in_fname
-        output_dir: /tmp/satdmz/pps/www/latest_2018/
-        formats:
-          - format: png
-            writer: simple_image
-          - format: jpg
-            writer: simple_image
-            fill_value: 0
-        fname_pattern: "{platform_name:s}_{start_time:%Y%m%d_%H%M}_{areaname:s}_ctth_static.{format}"
-
-  germ:
-    areaname: germ_in_fname
-    fname_pattern: "{start_time:%Y%m%d_%H%M}_{areaname:s}_{productname}.{format}"
-    formats:
-      - format: png
-        writer: simple_image
-    products:
-      cloudtype:
-        productname: cloudtype_in_fname
-        output_dir: /tmp/satdmz/pps/www/latest_2018/
-
-  omerc_bb:
-    areaname: omerc_bb
-    output_dir: /tmp
-    products:
-      ct:
-        productname: ct
-        formats:
-          - format: nc
-            writer: cf
-      cloud_top_height:
-        productname: cloud_top_height
-        formats:
-          - format: tif
-            writer: geotiff
+  areas:
+      euron1:
+        areaname: euron1_in_fname
+        min_coverage: 20.0
+        products:
+          green_snow:
+            productname: green_snow
+            formats:
+              - format: tif
+                writer: geotiff
 """
 
-yaml_test3 = """common:
-  something: foo
-  min_coverage: 5.0
+yaml_test_save = """
 product_list:
-  euron1:
-    areaname: euron1_in_fname
-    min_coverage: 20.0
-    products:
-      green_snow:
-        productname: green_snow
-        formats:
-          - format: tif
-            writer: geotiff
-"""
-
-yaml_common = """common:
   output_dir: &output_dir
     /tmp/satnfs/polar_out/pps2018/direct_readout/
   publish_topic: /NWC-CF/L3
@@ -153,8 +156,49 @@ yaml_common = """common:
       writer: geotiff
     - format: nc
       writer: cf
-"""
+  areas:
+      euron1:
+        areaname: euron1_in_fname
+        min_coverage: 20.0
+        products:
+          cloud_top_height:
+            productname: cloud_top_height_in_fname
+            output_dir: /tmp/satdmz/pps/www/latest_2018/
+            formats:
+              - format: png
+                writer: simple_image
+              - format: jpg
+                writer: simple_image
+                fill_value: 0
+            fname_pattern: "{platform_name:s}_{start_time:%Y%m%d_%H%M}_{areaname:s}_ctth_static.{format}"
 
+      germ:
+        areaname: germ_in_fname
+        fname_pattern: "{start_time:%Y%m%d_%H%M}_{areaname:s}_{productname}.{format}"
+        products:
+          cloudtype:
+            productname: cloudtype_in_fname
+            output_dir: /tmp/satdmz/pps/www/latest_2018/
+            formats:
+              - format: png
+                writer: simple_image
+
+      omerc_bb:
+        areaname: omerc_bb
+        output_dir: /tmp
+        products:
+          ct:
+            productname: ct
+            formats:
+              - format: nc
+                writer: cf
+          cloud_top_height:
+            productname: cloud_top_height
+            resolution: 500
+            formats:
+              - format: tif
+                writer: geotiff
+"""
 input_mda = {'orig_platform_name': 'noaa15', 'orbit_number': 7993,
              'start_time': dt.datetime(2019, 2, 17, 6, 0, 11, 100000), 'stfrac': 1,
              'end_time': dt.datetime(2019, 2, 17, 6, 15, 10, 400000), 'etfrac': 4, 'status': 'OK',
@@ -177,44 +221,146 @@ class TestSaveDatasets(TestCase):
         job = {}
         job['input_mda'] = input_mda
         job['product_list'] = {
-            'product_list': yaml.load(yaml_test1, Loader=UnsafeLoader)['product_list'],
-            'common': yaml.load(yaml_common, Loader=UnsafeLoader)['common'],
+            'product_list': yaml.load(yaml_test_save, Loader=UnsafeLoader)['product_list'],
         }
         job['resampled_scenes'] = {}
-        for area in job['product_list']['product_list']:
+        for area in job['product_list']['product_list']['areas']:
             job['resampled_scenes'][area] = mock.Mock()
-        with mock.patch('trollflow2.plugins.compute_writer_results'):
+        with mock.patch('trollflow2.plugins.compute_writer_results') as cwr,\
+                mock.patch('trollflow2.plugins.DatasetID') as dsid:
             save_datasets(job)
-        dexpected = {'euron1': {'areaname': 'euron1_in_fname',
-                                'min_coverage': 20.0,
-                                'products': {'cloud_top_height': {'fname_pattern': '{platform_name:s}_{start_time:%Y%m%d_%H%M}_{areaname:s}_ctth_static.{format}',
-                                                                  'formats': [{'filename': '/tmp/satdmz/pps/www/latest_2018/NOAA-15_20190217_0600_euron1_in_fname_ctth_static.png',
-                                                                               'format': 'png',
-                                                                               'writer': 'simple_image'},
-                                                                              {'filename': '/tmp/satdmz/pps/www/latest_2018/NOAA-15_20190217_0600_euron1_in_fname_ctth_static.jpg',
-                                                                               'fill_value': 0,
-                                                                               'format': 'jpg',
-                                                                               'writer': 'simple_image'}],
-                                                                  'output_dir': '/tmp/satdmz/pps/www/latest_2018/',
-                                                                  'productname': 'cloud_top_height_in_fname'}}},
-                     'germ': {'areaname': 'germ_in_fname',
-                              'fname_pattern': '{start_time:%Y%m%d_%H%M}_{areaname:s}_{productname}.{format}',
-                              'products': {'cloudtype': {'formats': [{'filename': '/tmp/satdmz/pps/www/latest_2018/20190217_0600_germ_in_fname_cloudtype_in_fname.png',
-                                                                      'format': 'png',
-                                                                      'writer': 'simple_image'}],
-                                                         'output_dir': '/tmp/satdmz/pps/www/latest_2018/',
-                                                         'productname': 'cloudtype_in_fname'}}},
-                     'omerc_bb': {'areaname': 'omerc_bb',
-                                  'output_dir': '/tmp',
-                                  'products': {'cloud_top_height': {'formats': [{'filename': '/tmp/NOAA-15_20190217_0600_omerc_bb_cloud_top_height.tif',
-                                                                                 'format': 'tif',
-                                                                                 'writer': 'geotiff'}],
-                                                                    'productname': 'cloud_top_height'},
-                                               'ct': {'formats': [{'filename': '/tmp/NOAA-15_20190217_0600_omerc_bb_ct.nc',
-                                                                   'format': 'nc',
-                                                                   'writer': 'cf'}],
-                                                      'productname': 'ct'}}}}
-        self.assertDictEqual(job['product_list']['product_list'], dexpected)
+
+            expected_sd = [mock.call(dsid.return_value, compute=False,
+                                     filename='/tmp/satdmz/pps/www/latest_2018/NOAA-15_20190217_0600_euron1_in_fname_ctth_static.png',
+                                     format='png', writer='simple_image'),
+                           mock.call(dsid.return_value, compute=False,
+                                     filename='/tmp/satdmz/pps/www/latest_2018/NOAA-15_20190217_0600_euron1_in_fname_ctth_static.jpg',
+                                     fill_value=0, format='jpg', writer='simple_image'),
+                           mock.call(dsid.return_value, compute=False,
+                                     filename='/tmp/satdmz/pps/www/latest_2018/20190217_0600_germ_in_fname_cloudtype_in_fname.png',
+                                     format='png', writer='simple_image'),
+                           mock.call(dsid.return_value, compute=False,
+                                     filename='/tmp/NOAA-15_20190217_0600_omerc_bb_ct.nc',
+                                     format='nc', writer='cf'),
+                           mock.call(dsid.return_value, compute=False,
+                                     filename='/tmp/NOAA-15_20190217_0600_omerc_bb_cloud_top_height.tif',
+                                     format='tif', writer='geotiff')
+                           ]
+            expected_dsid = [mock.call(name='cloud_top_height', resolution=None),
+                             mock.call(name='cloud_top_height', resolution=None),
+                             mock.call(name='cloudtype', resolution=None),
+                             mock.call(name='ct', resolution=None),
+                             mock.call(name='cloud_top_height', resolution=500)
+                             ]
+
+            sd_calls = (job['resampled_scenes']['euron1'].save_dataset.mock_calls
+                        + job['resampled_scenes']['germ'].save_dataset.mock_calls
+                        + job['resampled_scenes']['omerc_bb'].save_dataset.mock_calls)
+            for sd, esd in zip(sd_calls, expected_sd):
+                self.assertEqual(sd, esd)
+            for ds, eds in zip(dsid.mock_calls, expected_dsid):
+                self.assertEqual(ds, eds)
+
+        dexpected = {
+            'output_dir': '/tmp/satnfs/polar_out/pps2018/direct_readout/',
+            'publish_topic': '/NWC-CF/L3',
+            'use_extern_calib': False,
+            'fname_pattern': "{platform_name}_{start_time:%Y%m%d_%H%M}_{areaname}_{productname}.{format}",
+            'formats': [{
+                'format': 'tif',
+                'writer': 'geotiff'
+            },
+            {
+                'format': 'nc',
+                'writer': 'cf'
+            }],
+            'areas': {
+                'euron1': {
+                    'areaname': 'euron1_in_fname',
+                    'min_coverage': 20.0,
+                    'products': {
+                        'cloud_top_height': {
+                            'fname_pattern': '{platform_name:s}_{start_time:%Y%m%d_%H%M}_{areaname:s}_ctth_static.{format}',
+                            'formats':
+                            [{
+                                'filename': '/tmp/satdmz/pps/www/latest_2018/NOAA-15_20190217_0600_euron1_in_fname_ctth_static.png',
+                                'format': 'png',
+                                'writer': 'simple_image'
+                            },
+                             {
+                                 'filename':
+                                 '/tmp/satdmz/pps/www/latest_2018/NOAA-15_20190217_0600_euron1_in_fname_ctth_static.jpg',
+                                 'fill_value':
+                                 0,
+                                 'format':
+                                 'jpg',
+                                 'writer':
+                                 'simple_image'
+                             }],
+                            'output_dir':
+                            '/tmp/satdmz/pps/www/latest_2018/',
+                            'productname':
+                            'cloud_top_height_in_fname'
+                        }
+                    }
+                },
+                'germ': {
+                    'areaname':
+                    'germ_in_fname',
+                    'fname_pattern':
+                    '{start_time:%Y%m%d_%H%M}_{areaname:s}_{productname}.{format}',
+                    'products': {
+                        'cloudtype': {
+                            'formats': [{
+                                'filename':
+                                '/tmp/satdmz/pps/www/latest_2018/20190217_0600_germ_in_fname_cloudtype_in_fname.png',
+                                'format':
+                                'png',
+                                'writer':
+                                'simple_image'
+                            }],
+                            'output_dir':
+                            '/tmp/satdmz/pps/www/latest_2018/',
+                            'productname':
+                            'cloudtype_in_fname'
+                        }
+                    }
+                },
+                'omerc_bb': {
+                    'areaname': 'omerc_bb',
+                    'output_dir': '/tmp',
+                    'products': {
+                        'cloud_top_height': {
+                            'formats': [{
+                                'filename':
+                                '/tmp/NOAA-15_20190217_0600_omerc_bb_cloud_top_height.tif',
+                                'format':
+                                'tif',
+                                'writer':
+                                'geotiff'
+                            }],
+                            'productname':
+                            'cloud_top_height',
+                            'resolution':
+                            500
+                        },
+                        'ct': {
+                            'formats': [{
+                                'filename':
+                                '/tmp/NOAA-15_20190217_0600_omerc_bb_ct.nc',
+                                'format':
+                                'nc',
+                                'writer':
+                                'cf'
+                            }],
+                            'productname':
+                            'ct'
+                        }
+                    }
+                }
+            }
+        }
+        self.assertDictEqual(dexpected, job['product_list']['product_list'])
 
 
 class TestCreateScene(TestCase):
@@ -229,7 +375,7 @@ class TestCreateScene(TestCase):
             scene.assert_called_with(filenames='bar', reader=None,
                                      reader_kwargs=None, ppp_config_dir=None)
             job = {"input_filenames": "bar",
-                   "product_list": {"common": {"reader": "baz"}}}
+                   "product_list": {"product_list": {"reader": "baz"}}}
             create_scene(job)
             scene.assert_called_with(filenames='bar', reader='baz',
                                      reader_kwargs=None, ppp_config_dir=None)
@@ -251,11 +397,23 @@ class TestLoadComposites(TestCase):
     def test_load_composites_with_config(self):
         from trollflow2.plugins import load_composites
         scn = mock.MagicMock()
-        self.product_list['common']['resolution'] = 1000
-        self.product_list['common']['delay_composites'] = False
+        self.product_list['product_list']['resolution'] = 1000
+        self.product_list['product_list']['delay_composites'] = False
         job = {"product_list": self.product_list, "scene": scn}
         load_composites(job)
         scn.load.assert_called_with({'ct', 'cloudtype', 'cloud_top_height'}, resolution=1000, generate=True)
+
+    def test_load_composites_with_different_resolutions(self):
+        from trollflow2.plugins import load_composites
+        scn = mock.MagicMock()
+        self.product_list['product_list']['resolution'] = 1000
+        self.product_list['product_list']['areas']['euron1']['resolution'] = 500
+        self.product_list['product_list']['delay_composites'] = False
+        job = {"product_list": self.product_list, "scene": scn}
+        load_composites(job)
+        scn.load.assert_any_call({'cloudtype', 'ct', 'cloud_top_height'}, resolution=1000, generate=True)
+        scn.load.assert_any_call({'cloud_top_height'}, resolution=500, generate=True)
+
 
 
 class TestResample(TestCase):
@@ -301,7 +459,7 @@ class TestResample(TestCase):
 
         prod_list = self.product_list.copy()
         prod_list["common"] = {"resampler": "bilinear"}
-        prod_list["product_list"]["euron1"]["reduce_data"] = False
+        prod_list["product_list"]['areas']["euron1"]["reduce_data"] = False
         job = {"product_list": prod_list, "scene": scn}
         resample(job)
         self.assertTrue(mock.call('euron1',
@@ -318,8 +476,8 @@ class TestResample(TestCase):
         scn = mock.MagicMock()
         scn.resample.return_value = "foo"
         job = {"scene": scn, "product_list": self.product_list.copy()}
-        job['product_list']['product_list'][None] = job['product_list']['product_list']['germ']
-        del job['product_list']['product_list']['germ']
+        job['product_list']['product_list']['areas'][None] = job['product_list']['product_list']['areas']['germ']
+        del job['product_list']['product_list']['areas']['germ']
         resample(job)
         self.assertTrue(mock.call('omerc_bb',
                                   radius_of_influence=None,
@@ -348,11 +506,11 @@ class TestResample(TestCase):
         scn = mock.MagicMock()
         scn.resample.return_value = "foo"
         product_list = self.product_list.copy()
-        product_list['product_list'][None] = product_list['product_list']['germ']
-        product_list['product_list'][None]['use_min_area'] = True
-        del product_list['product_list']['germ']
-        del product_list['product_list']['omerc_bb']
-        del product_list['product_list']['euron1']
+        product_list['product_list']['areas'][None] = product_list['product_list']['areas']['germ']
+        product_list['product_list']['areas'][None]['use_min_area'] = True
+        del product_list['product_list']['areas']['germ']
+        del product_list['product_list']['areas']['omerc_bb']
+        del product_list['product_list']['areas']['euron1']
         job = {"scene": scn, "product_list": product_list.copy()}
         resample(job)
         self.assertTrue(mock.call(scn.min_area(),
@@ -363,8 +521,8 @@ class TestResample(TestCase):
                                   mask_area=False,
                                   epsilon=0.0) in
                         scn.resample.mock_calls)
-        del product_list['product_list'][None]['use_min_area']
-        product_list['product_list'][None]['use_max_area'] = True
+        del product_list['product_list']['areas'][None]['use_min_area']
+        product_list['product_list']['areas'][None]['use_max_area'] = True
         job = {"scene": scn, "product_list": product_list.copy()}
         resample(job)
         self.assertTrue(mock.call(scn.max_area(),
@@ -433,10 +591,10 @@ class TestCovers(TestCase):
                    "scene": scn}
             covers(job)
             # Area "euron1" should be removed
-            self.assertFalse("euron1" in job['product_list']['product_list'])
+            self.assertFalse("euron1" in job['product_list']['product_list']['areas'])
             # Other areas should stay in the list
-            self.assertTrue("germ" in job['product_list']['product_list'])
-            self.assertTrue("omerc_bb" in job['product_list']['product_list'])
+            self.assertTrue("germ" in job['product_list']['product_list']['areas'])
+            self.assertTrue("omerc_bb" in job['product_list']['product_list']['areas'])
 
             # Test that only one sensor is used
             input_mda = self.input_mda.copy()
@@ -488,7 +646,7 @@ class TestCovers(TestCase):
             covers(job)
             # Turn coverage check on, so area not in the product list should raise
             # AbortProcessing
-            job['product_list']['common']['coverage_by_collection_area'] = True
+            job['product_list']['product_list']['coverage_by_collection_area'] = True
             with self.assertRaises(AbortProcessing):
                 covers(job)
 
@@ -576,13 +734,13 @@ class TestSZACheck(TestCase):
 
             # Add SZA limits to couple of products
             # Day product
-            product_list['product_list']['omerc_bb']['products']['ct']['sunzen_maximum_angle'] = 95.
-            product_list['product_list']['omerc_bb']['products']['ct']['sunzen_check_lon'] = 25.
-            product_list['product_list']['omerc_bb']['products']['ct']['sunzen_check_lat'] = 60.
+            product_list['product_list']['areas']['omerc_bb']['products']['ct']['sunzen_maximum_angle'] = 95.
+            product_list['product_list']['areas']['omerc_bb']['products']['ct']['sunzen_check_lon'] = 25.
+            product_list['product_list']['areas']['omerc_bb']['products']['ct']['sunzen_check_lat'] = 60.
             # Night product
-            product_list['product_list']['germ']['products']['cloudtype']['sunzen_minimum_angle'] = 85.
-            product_list['product_list']['germ']['products']['cloudtype']['sunzen_check_lon'] = 25.
-            product_list['product_list']['germ']['products']['cloudtype']['sunzen_check_lat'] = 60.
+            product_list['product_list']['areas']['germ']['products']['cloudtype']['sunzen_minimum_angle'] = 85.
+            product_list['product_list']['areas']['germ']['products']['cloudtype']['sunzen_check_lon'] = 25.
+            product_list['product_list']['areas']['germ']['products']['cloudtype']['sunzen_check_lat'] = 60.
 
             # Zenith angle that removes nothing
             sun_zenith_angle.return_value = 90.
@@ -593,14 +751,14 @@ class TestSZACheck(TestCase):
             # Zenith angle that removes day products
             sun_zenith_angle.return_value = 100.
             sza_check(job)
-            self.assertTrue('cloud_top_height' in product_list['product_list']['omerc_bb']['products'])
-            self.assertFalse('ct' in product_list['product_list']['omerc_bb']['products'])
+            self.assertTrue('cloud_top_height' in product_list['product_list']['areas']['omerc_bb']['products'])
+            self.assertFalse('ct' in product_list['product_list']['areas']['omerc_bb']['products'])
 
             # Zenith angle that removes night products
             sun_zenith_angle.return_value = 45.
             sza_check(job)
             # There was only one product, so the whole area is deleted
-            self.assertFalse('germ' in job['product_list']['product_list'])
+            self.assertFalse('germ' in job['product_list']['product_list']['areas'])
 
 
 class TestCheckSunlightCoverage(TestCase):
@@ -653,7 +811,7 @@ class TestOverviews(TestCase):
             dst = mock.MagicMock()
             rasterio.open.return_value.__enter__.return_value = dst
 
-            product_list = self.product_list['product_list']
+            product_list = self.product_list['product_list']['areas']
             product_list['germ']['products']['cloudtype']['formats'][0]['overviews'] = [4]
             # Add filename, otherwise added by `save_datasets()`
             product_list['germ']['products']['cloudtype']['formats'][0]['filename'] = 'foo'
@@ -670,7 +828,7 @@ class TestFilePublisher(TestCase):
         super().setUp()
         self.product_list = yaml.load(yaml_test2, Loader=UnsafeLoader)
         # Skip omerc_bb are, there's no fname_pattern
-        del self.product_list['product_list']['omerc_bb']
+        del self.product_list['product_list']['areas']['omerc_bb']
         self.input_mda = input_mda.copy()
         self.input_mda['uri'] = 'foo.nc'
 
@@ -683,10 +841,10 @@ class TestFilePublisher(TestCase):
             pub = FilePublisher()
             pub.pub.start.assert_called_once()
             product_list = self.product_list.copy()
-            product_list['common']['publish_topic'] = '/{areaname}/{productname}'
+            product_list['product_list']['publish_topic'] = '/{areaname}/{productname}'
             job = {'product_list': product_list,
                    'input_mda': self.input_mda}
-            topic_pattern = job['product_list']['common']['publish_topic']
+            topic_pattern = job['product_list']['product_list']['publish_topic']
             topics = []
             # Create filenames and topics
             for fmat, fmat_config in plist_iter(job['product_list']['product_list'],
@@ -704,8 +862,8 @@ class TestFilePublisher(TestCase):
             pub.__del__()
             pub.pub.stop.assert_called()
             i = 0
-            for area in job['product_list']['product_list']:
-                for prod in job['product_list']['product_list'][area]:
+            for area in job['product_list']['product_list']['areas']:
+                for prod in job['product_list']['product_list']['areas'][area]:
                     # Skip calls to __str__
                     if 'call().__str__()' != str(message.mock_calls[i]):
                         self.assertTrue(topics[i] in str(message.mock_calls[i]))
@@ -720,10 +878,10 @@ class TestFilePublisher(TestCase):
             pub = FilePublisher()
             pub.pub.start.assert_called_once()
             product_list = self.product_list.copy()
-            product_list['common']['publish_topic'] = '/static_topic'
+            product_list['product_list']['publish_topic'] = '/static_topic'
             job = {'product_list': product_list,
                    'input_mda': self.input_mda}
-            topic_pattern = job['product_list']['common']['publish_topic']
+            topic_pattern = job['product_list']['product_list']['publish_topic']
             topics = []
             # Create filenames and topics
             for fmat, fmat_config in plist_iter(job['product_list']['product_list'],
@@ -741,8 +899,8 @@ class TestFilePublisher(TestCase):
             pub.__del__()
             pub.pub.stop.assert_called()
             i = 0
-            for area in job['product_list']['product_list']:
-                for prod in job['product_list']['product_list'][area]:
+            for area in job['product_list']['product_list']['areas']:
+                for prod in job['product_list']['product_list']['areas'][area]:
                     # Skip calls to __str__
                     if 'call().__str__()' != str(message.mock_calls[i]):
                         self.assertTrue(topics[i] in str(message.mock_calls[i]))
