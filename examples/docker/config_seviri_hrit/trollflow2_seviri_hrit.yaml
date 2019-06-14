@@ -1,4 +1,4 @@
-common:
+product_list:
   output_dir:
     /mnt/output/
   subscribe_topics:
@@ -13,44 +13,43 @@ common:
   # faster when many products share the same channels
   delay_composites: True
 
-product_list:
+  areas:
+    euro4:
 
-  euro4:
+      # Add a priority. Not relevant for one area, but just to show the option
+      priority: 1
+      areaname: euro4
+      # Search radius for resampling
+      radius_of_influence: 20000
+      # Resampling method
+      resampler: nearest
 
-    # Add a priority. Not relevant for one area, but just to show the option
-    priority: 1
-    areaname: euro4
-    # Search radius for resampling
-    radius_of_influence: 20000
-    # Resampling method
-    resampler: nearest
-
-    products:
-      overview:
-        productname: overview
-        formats:
-          - format: tif
-            writer: geotiff
-        sunzen_maximum_angle: 90.0
-      #day_microphysics:
-      #  productname: day_microphysics
-      airmass:
-        productname: airmass
-        formats:
-          - format: tif
-            writer: geotiff
-      natural_color:
-        productname: natural_color
-        formats:
-          - format: tif
-            writer: geotiff
-        sunzen_maximum_angle: 90.0
-      night_fog:
-        productname: night_fog
-        formats:
-          - format: tif
-            writer: geotiff
-        sunzen_minimum_angle: 90.0
+      products:
+        overview:
+          productname: overview
+          formats:
+            - format: tif
+              writer: geotiff
+          sunzen_maximum_angle: 90.0
+        #day_microphysics:
+        #  productname: day_microphysics
+        airmass:
+          productname: airmass
+          formats:
+            - format: tif
+              writer: geotiff
+        natural_color:
+          productname: natural_color
+          formats:
+            - format: tif
+              writer: geotiff
+          sunzen_maximum_angle: 90.0
+        night_fog:
+          productname: night_fog
+          formats:
+            - format: tif
+              writer: geotiff
+          sunzen_minimum_angle: 90.0
 
 workers:
   - fun: !!python/name:trollflow2.plugins.create_scene

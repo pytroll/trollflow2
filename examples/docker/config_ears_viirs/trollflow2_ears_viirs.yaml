@@ -1,4 +1,4 @@
-common:
+product_list:
   output_dir:
     /mnt/output/
   subscribe_topics:
@@ -22,52 +22,51 @@ common:
   # Mask invalid data before resampling - removes bowtie problems for VIIRS
   mask_area: True
 
-product_list:
+  areas:
+    eurol:
 
-  eurol:
+      # Each area can have an optional priority in which they are
+      # processed.  All the areas with same priority are processed
+      # together.
+      priority: 1
+      areaname: eurol
+      radius_of_influence: null
 
-    # Each area can have an optional priority in which they are
-    # processed.  All the areas with same priority are processed
-    # together.
-    priority: 1
-    areaname: eurol
-    radius_of_influence: null
+      products:
 
-    products:
+        overview:
+          productname: overview
+          formats:
+            - format: tif
+              writer: geotiff
+          sunzen_maximum_angle: 90.0
 
-      overview:
-        productname: overview
-        formats:
-          - format: tif
-            writer: geotiff
-        sunzen_maximum_angle: 90.0
+        natural_color:
+          productname: natural_color
+          formats:
+            - format: tif
+              writer: geotiff
+          sunzen_maximum_angle: 90.0
 
-      natural_color:
-        productname: natural_color
-        formats:
-          - format: tif
-            writer: geotiff
-        sunzen_maximum_angle: 90.0
+        fog:
+          productname: fog
+          formats:
+            - format: tif
+              writer: geotiff
 
-      fog:
-        productname: fog
-        formats:
-          - format: tif
-            writer: geotiff
+        night_overview:
+          productname: night_overview
+          sunzen_minimum_angle: 90
+          formats:
+            - format: tif
+              writer: geotiff
 
-      night_overview:
-        productname: night_overview
-        sunzen_minimum_angle: 90
-        formats:
-          - format: tif
-            writer: geotiff
-
-      snow_age:
-        productname: snow_age
-        sunzen_maximum_angle: 90
-        formats:
-          - format: tif
-            writer: geotiff
+        snow_age:
+          productname: snow_age
+          sunzen_maximum_angle: 90
+          formats:
+            - format: tif
+              writer: geotiff
 
 workers:
   - fun: !!python/name:trollflow2.plugins.create_scene
