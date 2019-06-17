@@ -26,6 +26,14 @@ The `check_sunlight_coverage` plugin
 .. autofunction:: check_sunlight_coverage
 
 
+Product list
+------------
+
+* `resolution` is available only at the root and product levels
+* `productname`, `areaname` are the names to use for product and area in the
+  filename. If not provided, they default to the actual product and area names. 
+
+
 
 
 Indices and tables

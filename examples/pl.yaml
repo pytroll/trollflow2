@@ -1,4 +1,5 @@
-common:
+
+product_list: &product_list
   output_dir: &output_dir
     /tmp/satnfs/polar_out/pps2018/direct_readout/
   publish_topic: /NWC-CF/L3
@@ -35,112 +36,112 @@ common:
   #   Default: False
   # coverage_by_collection_area: True
 
-product_list: &product_list
-  omerc_bb:
-    # Resampler settings can be global (in common section above) or per area
-    #radius_of_influence: 5000
-    #resampler: bilinear
-    #reduce_data: False
-    areaname: omerc_bb
-    # Set high priority (small value) for this area
-    # priority: 1
-    # Use "null" for default priority, or don't define priority at all
-    # priority: null
-    products:
-      ct:
-        productname: ct
-        output_dir: *output_dir
-        formats:
-          - format: nc
-            writer: cf
-        # Remove product if SZA is more than this
-        #sunzen_maximum_angle: 90.0
-        # Remove product if sunligth coverage is less that this
-        #min_sunlight_coverage: 10.0
-      ctth_alti:
-        productname: ctth_alti
-        output_dir: *output_dir
-        formats:
-          - format: nc
-            writer: cf
-        # Remove product if SZA is less than this
-        #sunzen_minimum_angle: 90.0
-      cloudtype:
-        productname: cloudtype
-        output_dir: *output_dir
-        formats:
-          - format: tif
-            writer: geotiff
-      cloud_top_height:
-        productname: cloud_top_height
-        output_dir: *output_dir
-        formats:
-          - format: tif
-            writer: geotiff
-            # Add small scale embedded images to the file
-            # To use add `add_overviews` to workers after `save_datasets`
-            # overviews: [4, 8, 16, 32, 64, 128, 256]
-  # null:  # satellite projection
-  #   areaname: satellite_projection
-  #   products:
-  #     cloudtype:
-  #       productname: cloudtype
-  #       output_dir: /satdmz/pps/www/latest_2018/
-  #       formats:
-  #         - format: png
-  #           writer: simple_image
-  #         - format: jpg
-  #           writer: simple_image
-  #           fill_value: 0
-  #     cloudmask:
-  #       productname: cloudmask
-  #       output_dir: /satdmz/pps/www/latest_2018/
-  #       formats:
-  #         - format: png
-  #           writer: simple_image
-  #         - format: jpg
-  #           writer: simple_image
-  #           fill_value: 0
-  #     cloud_top_height:
-  #       productname: cloud_top_height
-  #       output_dir: /satdmz/pps/www/latest_2018/
-  #       formats:
-  #         - format: png
-  #           writer: simple_image
-  #         - format: jpg
-  #           writer: simple_image
-  #           fill_value: 0
-  #       fname_pattern: "{platform_name:s}_{time:%Y%m%d_%H%M}_{areaname:s}_ctth.{format}"
-  #     cloud_top_phase:
-  #       productname: cloud_top_phase
-  #       output_dir: /satdmz/pps/www/latest_2018/
-  #       formats:
-  #         - format: png
-  #           writer: simple_image
-  #         - format: jpg
-  #           writer: simple_image
-  #           fill_value: 0
-  #       fname_pattern: "{platform_name:s}_{time:%Y%m%d_%H%M}_{areaname:s}_cpp-cph.{format}"
-  #     cloud_drop_effective_radius:
-  #       productname: cloud_drop_effective_radius
-  #       output_dir: /satdmz/pps/www/latest_2018/
-  #       formats:
-  #         - format: png
-  #           writer: simple_image
-  #         - format: jpg
-  #           writer: simple_image
-  #           fill_value: 0
-  #       fname_pattern: "{platform_name:s}_{time:%Y%m%d_%H%M}_{areaname:s}_cpp-reff.{format}"
-  #
-  # germ:
-  #   areaname: germ
-  #   products:
-  #     cloudtype:
-  #       productname: cloudtype
-  #       output_dir: /satdmz/pps/www/latest_2018/
-  #       formats:
-  #         - format: png
-  #           writer: simple_image
+  areas:
+    omerc_bb:
+      # Resampler settings can be global (in common section above) or per area
+      #radius_of_influence: 5000
+      #resampler: bilinear
+      #reduce_data: False
+      areaname: omerc_bb
+      # Set high priority (small value) for this area
+      # priority: 1
+      # Use "null" for default priority, or don't define priority at all
+      # priority: null
+      products:
+        ct:
+          productname: ct
+          output_dir: *output_dir
+          formats:
+            - format: nc
+              writer: cf
+          # Remove product if SZA is more than this
+          #sunzen_maximum_angle: 90.0
+          # Remove product if sunligth coverage is less that this
+          #min_sunlight_coverage: 10.0
+        ctth_alti:
+          productname: ctth_alti
+          output_dir: *output_dir
+          formats:
+            - format: nc
+              writer: cf
+          # Remove product if SZA is less than this
+          #sunzen_minimum_angle: 90.0
+        cloudtype:
+          productname: cloudtype
+          output_dir: *output_dir
+          formats:
+            - format: tif
+              writer: geotiff
+        cloud_top_height:
+          productname: cloud_top_height
+          output_dir: *output_dir
+          formats:
+            - format: tif
+              writer: geotiff
+              # Add small scale embedded images to the file
+              # To use add `add_overviews` to workers after `save_datasets`
+              # overviews: [4, 8, 16, 32, 64, 128, 256]
+    # null:  # satellite projection
+    #   areaname: satellite_projection
+    #   products:
+    #     cloudtype:
+    #       productname: cloudtype
+    #       output_dir: /satdmz/pps/www/latest_2018/
+    #       formats:
+    #         - format: png
+    #           writer: simple_image
+    #         - format: jpg
+    #           writer: simple_image
+    #           fill_value: 0
+    #     cloudmask:
+    #       productname: cloudmask
+    #       output_dir: /satdmz/pps/www/latest_2018/
+    #       formats:
+    #         - format: png
+    #           writer: simple_image
+    #         - format: jpg
+    #           writer: simple_image
+    #           fill_value: 0
+    #     cloud_top_height:
+    #       productname: cloud_top_height
+    #       output_dir: /satdmz/pps/www/latest_2018/
+    #       formats:
+    #         - format: png
+    #           writer: simple_image
+    #         - format: jpg
+    #           writer: simple_image
+    #           fill_value: 0
+    #       fname_pattern: "{platform_name:s}_{time:%Y%m%d_%H%M}_{areaname:s}_ctth.{format}"
+    #     cloud_top_phase:
+    #       productname: cloud_top_phase
+    #       output_dir: /satdmz/pps/www/latest_2018/
+    #       formats:
+    #         - format: png
+    #           writer: simple_image
+    #         - format: jpg
+    #           writer: simple_image
+    #           fill_value: 0
+    #       fname_pattern: "{platform_name:s}_{time:%Y%m%d_%H%M}_{areaname:s}_cpp-cph.{format}"
+    #     cloud_drop_effective_radius:
+    #       productname: cloud_drop_effective_radius
+    #       output_dir: /satdmz/pps/www/latest_2018/
+    #       formats:
+    #         - format: png
+    #           writer: simple_image
+    #         - format: jpg
+    #           writer: simple_image
+    #           fill_value: 0
+    #       fname_pattern: "{platform_name:s}_{time:%Y%m%d_%H%M}_{areaname:s}_cpp-reff.{format}"
+    #
+    # germ:
+    #   areaname: germ
+    #   products:
+    #     cloudtype:
+    #       productname: cloudtype
+    #       output_dir: /satdmz/pps/www/latest_2018/
+    #       formats:
+    #         - format: png
+    #           writer: simple_image
 
 
 workers:

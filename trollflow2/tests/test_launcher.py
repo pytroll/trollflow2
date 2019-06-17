@@ -30,57 +30,59 @@ except ImportError:
 from unittest import mock
 from trollflow2.tests.utils import TestCase
 
-yaml_test1 = """common:
+yaml_test1 = """
+product_list:
   something: foo
   min_coverage: 5.0
   subscribe_topics:
     - /topic1
     - /topic2
-product_list:
-  euron1:
-    areaname: euron1
-    min_coverage: 20.0
-    priority: 1
-    products:
-      ctth:
-        productname: cloud_top_height
-        output_dir: /tmp/satdmz/pps/www/latest_2018/
-        formats:
-          - format: png
-            writer: simple_image
-          - format: jpg
-            writer: simple_image
-            fill_value: 0
-        fname_pattern: "{platform_name:s}_{start_time:%Y%m%d_%H%M}_{areaname:s}_ctth.{format}"
+  areas:
+      euron1:
+        areaname: euron1
+        min_coverage: 20.0
+        priority: 1
+        products:
+          ctth:
+            productname: cloud_top_height
+            output_dir: /tmp/satdmz/pps/www/latest_2018/
+            formats:
+              - format: png
+                writer: simple_image
+              - format: jpg
+                writer: simple_image
+                fill_value: 0
+            fname_pattern: "{platform_name:s}_{start_time:%Y%m%d_%H%M}_{areaname:s}_ctth.{format}"
 
-  germ:
-    areaname: germ
-    fname_pattern: "{start_time:%Y%m%d_%H%M}_{areaname:s}_{productname}.{format}"
-    products:
-      cloudtype:
-        productname: cloudtype
-        output_dir: /tmp/satdmz/pps/www/latest_2018/
-        formats:
-          - format: png
-            writer: simple_image
+      germ:
+        areaname: germ
+        fname_pattern: "{start_time:%Y%m%d_%H%M}_{areaname:s}_{productname}.{format}"
+        products:
+          cloudtype:
+            productname: cloudtype
+            output_dir: /tmp/satdmz/pps/www/latest_2018/
+            formats:
+              - format: png
+                writer: simple_image
 
-  omerc_bb:
-    areaname: omerc_bb
-    output_dir: /tmp
-    products:
-      ct:
-        productname: ct
-        formats:
-          - format: nc
-            writer: cf
-      cloud_top_height:
-        productname: cloud_top_height
-        formats:
-          - format: tif
-            writer: geotiff
+      omerc_bb:
+        areaname: omerc_bb
+        output_dir: /tmp
+        products:
+          ct:
+            productname: ct
+            formats:
+              - format: nc
+                writer: cf
+          cloud_top_height:
+            productname: cloud_top_height
+            formats:
+              - format: tif
+                writer: geotiff
 """
 
-yaml_test_minimal = """common:
+yaml_test_minimal = """
+product_list:
   output_dir: &output_dir
     /mnt/output/
   publish_topic: /MSG_0deg/L3
@@ -90,19 +92,18 @@ yaml_test_minimal = """common:
   formats:
     - format: tif
       writer: geotiff
-
-product_list:
-  euro4:
-    areaname: euro4
-    products:
-      overview:
-        productname: overview
-      airmass:
-        productname: airmass
-      natural_color:
-        productname: natural_color
-      night_fog:
-        productname: night_fog
+  areas:
+      euro4:
+        areaname: euro4
+        products:
+          overview:
+            productname: overview
+          airmass:
+            productname: airmass
+          natural_color:
+            productname: natural_color
+          night_fog:
+            productname: night_fog
 
 # workers:
 #   - fun: !!python/name:trollflow2.create_scene
@@ -145,15 +146,15 @@ class TestMessageToJobs(TestCase):
             self.assertEqual(jobs[i]['input_filenames'], ['foo'])
             self.assertEqual(jobs[i]['input_mda'], msg.data)
             self.assertEqual(set(jobs[i]['product_list'].keys()),
-                             {'common', 'product_list'})
-        self.assertEqual(set(jobs[1]['product_list']['product_list'].keys()),
+                             {'product_list'})
+        self.assertEqual(set(jobs[1]['product_list']['product_list']['areas'].keys()),
                          set(['euron1']))
-        self.assertEqual(set(jobs[999]['product_list']['product_list'].keys()),
+        self.assertEqual(set(jobs[999]['product_list']['product_list']['areas'].keys()),
                          set(['germ', 'omerc_bb']))
 
-        prodlist['product_list']['germ']['priority'] = None
+        prodlist['product_list']['areas']['germ']['priority'] = None
         jobs = message_to_jobs(msg, prodlist)
-        self.assertTrue('germ' in jobs[999]['product_list']['product_list'])
+        self.assertTrue('germ' in jobs[999]['product_list']['product_list']['areas'])
 
     def test_message_to_jobs_minimal(self):
         from trollflow2.launcher import message_to_jobs
@@ -176,7 +177,7 @@ class TestMessageToJobs(TestCase):
                                         'overview': {'formats': [{'format': 'tif',
                                                                   'writer': 'geotiff'}],
                                                      'productname': 'overview'}}})])
-        self.assertDictEqual(jobs[999]['product_list']['product_list'], expected)
+        self.assertDictEqual(jobs[999]['product_list']['product_list']['areas'], expected)
 
 class TestRun(TestCase):
 
@@ -187,7 +188,7 @@ class TestRun(TestCase):
     def test_run(self):
         from trollflow2.launcher import run
         with mock.patch('trollflow2.launcher.yaml.load') as yaml_load,\
-                mock.patch('trollflow2.launcher.open') as _open,\
+                mock.patch('trollflow2.launcher.open'),\
                 mock.patch('trollflow2.launcher.process') as process,\
                 mock.patch('trollflow2.launcher.Process') as Process,\
                 mock.patch('trollflow2.launcher.ListenerContainer') as lc_:
@@ -210,7 +211,7 @@ class TestRun(TestCase):
             proc_ret.join.assert_called_once()
             lc_.assert_called_with(topics=['/topic1', '/topic2'])
             # Subscriber topics are removed from config
-            self.assertTrue('subscribe_topics' not in self.config['common'])
+            self.assertTrue('subscribe_topics' not in self.config['product_list'])
             # Topics are given as command line option
             lc_.reset_mock()
             try:

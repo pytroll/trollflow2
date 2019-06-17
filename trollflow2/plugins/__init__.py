@@ -26,6 +26,7 @@ from posttroll.publisher import NoisyPublisher
 from satpy import Scene
 from satpy.writers import compute_writer_results
 from satpy.resample import get_area_def
+from satpy.dataset import DatasetID
 from pyorbital.astronomy import sun_zenith_angle
 import rasterio
 from rasterio.enums import Resampling
@@ -64,7 +65,7 @@ def create_scene(job):
                 'reader_kwargs': None,
                 'ppp_config_dir': None}
     product_list = job['product_list']
-    conf = _get_plugin_conf(product_list, '/common', defaults)
+    conf = _get_plugin_conf(product_list, '/product_list', defaults)
     LOG.info('Generating scene')
     try:
         job['scene'] = Scene(filenames=job['input_filenames'], **conf)
@@ -74,13 +75,20 @@ def create_scene(job):
 
 def load_composites(job):
     """Load composites given in the job's product_list."""
-    composites = set().union(*(set(d.keys())
-                               for d in dpath.util.values(job['product_list'], '/product_list/*/products')))
-    LOG.info('Loading %s', str(composites))
+    # composites = set().union(*(set(d.keys())
+    #                            for d in dpath.util.values(job['product_list'], '/product_list/areas/*/products')))
+    composites_by_res = {}
+    for flat_prod_cfg, prod_cfg in plist_iter(job['product_list']['product_list'], level='product'):
+        print(prod_cfg)
+        res = flat_prod_cfg.get('resolution', None)
+        composites_by_res.setdefault(res, set()).add(flat_prod_cfg['product'])
     scn = job['scene']
-    resolution = job['product_list']['common'].get('resolution', None)
-    generate = job['product_list']['common'].get('delay_composites', True) is False
-    scn.load(composites, resolution=resolution, generate=generate)
+    # TODO: we could make batches of composites for different resolutions
+    #resolution = job['product_list']['product_list'].get('resolution', None)
+    generate = job['product_list']['product_list'].get('delay_composites', True) is False
+    for resolution, composites in composites_by_res.items():
+        LOG.info('Loading %s at resolution %s', str(composites), str(resolution))
+        scn.load(composites, resolution=resolution, generate=generate)
     job['scene'] = scn
 
 
@@ -93,19 +101,19 @@ def resample(job):
                 "mask_area": False,
                 "epsilon": 0.0}
     product_list = job['product_list']
-    conf = _get_plugin_conf(product_list, '/common', defaults)
+    conf = _get_plugin_conf(product_list, '/product_list', defaults)
     job['resampled_scenes'] = {}
     scn = job['scene']
-    for area in product_list['product_list']:
-        area_conf = _get_plugin_conf(product_list, '/product_list/' + str(area),
+    for area in product_list['product_list']['areas']:
+        area_conf = _get_plugin_conf(product_list, '/product_list/areas/' + str(area),
                                      conf)
         LOG.info('Resampling to %s', str(area))
         if area is None:
             minarea = get_config_value(product_list,
-                                       '/product_list/' + str(area),
+                                       '/product_list/areas/' + str(area),
                                        'use_min_area')
             maxarea = get_config_value(product_list,
-                                       '/product_list/' + str(area),
+                                       '/product_list/areas/' + str(area),
                                        'use_max_area')
             if minarea is True:
                 job['resampled_scenes'][area] = scn.resample(scn.min_area(),
@@ -124,18 +132,19 @@ def save_datasets(job):
     scns = job['resampled_scenes']
     objs = []
     base_config = job['input_mda'].copy()
-    base_config.update(job['product_list']['common'])
     base_config.pop('dataset', None)
-
     for fmat, fmat_config in plist_iter(job['product_list']['product_list'], base_config):
         fname_pattern = fmat['fname_pattern']
         filename = compose(os.path.join(fmat['output_dir'], fname_pattern), fmat)
         fmat.pop('format', None)
         fmat.pop('filename', None)
         try:
-            objs.append(scns[fmat['area']].save_dataset(fmat['product'],
+            # TODO: make these datasetIDs to take resolution into account
+            res = fmat.get('resolution', None)
+            dsid = DatasetID(name=fmat['product'], resolution=res)
+            objs.append(scns[fmat['area']].save_dataset(dsid,
                                                         filename=filename,
-                                                        compute=False, **fmat))
+                                                        compute=False, **fmat_config))
         except KeyError as err:
             LOG.info('Skipping %s: %s', fmat['productname'], str(err))
         else:
@@ -161,7 +170,7 @@ class FilePublisher(object):
         mda.pop('dataset', None)
         mda.pop('collection', None)
         for fmat, fmat_config in plist_iter(job['product_list']['product_list']):
-            prod_path = "/product_list/%s/%s" % (fmat['area'], fmat['product'])
+            prod_path = "/product_list/areas/%s/products/%s" % (fmat['area'], fmat['product'])
             topic_pattern = get_config_value(job['product_list'],
                                              prod_path,
                                              "publish_topic")
@@ -193,7 +202,7 @@ def covers(job):
         LOG.info("Keeping all areas")
         return
 
-    col_area = job['product_list']['common'].get('coverage_by_collection_area',
+    col_area = job['product_list']['product_list'].get('coverage_by_collection_area',
                                                  False)
     if col_area and 'collection_area_id' in job['input_mda']:
         if job['input_mda']['collection_area_id'] not in job['product_list']['product_list']:
@@ -216,9 +225,9 @@ def covers(job):
         LOG.warning("Possibly many sensors given, taking only one for "
                     "coverage calculations: %s", sensor)
 
-    areas = list(product_list['product_list'].keys())
+    areas = list(product_list['product_list']['areas'].keys())
     for area in areas:
-        area_path = "/product_list/%s" % area
+        area_path = "/product_list/areas/%s" % area
         min_coverage = get_config_value(product_list,
                                         area_path,
                                         "min_coverage")
@@ -283,16 +292,17 @@ def metadata_alias(job):
                 mda_out[key] = aliases[key].get(mda_out[key], mda_out[key])
     job['input_mda'] = mda_out.copy()
 
+
 def sza_check(job):
     """Remove products which are not valid for the current Sun zenith angle."""
     scn = job['scene']
     start_time = scn.attrs['start_time']
     product_list = job['product_list']
-    areas = list(product_list['product_list'].keys())
+    areas = list(product_list['product_list']['areas'].keys())
     for area in areas:
-        products = list(product_list['product_list'][area]['products'].keys())
+        products = list(product_list['product_list']['areas'][area]['products'].keys())
         for product in products:
-            prod_path = "/product_list/%s/products/%s" % (area, product)
+            prod_path = "/product_list/areas/%s/products/%s" % (area, product)
             lon = get_config_value(product_list, prod_path, "sunzen_check_lon")
             lat = get_config_value(product_list, prod_path, "sunzen_check_lat")
             if lon is None or lat is None:
@@ -323,9 +333,9 @@ def sza_check(job):
                     dpath.util.delete(product_list, prod_path)
                 continue
 
-        if len(product_list['product_list'][area]['products']) == 0:
+        if len(product_list['product_list']['areas'][area]['products']) == 0:
             LOG.info("Removing empty area: %s", area)
-            dpath.util.delete(product_list, '/product_list/%s' % area)
+            dpath.util.delete(product_list, '/product_list/areas/%s' % area)
 
 
 def check_sunlight_coverage(job):
@@ -414,24 +424,18 @@ def _get_sunlight_coverage(area_def, start_time, overpass=None):
 def add_overviews(job):
     """Add overviews to images already written to disk."""
     # Get the formats, including filenames and overview settings
-    product_list = job['product_list']['product_list']
-    for area in product_list:
-        for product in product_list[area]['products']:
-            formats = product_list[area]['products'][product].get("formats", None)
-            if formats is None:
-                continue
-            for fmt in formats:
-                if "overviews" in fmt and 'filename' in fmt:
-                    fname = fmt['filename']
-                    overviews = fmt['overviews']
-                    try:
-                        with rasterio.open(fname, 'r+') as dst:
-                            dst.build_overviews(overviews, Resampling.average)
-                            dst.update_tags(ns='rio_overview',
-                                            resampling='average')
-                        LOG.info("Added overviews to %s", fname)
-                    except rasterio.RasterioIOError:
-                        pass
+    for flat_fmat, fmt in plist_iter(job['product_list']['product_list']):
+        if "overviews" in fmt and 'filename' in fmt:
+            fname = fmt['filename']
+            overviews = fmt['overviews']
+            try:
+                with rasterio.open(fname, 'r+') as dst:
+                    dst.build_overviews(overviews, Resampling.average)
+                    dst.update_tags(ns='rio_overview',
+                                    resampling='average')
+                LOG.info("Added overviews to %s", fname)
+            except rasterio.RasterioIOError:
+                pass
 
 
 def _get_plugin_conf(product_list, path, defaults):

@@ -37,8 +37,10 @@ def plist_iter(product_list, base_mda=None, level=None):
         base_mda = {}
     else:
         base_mda = base_mda.copy()
-    for area, area_config in product_list.items():
+    for area, area_config in product_list['areas'].items():
         aconfig = base_mda.copy()
+        aconfig.update(product_list)
+        aconfig.pop('areas', None)
         aconfig.update(area_config)
         aconfig.pop('products', None)
         aconfig['area'] = area
