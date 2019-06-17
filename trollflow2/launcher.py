@@ -58,7 +58,7 @@ def run(prod_list, topics=None):
 
     with open(prod_list) as fid:
         config = yaml.load(fid.read(), Loader=BaseLoader)
-    topics = topics or config['common'].pop('subscribe_topics', None)
+    topics = topics or config['product_list'].pop('subscribe_topics', None)
 
     listener = ListenerContainer(topics=topics)
 
@@ -79,7 +79,7 @@ def run(prod_list, topics=None):
 def get_area_priorities(product_list):
     """Get processing priorities and names for areas."""
     priorities = {}
-    plist = product_list['product_list']
+    plist = product_list['product_list']['areas']
     for area in plist.keys():
         prio = plist[area].get('priority', DEFAULT_PRIORITY)
         if prio is None:
@@ -94,7 +94,7 @@ def get_area_priorities(product_list):
 
 def message_to_jobs(msg, product_list):
     """Convert a posttroll message *msg* to a list of jobs given a *product_list*."""
-    formats = product_list['common'].get('formats', None)
+    formats = product_list['product_list'].get('formats', None)
     for product, pconfig in plist_iter(product_list['product_list'], level='product'):
         if 'formats' not in pconfig and formats is not None:
             pconfig['formats'] = formats.copy()
@@ -111,8 +111,9 @@ def message_to_jobs(msg, product_list):
             if section == 'product_list':
                 if section not in jobs[prio]['product_list']:
                     jobs[prio]['product_list'][section] = OrderedDict()
+                    jobs[prio]['product_list'][section]['areas'] = OrderedDict()
                 for area in areas:
-                    jobs[prio]['product_list'][section][area] = product_list[section][area]
+                    jobs[prio]['product_list'][section]['areas'][area] = product_list[section]['areas'][area]
             else:
                 jobs[prio]['product_list'][section] = product_list[section]
 
