@@ -265,7 +265,7 @@ def check_platform(job):
     """Check if the platform is valid.  If not, discard the scene."""
     mda = job['input_mda']
     product_list = job['product_list']
-    conf = get_config_value(product_list, '/common', 'processed_platforms')
+    conf = get_config_value(product_list, '/product_list', 'processed_platforms')
     if conf is None:
         return
     platform = mda['platform_name']
@@ -278,7 +278,7 @@ def metadata_alias(job):
     """Replace input metadata values with aliases."""
     mda_out = job['input_mda'].copy()
     product_list = job['product_list']
-    aliases = get_config_value(product_list, '/common', 'metadata_aliases')
+    aliases = get_config_value(product_list, '/product_list', 'metadata_aliases')
     if aliases is None:
         return
     for key in aliases:
