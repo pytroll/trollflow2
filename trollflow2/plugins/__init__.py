@@ -21,16 +21,23 @@
 
 """Trollflow2 plugins."""
 
+import os
+from logging import getLogger
+from tempfile import NamedTemporaryFile
+
+import dpath
+import rasterio
 from posttroll.message import Message
 from posttroll.publisher import NoisyPublisher
-from satpy import Scene
-from satpy.writers import compute_writer_results
-from satpy.resample import get_area_def
-from satpy.dataset import DatasetID
 from pyorbital.astronomy import sun_zenith_angle
-import rasterio
-from rasterio.enums import Resampling
 from pyresample.boundary import AreaDefBoundary
+from rasterio.enums import Resampling
+from satpy import Scene
+from satpy.dataset import DatasetID
+from satpy.resample import get_area_def
+from satpy.writers import compute_writer_results
+from trollflow2.dict_tools import get_config_value, plist_iter
+from trollsift import compose
 
 # Allow trollsched to be missing
 try:
@@ -40,15 +47,6 @@ except ImportError:
     Pass = None
     get_twilight_poly = None
 
-
-from logging import getLogger
-#from multiprocessing import Process
-from collections import OrderedDict
-from trollsift import compose
-import dpath
-import os
-
-from trollflow2.dict_tools import get_config_value, plist_iter
 
 LOG = getLogger(__name__)
 
@@ -66,6 +64,7 @@ def create_scene(job):
                 'ppp_config_dir': None}
     product_list = job['product_list']
     conf = _get_plugin_conf(product_list, '/product_list', defaults)
+
     LOG.info('Generating scene')
     try:
         job['scene'] = Scene(filenames=job['input_filenames'], **conf)
@@ -83,8 +82,6 @@ def load_composites(job):
         res = flat_prod_cfg.get('resolution', None)
         composites_by_res.setdefault(res, set()).add(flat_prod_cfg['product'])
     scn = job['scene']
-    # TODO: we could make batches of composites for different resolutions
-    #resolution = job['product_list']['product_list'].get('resolution', None)
     generate = job['product_list']['product_list'].get('delay_composites', True) is False
     for resolution, composites in composites_by_res.items():
         LOG.info('Loading %s at resolution %s', str(composites), str(resolution))
@@ -133,23 +130,36 @@ def save_datasets(job):
     objs = []
     base_config = job['input_mda'].copy()
     base_config.pop('dataset', None)
+    renames = {}
     for fmat, fmat_config in plist_iter(job['product_list']['product_list'], base_config):
         fname_pattern = fmat['fname_pattern']
         filename = compose(os.path.join(fmat['output_dir'], fname_pattern), fmat)
+        directory = fmat['output_dir']
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+        if fmat.get('use_tmp_file', False):
+            file_object = NamedTemporaryFile(delete=False, dir=directory)
+            tmp_filename = file_object.name
+            file_object.close()
+            os.chmod(tmp_filename, 0o644)
+            renames[tmp_filename] = filename
+            filename = tmp_filename
         fmat.pop('format', None)
         fmat.pop('filename', None)
         try:
             # TODO: make these datasetIDs to take resolution into account
             res = fmat.get('resolution', None)
-            dsid = DatasetID(name=fmat['product'], resolution=res)
+            dsid = DatasetID(name=fmat['product'], resolution=res, modifiers=None)
             objs.append(scns[fmat['area']].save_dataset(dsid,
                                                         filename=filename,
                                                         compute=False, **fmat_config))
         except KeyError as err:
             LOG.info('Skipping %s: %s', fmat['productname'], str(err))
         else:
-            fmat_config['filename'] = filename
+            fmat_config['filename'] = renames.get(filename, filename)
     compute_writer_results(objs)
+    for tmp_name, actual_name in renames.items():
+        os.rename(tmp_name, actual_name)
 
 
 class FilePublisher(object):
@@ -169,7 +179,7 @@ class FilePublisher(object):
         mda = job['input_mda'].copy()
         mda.pop('dataset', None)
         mda.pop('collection', None)
-        for fmat, fmat_config in plist_iter(job['product_list']['product_list']):
+        for fmat, _fmat_config in plist_iter(job['product_list']['product_list']):
             prod_path = "/product_list/areas/%s/products/%s" % (fmat['area'], fmat['product'])
             topic_pattern = get_config_value(job['product_list'],
                                              prod_path,
