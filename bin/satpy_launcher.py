@@ -37,7 +37,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description='Launch trollflow2 processing with Satpy listening on the specified Posttroll topic(s)')
     parser.add_argument("topics", nargs='*',
-                        help="The topic(s) - either comma or space separated list of topics",
+                        help="The topic(s) - a space separated list of topics",
                         type=str)
     parser.add_argument("--product_list", '-p',
                         help="The yaml file with the product list",
