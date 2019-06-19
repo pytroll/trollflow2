@@ -22,6 +22,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
 import unittest
+import os
 import yaml
 try:
     from yaml import UnsafeLoader
@@ -174,6 +175,7 @@ product_list:
 
       germ:
         areaname: germ_in_fname
+        use_tmp_file: True
         fname_pattern: "{start_time:%Y%m%d_%H%M}_{areaname:s}_{productname}.{format}"
         products:
           cloudtype:
@@ -237,27 +239,25 @@ class TestSaveDatasets(TestCase):
                                      filename='/tmp/satdmz/pps/www/latest_2018/NOAA-15_20190217_0600_euron1_in_fname_ctth_static.jpg',
                                      fill_value=0, format='jpg', writer='simple_image'),
                            mock.call(dsid.return_value, compute=False,
-                                     filename='/tmp/satdmz/pps/www/latest_2018/20190217_0600_germ_in_fname_cloudtype_in_fname.png',
-                                     format='png', writer='simple_image'),
-                           mock.call(dsid.return_value, compute=False,
                                      filename='/tmp/NOAA-15_20190217_0600_omerc_bb_ct.nc',
                                      format='nc', writer='cf'),
                            mock.call(dsid.return_value, compute=False,
                                      filename='/tmp/NOAA-15_20190217_0600_omerc_bb_cloud_top_height.tif',
                                      format='tif', writer='geotiff')
                            ]
-            expected_dsid = [mock.call(name='cloud_top_height', resolution=None),
-                             mock.call(name='cloud_top_height', resolution=None),
-                             mock.call(name='cloudtype', resolution=None),
-                             mock.call(name='ct', resolution=None),
-                             mock.call(name='cloud_top_height', resolution=500)
+            expected_dsid = [mock.call(name='cloud_top_height', resolution=None, modifiers=None),
+                             mock.call(name='cloud_top_height', resolution=None, modifiers=None),
+                             mock.call(name='cloudtype', resolution=None, modifiers=None),
+                             mock.call(name='ct', resolution=None, modifiers=None),
+                             mock.call(name='cloud_top_height', resolution=500, modifiers=None)
                              ]
 
             sd_calls = (job['resampled_scenes']['euron1'].save_dataset.mock_calls
-                        + job['resampled_scenes']['germ'].save_dataset.mock_calls
                         + job['resampled_scenes']['omerc_bb'].save_dataset.mock_calls)
             for sd, esd in zip(sd_calls, expected_sd):
                 self.assertEqual(sd, esd)
+            args, kwargs = job['resampled_scenes']['germ'].save_dataset.call_args_list[0]
+            self.assertTrue(os.path.basename(kwargs['filename']).startswith('tmp'))
             for ds, eds in zip(dsid.mock_calls, expected_dsid):
                 self.assertEqual(ds, eds)
 
@@ -307,6 +307,8 @@ class TestSaveDatasets(TestCase):
                 'germ': {
                     'areaname':
                     'germ_in_fname',
+                    'use_tmp_file':
+                    True,
                     'fname_pattern':
                     '{start_time:%Y%m%d_%H%M}_{areaname:s}_{productname}.{format}',
                     'products': {

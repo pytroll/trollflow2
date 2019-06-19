@@ -178,6 +178,8 @@ class TestMessageToJobs(TestCase):
                                                                   'writer': 'geotiff'}],
                                                      'productname': 'overview'}}})])
         self.assertDictEqual(jobs[999]['product_list']['product_list']['areas'], expected)
+        self.assertIn('output_dir', jobs[999]['product_list']['product_list'])
+
 
 class TestRun(TestCase):
 
