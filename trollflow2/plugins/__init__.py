@@ -376,14 +376,14 @@ def check_sunlight_coverage(job):
     areas = list(product_list['product_list'].keys())
 
     for area in areas:
-        products = list(product_list['product_list'][area]['products'].keys())
+        products = list(product_list['product_list']['areas'][area]['products'].keys())
         for product in products:
             try:
                 area_def = job['resampled_scenes'][area][product].attrs['area']
             except KeyError:
                 LOG.warning("No dataset %s for this scene and area %s", product, area)
                 continue
-            prod_path = "/product_list/%s/products/%s" % (area, product)
+            prod_path = "/product_list/areas/%s/products/%s" % (area, product)
             config = get_config_value(product_list, prod_path, "sunlight_coverage")
             if config is None:
                 continue
