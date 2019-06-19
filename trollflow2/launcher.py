@@ -27,14 +27,14 @@ try:
 except ImportError:
     ListenerContainer = None
 from six.moves.queue import Empty as queue_empty
-from multiprocessing import Process
+
 import yaml
 try:
     from yaml import UnsafeLoader, BaseLoader
 except ImportError:
     from yaml import Loader as UnsafeLoader
     from yaml import BaseLoader
-import time
+
 from trollflow2.dict_tools import gen_dict_extract, plist_iter
 from trollflow2.plugins import AbortProcessing
 from collections import OrderedDict
@@ -54,19 +54,43 @@ LOG = getLogger("launcher")
 DEFAULT_PRIORITY = 999
 
 
-def run(prod_list, topics=None):
+def get_test_message(test_message_file):
+    """Read file and retrieve the test message"""
+
+    msg = None
+    if test_message_file:
+        with open(test_message_file) as fpt:
+            msg = fpt.readline().strip('\n')
+
+    return msg
+
+
+def run(prod_list, topics=None, test_message=None):
+
+    tmessage = get_test_message(test_message)
+    if tmessage:
+        from threading import Thread as Process
+        from posttroll.message import Message
+    else:
+        from multiprocessing import Process
 
     with open(prod_list) as fid:
         config = yaml.load(fid.read(), Loader=BaseLoader)
     topics = topics or config['product_list'].pop('subscribe_topics', None)
 
-    listener = ListenerContainer(topics=topics)
+    if not tmessage:
+        listener = ListenerContainer(topics=topics)
 
     while True:
         try:
-            msg = listener.output_queue.get(True, 5)
+            if tmessage:
+                mymessage = tmessage
+                msg = Message(rawstr=mymessage)
+            else:
+                msg = listener.output_queue.get(True, 5)
         except KeyboardInterrupt:
-            listener.stop()
+            if not tmessage:
+                listener.stop()
             return
         except queue_empty:
             continue
@@ -74,6 +98,8 @@ def run(prod_list, topics=None):
         proc = Process(target=process, args=(msg, prod_list))
         proc.start()
         proc.join()
+        if tmessage:
+            break
 
 
 def get_area_priorities(product_list):
@@ -160,7 +186,7 @@ def process(msg, prod_list):
             for hand in config['crash_handlers']['handlers']:
                 hand['fun'](config['crash_handlers']['config'], trace)
 
-    # Remove config and run grabage collection so all remaining
+    # Remove config and run garbage collection so all remaining
     # references e.g. to FilePublisher should be removed
     del config
     gc.collect()

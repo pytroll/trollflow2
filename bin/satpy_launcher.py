@@ -23,6 +23,7 @@
 
 import sys
 from logging import getLogger
+import argparse
 
 from trollflow2.launcher import run
 from satpy.utils import debug_on
@@ -31,19 +32,23 @@ debug_on()
 LOG = getLogger(__name__)
 
 
-def main():
-    # Product list is always the last argument
-    prod_list = sys.argv[-1]
-    if len(sys.argv) > 2:
-        # Collect all the topics, which can be either comma or space separated
-        topics = []
-        for arg in sys.argv[1:-1]:
-            topics += arg.split(',')
-    else:
-        topics = None
-
-    run(prod_list, topics=topics)
-
-
 if __name__ == "__main__":
-    main()
+
+    parser = argparse.ArgumentParser(
+        description='Launch trollflow2 processing with Satpy listening on the specified Posttroll topic(s)')
+    parser.add_argument("topics", nargs='*',
+                        help="The topic(s) - either comma or space separated list of topics",
+                        type=str)
+    parser.add_argument("--product_list", '-p',
+                        help="The yaml file with the product list",
+                        type=str, required=True)
+    parser.add_argument("--test_message", '-m',
+                        help="File path with the message used for testing offline",
+                        type=str, required=False)
+
+    args = parser.parse_args()
+    prod_list = args.product_list
+    test_message = args.test_message
+    topics = args.topics
+
+    run(prod_list, topics=topics, test_message=test_message)
