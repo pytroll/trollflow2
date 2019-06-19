@@ -125,7 +125,14 @@ def resample(job):
 
 
 def save_datasets(job):
-    """Save the datasets (and trigger the computation)."""
+    """Save the datasets (and trigger the computation).
+
+    If the `use_tmp_file` option is provided in the product list and is set to
+    True, the file will be first saved to a temporary name before being renamed.
+    This is useful when other processes are waiting for the file to be present
+    to start their work, but would crash on incomplete files.
+
+    """
     scns = job['resampled_scenes']
     objs = []
     base_config = job['input_mda'].copy()
