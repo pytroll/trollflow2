@@ -179,6 +179,7 @@ class TestMessageToJobs(TestCase):
                                                      'productname': 'overview'}}})])
         self.assertDictEqual(jobs[999]['product_list']['product_list']['areas'], expected)
 
+
 class TestRun(TestCase):
 
     def setUp(self):
@@ -190,7 +191,7 @@ class TestRun(TestCase):
         with mock.patch('trollflow2.launcher.yaml.load') as yaml_load,\
                 mock.patch('trollflow2.launcher.open'),\
                 mock.patch('trollflow2.launcher.process') as process,\
-                mock.patch('trollflow2.launcher.Process') as Process,\
+                mock.patch('multiprocessing.Process') as Process,\
                 mock.patch('trollflow2.launcher.ListenerContainer') as lc_:
             listener = mock.MagicMock()
             listener.output_queue.get.return_value = 'foo'
@@ -241,6 +242,7 @@ class TestExpand(TestCase):
         outside = {'c': inside, 'd': inside}
         expanded = expand(outside)
         self.assertIsNot(expanded['d'], expanded['c'])
+
 
 class TestProcess(TestCase):
 
