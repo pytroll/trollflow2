@@ -84,8 +84,7 @@ def run(prod_list, topics=None, test_message=None):
     while True:
         try:
             if tmessage:
-                mymessage = tmessage
-                msg = Message(rawstr=mymessage)
+                msg = Message(rawstr=tmessage)
             else:
                 msg = listener.output_queue.get(True, 5)
         except KeyboardInterrupt:
