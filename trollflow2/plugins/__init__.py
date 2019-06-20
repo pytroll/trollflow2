@@ -380,7 +380,7 @@ def check_sunlight_coverage(job):
                     "coverage calculations: %s", sensor)
 
     product_list = job['product_list']
-    areas = list(product_list['product_list'].keys())
+    areas = list(product_list['product_list']['areas'].keys())
 
     for area in areas:
         products = list(product_list['product_list']['areas'][area]['products'].keys())
