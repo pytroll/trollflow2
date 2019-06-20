@@ -121,7 +121,7 @@ def get_area_priorities(product_list):
 def message_to_jobs(msg, product_list):
     """Convert a posttroll message *msg* to a list of jobs given a *product_list*."""
     formats = product_list['product_list'].get('formats', None)
-    for product, pconfig in plist_iter(product_list['product_list'], level='product'):
+    for _product, pconfig in plist_iter(product_list['product_list'], level='product'):
         if 'formats' not in pconfig and formats is not None:
             pconfig['formats'] = formats.copy()
     jobs = OrderedDict()
@@ -136,7 +136,8 @@ def message_to_jobs(msg, product_list):
         for section in product_list:
             if section == 'product_list':
                 if section not in jobs[prio]['product_list']:
-                    jobs[prio]['product_list'][section] = OrderedDict()
+                    jobs[prio]['product_list'][section] = OrderedDict(product_list[section].copy())
+                    del jobs[prio]['product_list'][section]['areas']
                     jobs[prio]['product_list'][section]['areas'] = OrderedDict()
                 for area in areas:
                     jobs[prio]['product_list'][section]['areas'][area] = product_list[section]['areas'][area]
