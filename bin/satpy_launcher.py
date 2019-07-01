@@ -20,8 +20,8 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
+"""The satpy launcher."""
 
-import sys
 from logging import getLogger
 import argparse
 
@@ -36,12 +36,12 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(
         description='Launch trollflow2 processing with Satpy listening on the specified Posttroll topic(s)')
-    parser.add_argument("topics", nargs='*',
-                        help="The topic(s) - a space separated list of topics",
+    parser.add_argument("topic", nargs='*',
+                        help="Topic to listen to",
                         type=str)
-    parser.add_argument("--product_list", '-p',
+    parser.add_argument("product_list",
                         help="The yaml file with the product list",
-                        type=str, required=True)
+                        type=str)
     parser.add_argument("--test_message", '-m',
                         help="File path with the message used for testing offline",
                         type=str, required=False)
@@ -49,6 +49,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
     prod_list = args.product_list
     test_message = args.test_message
-    topics = args.topics
+    topics = args.topic
 
     run(prod_list, topics=topics, test_message=test_message)
