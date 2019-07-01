@@ -1,3 +1,28 @@
+
+## Version v0.5.0 (2019/07/01)
+
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR 38](https://github.com/pytroll/trollflow2/pull/38) - Handle gracefully the situation when a dataset is not loaded
+* [PR 37](https://github.com/pytroll/trollflow2/pull/37) - Handle the situation when data is not covering the area at all
+
+#### Features added
+
+* [PR 45](https://github.com/pytroll/trollflow2/pull/45) - Add pre-commit config
+* [PR 44](https://github.com/pytroll/trollflow2/pull/44) - Remove print statement
+* [PR 43](https://github.com/pytroll/trollflow2/pull/43) - Adding .stickler.yml configuration file
+* [PR 42](https://github.com/pytroll/trollflow2/pull/42) - Add option to run in test-mode providing a specific message on the co…
+* [PR 41](https://github.com/pytroll/trollflow2/pull/41) - Allow saving files to a temporary name and small fixes
+* [PR 40](https://github.com/pytroll/trollflow2/pull/40) - Add the areas level
+* [PR 39](https://github.com/pytroll/trollflow2/pull/39) - Refactor trollflow2 to put plugins in their own file
+* [PR 35](https://github.com/pytroll/trollflow2/pull/35) - Add pass coverage computation to sunlight coverage checking
+* [PR 34](https://github.com/pytroll/trollflow2/pull/34) - Add debuginfo area coverage
+
+In this release 11 pull requests were closed.
+
 ## Version 0.4.1 (2019/04/10)
 
 
