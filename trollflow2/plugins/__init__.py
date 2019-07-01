@@ -77,8 +77,7 @@ def load_composites(job):
     # composites = set().union(*(set(d.keys())
     #                            for d in dpath.util.values(job['product_list'], '/product_list/areas/*/products')))
     composites_by_res = {}
-    for flat_prod_cfg, prod_cfg in plist_iter(job['product_list']['product_list'], level='product'):
-        print(prod_cfg)
+    for flat_prod_cfg, _prod_cfg in plist_iter(job['product_list']['product_list'], level='product'):
         res = flat_prod_cfg.get('resolution', None)
         composites_by_res.setdefault(res, set()).add(flat_prod_cfg['product'])
     scn = job['scene']
@@ -219,8 +218,7 @@ def covers(job):
         LOG.info("Keeping all areas")
         return
 
-    col_area = job['product_list']['product_list'].get('coverage_by_collection_area',
-                                                 False)
+    col_area = job['product_list']['product_list'].get('coverage_by_collection_area', False)
     if col_area and 'collection_area_id' in job['input_mda']:
         if job['input_mda']['collection_area_id'] not in job['product_list']['product_list']:
             raise AbortProcessing(
@@ -441,7 +439,7 @@ def _get_sunlight_coverage(area_def, start_time, overpass=None):
 def add_overviews(job):
     """Add overviews to images already written to disk."""
     # Get the formats, including filenames and overview settings
-    for flat_fmat, fmt in plist_iter(job['product_list']['product_list']):
+    for _flat_fmat, fmt in plist_iter(job['product_list']['product_list']):
         if "overviews" in fmt and 'filename' in fmt:
             fname = fmt['filename']
             overviews = fmt['overviews']
