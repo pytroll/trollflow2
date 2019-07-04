@@ -140,14 +140,17 @@ def save_datasets(job):
     for fmat, fmat_config in plist_iter(job['product_list']['product_list'], base_config):
         fname_pattern = fmat['fname_pattern']
         filename = compose(os.path.join(fmat['output_dir'], fname_pattern), fmat)
-        directory = fmat['output_dir']
+        directory = compose(fmat['output_dir'], fmat)
         if not os.path.exists(directory):
             os.makedirs(directory)
         if fmat.get('use_tmp_file', False):
-            file_object = NamedTemporaryFile(delete=False, dir=directory)
+            file_object = NamedTemporaryFile(prefix=('tmp' + str(os.getpid())), dir=directory)
+            while file_object.name in renames:
+                # make sure we don't get an existing filename
+                file_object.close()
+                file_object = NamedTemporaryFile(prefix=('tmp' + str(os.getpid())), dir=directory)
             tmp_filename = file_object.name
             file_object.close()
-            os.chmod(tmp_filename, 0o644)
             renames[tmp_filename] = filename
             filename = tmp_filename
         fmat.pop('format', None)
@@ -161,6 +164,7 @@ def save_datasets(job):
                                                         compute=False, **fmat_config))
         except KeyError as err:
             LOG.info('Skipping %s: %s', fmat['productname'], str(err))
+            renames.pop(filename, None)
         else:
             fmat_config['filename'] = renames.get(filename, filename)
     compute_writer_results(objs)
