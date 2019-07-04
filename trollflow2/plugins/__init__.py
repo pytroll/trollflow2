@@ -139,8 +139,8 @@ def save_datasets(job):
     renames = {}
     for fmat, fmat_config in plist_iter(job['product_list']['product_list'], base_config):
         fname_pattern = fmat['fname_pattern']
-        filename = compose(os.path.join(fmat['output_dir'], fname_pattern), fmat)
-        directory = compose(fmat['output_dir'], fmat)
+        directory = compose(fmat.get('output_dir', ''), fmat)
+        filename = os.path.join(directory, compose(fname_pattern, fmat))
         if not os.path.exists(directory):
             os.makedirs(directory)
         if fmat.get('use_tmp_file', False):
