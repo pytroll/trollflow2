@@ -219,6 +219,87 @@ input_mda = {'orig_platform_name': 'noaa15', 'orbit_number': 7993,
 class TestSaveDatasets(TestCase):
     """Test case for saving datasets."""
 
+    def test_prepared_filename(self):
+        """Test the `prepared_filename` context."""
+        from trollflow2.plugins import prepared_filename
+        tst_file = 'hi.png'
+
+        renames = {}
+        fmat = {'fname_pattern': tst_file}
+        with prepared_filename(fmat, renames) as filename:
+            pass
+        self.assertEqual(filename, tst_file)
+        self.assertEqual(len(renames), 0)
+
+        renames = {}
+        fmat = {'use_tmp_file': False, 'fname_pattern': tst_file}
+        with prepared_filename(fmat, renames) as filename:
+            pass
+        self.assertEqual(filename, tst_file)
+        self.assertEqual(len(renames), 0)
+
+        renames = {}
+        fmat = {'use_tmp_file': True, 'fname_pattern': tst_file}
+        with prepared_filename(fmat, renames) as filename:
+            pass
+        self.assertTrue(filename.startswith, 'tmp')
+        self.assertEqual(len(renames), 1)
+        self.assertEqual(list(renames.values())[0], tst_file)
+
+        renames = {}
+        fmat = {'use_tmp_file': True, 'fname_pattern': tst_file}
+        try:
+            with prepared_filename(fmat, renames) as filename:
+                raise KeyError('Oh no!')
+        except KeyError:
+            pass
+        self.assertTrue(filename.startswith, 'tmp')
+        self.assertEqual(len(renames), 0)
+
+        tst_dir = os.path.normpath('/tmp/bleh')
+        renames = {}
+        fmat = {'use_tmp_file': True, 'fname_pattern': tst_file, 'output_dir': tst_dir}
+        with prepared_filename(fmat, renames) as filename:
+            pass
+        self.assertTrue(filename.startswith, 'tmp')
+        self.assertEqual(len(renames), 1)
+        self.assertEqual(list(renames.values())[0], os.path.join(tst_dir, tst_file))
+
+        self.assertTrue(os.path.exists(tst_dir))
+        os.rmdir(tst_dir)
+
+    def test_prepare_filename_and_directory(self):
+        """Test filename composition and directory creation."""
+        from trollflow2.plugins import _prepare_filename_and_directory
+        tst_file = 'goes_{name}.png'
+        tst_dir = os.path.normpath('/tmp/bleh/{service}')
+        fmat = {'use_tmp_file': True, 'fname_pattern': tst_file, 'output_dir': tst_dir,
+                'name': 'mooh', 'service': 'cow'}
+        directory, filename = _prepare_filename_and_directory(fmat)
+        self.assertEqual(filename, os.path.normpath('/tmp/bleh/cow/goes_mooh.png'))
+        self.assertTrue(os.path.exists(directory))
+        os.rmdir(directory)
+
+    def test_get_temp_filename(self):
+        """Test temp filename generation."""
+        from trollflow2.plugins import _get_temp_filename
+
+        # Test uniqueness
+        class FakeFO():
+            def __init__(self, name):
+                self.name = name
+
+            def close(self):
+                pass
+
+        tst_dir = ''
+        with mock.patch('trollflow2.plugins.NamedTemporaryFile') as ntf:
+            ntf.side_effect = [FakeFO('cu'), FakeFO('cu'), FakeFO('mb'), FakeFO('er')]
+            names = []
+            for _i_ in range(3):
+                names.append(_get_temp_filename(tst_dir, names))
+            self.assertEqual(''.join(names), 'cumber')
+
     def test_save_datasets(self):
         """Test saving datasets."""
         self.maxDiff = None

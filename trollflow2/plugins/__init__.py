@@ -24,6 +24,7 @@
 import os
 from logging import getLogger
 from tempfile import NamedTemporaryFile
+from contextlib import contextmanager
 
 import dpath
 import rasterio
@@ -123,6 +124,67 @@ def resample(job):
             job['resampled_scenes'][area] = scn.resample(area, **area_conf)
 
 
+# Datasets saving
+
+
+def _prepare_filename_and_directory(fmat):
+    """Compose the directory and filename (returned in that order) from *fmat*."""
+    # filename composing
+    fname_pattern = fmat['fname_pattern']
+    directory = compose(fmat.get('output_dir', ''), fmat)
+    filename = os.path.join(directory, compose(fname_pattern, fmat))
+
+    # directory creation
+    if directory and not os.path.exists(directory):
+        os.makedirs(directory)
+
+    return directory, filename
+
+
+def _get_temp_filename(directory, reserved):
+    """Get a unique temporary filename, avoiding names in *reserved*."""
+    file_object = NamedTemporaryFile(prefix=('tmp' + str(os.getpid())), dir=directory)
+    while file_object.name in reserved:
+        # make sure we don't get an existing filename
+        file_object.close()
+        file_object = NamedTemporaryFile(prefix=('tmp' + str(os.getpid())), dir=directory)
+    tmp_filename = file_object.name
+    file_object.close()
+    return tmp_filename
+
+
+@contextmanager
+def prepared_filename(fmat, renames):
+    """Replace the filename with a temp filename and fill in `renames` if necessary."""
+    directory, orig_filename = _prepare_filename_and_directory(fmat)
+
+    # tmp filenaming
+    use_tmp_file = fmat.get('use_tmp_file', False)
+
+    if use_tmp_file:
+        filename = _get_temp_filename(directory, renames.keys())
+        yield filename
+        renames[filename] = orig_filename
+    else:
+        yield orig_filename
+
+
+def save_dataset(scns, fmat, fmat_config, renames):
+    """Save one dataset to file, not doing the actual computation."""
+    try:
+        with prepared_filename(fmat, renames) as filename:
+            res = fmat.get('resolution', None)
+            dsid = DatasetID(name=fmat['product'], resolution=res, modifiers=None)
+            obj = scns[fmat['area']].save_dataset(dsid,
+                                                  filename=filename,
+                                                  compute=False, **fmat_config)
+    except KeyError as err:
+        LOG.info('Skipping %s: %s', fmat['productname'], str(err))
+    else:
+        fmat_config['filename'] = renames.get(filename, filename)
+    return obj
+
+
 def save_datasets(job):
     """Save the datasets (and trigger the computation).
 
@@ -136,38 +198,14 @@ def save_datasets(job):
     objs = []
     base_config = job['input_mda'].copy()
     base_config.pop('dataset', None)
+
     renames = {}
+
     for fmat, fmat_config in plist_iter(job['product_list']['product_list'], base_config):
-        fname_pattern = fmat['fname_pattern']
-        directory = compose(fmat.get('output_dir', ''), fmat)
-        filename = os.path.join(directory, compose(fname_pattern, fmat))
-        if not os.path.exists(directory):
-            os.makedirs(directory)
-        if fmat.get('use_tmp_file', False):
-            file_object = NamedTemporaryFile(prefix=('tmp' + str(os.getpid())), dir=directory)
-            while file_object.name in renames:
-                # make sure we don't get an existing filename
-                file_object.close()
-                file_object = NamedTemporaryFile(prefix=('tmp' + str(os.getpid())), dir=directory)
-            tmp_filename = file_object.name
-            file_object.close()
-            renames[tmp_filename] = filename
-            filename = tmp_filename
-        fmat.pop('format', None)
-        fmat.pop('filename', None)
-        try:
-            # TODO: make these datasetIDs to take resolution into account
-            res = fmat.get('resolution', None)
-            dsid = DatasetID(name=fmat['product'], resolution=res, modifiers=None)
-            objs.append(scns[fmat['area']].save_dataset(dsid,
-                                                        filename=filename,
-                                                        compute=False, **fmat_config))
-        except KeyError as err:
-            LOG.info('Skipping %s: %s', fmat['productname'], str(err))
-            renames.pop(filename, None)
-        else:
-            fmat_config['filename'] = renames.get(filename, filename)
+        objs.append(save_dataset(scns, fmat, fmat_config, renames))
+
     compute_writer_results(objs)
+
     for tmp_name, actual_name in renames.items():
         os.rename(tmp_name, actual_name)
 
