@@ -82,7 +82,7 @@ product_list:
                 writer: geotiff
 """
 
-yaml_test2 = """
+yaml_test_publish = """
 product_list:
   something: foo
   min_coverage: 5.0
@@ -97,6 +97,12 @@ product_list:
             formats:
               - format: png
                 writer: simple_image
+                dispatch:
+                  - hostname: ftp.important_client.com
+                    scheme: ftp
+                    username: ic_login
+                    password: very_secure_password
+                    path: "/somewhere/{platform_name:s}_{start_time:%Y%m%d_%H%M}_{areaname:s}_ctth_static.{format}"
               - format: jpg
                 writer: simple_image
                 fill_value: 0
@@ -169,6 +175,12 @@ product_list:
             formats:
               - format: png
                 writer: simple_image
+                dispatch:
+                  - hostname: ftp.important_client.com
+                    scheme: ftp
+                    username: ic_login
+                    password: very_secure_password
+                    path: "/somewhere/{platform_name:s}_{start_time:%Y%m%d_%H%M}_{areaname:s}_ctth_static.{format}"
               - format: jpg
                 writer: simple_image
                 fill_value: 0
@@ -371,9 +383,16 @@ class TestSaveDatasets(TestCase):
                             [{
                                 'filename': '/tmp/satdmz/pps/www/latest_2018/NOAA-15_20190217_0600_euron1_in_fname_ctth_static.png',  # noqa
                                 'format': 'png',
-                                'writer': 'simple_image'
-                            },
-                             {
+                                'writer': 'simple_image',
+                                'dispatch': [{
+                                    'hostname': 'ftp.important_client.com',
+                                    'scheme': 'ftp',
+                                    'username': 'ic_login',
+                                    'password': 'very_secure_password',
+                                    'path': '/somewhere/{platform_name:s}_{start_time:%Y%m%d_%H%M}_{areaname:s}_ctth_static.{format}',  # noqa
+                                 }],
+                             },
+                              {
                                  'filename':
                                  '/tmp/satdmz/pps/www/latest_2018/NOAA-15_20190217_0600_euron1_in_fname_ctth_static.jpg',  # noqa
                                  'fill_value':
@@ -661,6 +680,46 @@ class TestSunlightCovers(TestCase):
                                        0.1)
 
 
+class TestCheckSunlightCoverage(TestCase):
+    """Test case for sunlight coverage."""
+
+    def setUp(self):
+        """Set up the test case."""
+        super().setUp()
+        self.product_list = yaml.load(yaml_test3, Loader=UnsafeLoader)
+        self.input_mda = {"platform_name": "NOAA-15",
+                          "sensor": "avhrr-3",
+                          "start_time": dt.datetime(2019, 1, 19, 11),
+                          "end_time": dt.datetime(2019, 1, 19, 12),
+                          'not_changed': True,
+                          }
+
+    def test_product_not_loaded(self):
+        """Test that product isn't loaded when sunlight coverage is to low."""
+        from trollflow2.plugins import check_sunlight_coverage
+        from trollflow2.plugins import metadata_alias
+        with mock.patch('trollflow2.plugins.Pass') as ts_pass,\
+                mock.patch('trollflow2.plugins.get_twilight_poly'),\
+                mock.patch("trollflow2.plugins._get_sunlight_coverage") as _get_sunlight_coverage:
+            job = {}
+            scene = mock.MagicMock()
+            scene.attrs = {'start_time': 42}
+            job['scene'] = scene
+            job['product_list'] = self.product_list.copy()
+            job['input_mda'] = self.input_mda.copy()
+            metadata_alias(job)
+
+            job['resampled_scenes'] = {}
+            for area in job['product_list']['product_list']['areas']:
+                job['resampled_scenes'][area] = {}
+
+            # Run without any settings
+            check_sunlight_coverage(job)
+
+            _get_sunlight_coverage.assert_not_called()
+            ts_pass.assert_not_called()
+
+
 class TestCovers(TestCase):
     """Test case for coverage checks."""
 
@@ -877,46 +936,6 @@ class TestSZACheck(TestCase):
             self.assertFalse('germ' in job['product_list']['product_list']['areas'])
 
 
-class TestCheckSunlightCoverage(TestCase):
-    """Test case for sunlight coverage."""
-
-    def setUp(self):
-        """Set up the test case."""
-        super().setUp()
-        self.product_list = yaml.load(yaml_test3, Loader=UnsafeLoader)
-        self.input_mda = {"platform_name": "NOAA-15",
-                          "sensor": "avhrr-3",
-                          "start_time": dt.datetime(2019, 1, 19, 11),
-                          "end_time": dt.datetime(2019, 1, 19, 12),
-                          'not_changed': True,
-                          }
-
-    def test_product_not_loaded(self):
-        """Test that product isn't loaded when sunlight coverage is to low."""
-        from trollflow2.plugins import check_sunlight_coverage
-        from trollflow2.plugins import metadata_alias
-        with mock.patch('trollflow2.plugins.Pass') as ts_pass,\
-                mock.patch('trollflow2.plugins.get_twilight_poly'),\
-                mock.patch("trollflow2.plugins._get_sunlight_coverage") as _get_sunlight_coverage:
-            job = {}
-            scene = mock.MagicMock()
-            scene.attrs = {'start_time': 42}
-            job['scene'] = scene
-            job['product_list'] = self.product_list.copy()
-            job['input_mda'] = self.input_mda.copy()
-            metadata_alias(job)
-
-            job['resampled_scenes'] = {}
-            for area in job['product_list']['product_list']['areas']:
-                job['resampled_scenes'][area] = {}
-
-            # Run without any settings
-            check_sunlight_coverage(job)
-
-            _get_sunlight_coverage.assert_not_called()
-            ts_pass.assert_not_called()
-
-
 class TestOverviews(TestCase):
     """Test case for overviews."""
 
@@ -951,7 +970,7 @@ class TestFilePublisher(TestCase):
     def setUp(self):
         """Set up the test case."""
         super().setUp()
-        self.product_list = yaml.load(yaml_test2, Loader=UnsafeLoader)
+        self.product_list = yaml.load(yaml_test_publish, Loader=UnsafeLoader)
         # Skip omerc_bb are, there's no fname_pattern
         del self.product_list['product_list']['areas']['omerc_bb']
         self.input_mda = input_mda.copy()

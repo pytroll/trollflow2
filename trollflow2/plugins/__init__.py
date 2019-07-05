@@ -25,6 +25,7 @@ import os
 from logging import getLogger
 from tempfile import NamedTemporaryFile
 from contextlib import contextmanager
+from urlparse import urlunsplit
 
 import dpath
 import rasterio
@@ -175,9 +176,11 @@ def save_dataset(scns, fmat, fmat_config, renames):
         with prepared_filename(fmat, renames) as filename:
             res = fmat.get('resolution', None)
             dsid = DatasetID(name=fmat['product'], resolution=res, modifiers=None)
+            kwargs = fmat_config.copy()
+            kwargs.pop('dispatch', None)
             obj = scns[fmat['area']].save_dataset(dsid,
                                                   filename=filename,
-                                                  compute=False, **fmat_config)
+                                                  compute=False, **kwargs)
     except KeyError as err:
         LOG.info('Skipping %s: %s', fmat['productname'], str(err))
     else:
@@ -229,28 +232,58 @@ class FilePublisher(object):
         self.pub.start()
         return self
 
+    @staticmethod
+    def create_message(fmat, mda):
+        """Create a message topic and mda."""
+        topic_pattern = fmat["publish_topic"]
+
+        file_mda = mda.copy()
+
+        file_mda['uri'] = fmat['filename']
+
+        file_mda['uid'] = os.path.basename(fmat['filename'])
+        topic = compose(topic_pattern, fmat)
+        return topic, file_mda
+
+    @staticmethod
+    def create_dispatch_uri(ditem, fmat):
+        """Create a uri from dispatch info."""
+        path = compose(ditem['path'], fmat)
+        netloc = ditem.get('hostname', '')
+        if 'username' in ditem:
+            netloc = ':'.join([ditem['username'], ditem['password']]) + '@' + netloc
+
+        return urlunsplit((ditem.get('scheme', ''), netloc, path, '', ''))
+
+    def send_dispatch_messages(self, fmat, fmat_config, topic, file_mda):
+        """Send dispatch messages corresponding to a file."""
+        for dispatch_item in fmat_config.get('dispatch', []):
+            mda = {
+                'file_mda': file_mda,
+                'source': fmat_config['filename'],
+                'target': self.create_dispatch_uri(dispatch_item, fmat)
+                }
+            msg = Message(topic, 'dispatch', mda)
+            LOG.debug('Sending dispatch order: %s', str(msg))
+            self.pub.send(str(msg))
+
     def __call__(self, job):
         """Call the publisher."""
-        mda = job['input_mda'].copy()
-        mda.pop('dataset', None)
-        mda.pop('collection', None)
-        for fmat, _fmat_config in plist_iter(job['product_list']['product_list']):
-            prod_path = "/product_list/areas/%s/products/%s" % (fmat['area'], fmat['product'])
-            topic_pattern = get_config_value(job['product_list'],
-                                             prod_path,
-                                             "publish_topic")
-
-            file_mda = mda.copy()
-            try:
-                file_mda['uri'] = fmat['filename']
-            except KeyError:
-                continue
-            file_mda['uid'] = os.path.basename(fmat['filename'])
-            topic = compose(topic_pattern, fmat)
-            msg = Message(topic, 'file', file_mda)
-            LOG.debug('Publishing %s', str(msg))
-            self.pub.send(str(msg))
-        self.pub.stop()
+        try:
+            mda = job['input_mda'].copy()
+            mda.pop('dataset', None)
+            mda.pop('collection', None)
+            for fmat, fmat_config in plist_iter(job['product_list']['product_list']):
+                try:
+                    topic, file_mda = self.create_message(fmat, mda)
+                except KeyError:
+                    continue
+                msg = Message(topic, 'file', file_mda)
+                LOG.debug('Publishing %s', str(msg))
+                self.pub.send(str(msg))
+                self.send_dispatch_messages(fmat, fmat_config, topic, file_mda)
+        finally:
+            self.pub.stop()
 
     def __del__(self):
         """Stop the publisher when last reference is deleted."""
