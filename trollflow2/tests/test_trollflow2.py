@@ -86,6 +86,7 @@ yaml_test_publish = """
 product_list:
   something: foo
   min_coverage: 5.0
+  publish_topic: /raster/
   areas:
       euron1:
         areaname: euron1_in_fname
@@ -97,6 +98,7 @@ product_list:
             formats:
               - format: png
                 writer: simple_image
+                filename: /tmp/satdmz/pps/www/latest_2018/NOAA-15_20190217_0600_euron1_in_fname_ctth_static.png
                 dispatch:
                   - hostname: ftp.important_client.com
                     scheme: ftp
@@ -106,18 +108,20 @@ product_list:
               - format: jpg
                 writer: simple_image
                 fill_value: 0
+                filename: /tmp/satdmz/pps/www/latest_2018/NOAA-15_20190217_0600_euron1_in_fname_ctth_static.jpg
             fname_pattern: "{platform_name:s}_{start_time:%Y%m%d_%H%M}_{areaname:s}_ctth_static.{format}"
 
       germ:
         areaname: germ_in_fname
         fname_pattern: "{start_time:%Y%m%d_%H%M}_{areaname:s}_{productname}.{format}"
-        formats:
-          - format: png
-            writer: simple_image
         products:
           cloudtype:
             productname: cloudtype_in_fname
             output_dir: /tmp/satdmz/pps/www/latest_2018/
+            formats:
+              - format: png
+                writer: simple_image
+                filename: /tmp/satdmz/pps/www/latest_2018/NOAA-15_20190217_0600_germ_in_fname_ct.png
 
       omerc_bb:
         areaname: omerc_bb
@@ -128,11 +132,13 @@ product_list:
             formats:
               - format: nc
                 writer: cf
+                filename: /tmp/satdmz/pps/www/latest_2018/NOAA-15_20190217_0600_omerc_bb_in_fname_ct.png
           cloud_top_height:
             productname: cloud_top_height
             formats:
               - format: tif
                 writer: geotiff
+                filename: /tmp/satdmz/pps/www/latest_2018/NOAA-15_20190217_0600_omerc_bb_in_fname_ctth.png
 """
 
 yaml_test3 = """
@@ -971,7 +977,7 @@ class TestFilePublisher(TestCase):
         """Set up the test case."""
         super().setUp()
         self.product_list = yaml.load(yaml_test_publish, Loader=UnsafeLoader)
-        # Skip omerc_bb are, there's no fname_pattern
+        # Skip omerc_bb area, there's no fname_pattern
         del self.product_list['product_list']['areas']['omerc_bb']
         self.input_mda = input_mda.copy()
         self.input_mda['uri'] = 'foo.nc'
@@ -1051,6 +1057,31 @@ class TestFilePublisher(TestCase):
                     if 'call().__str__()' != str(message.mock_calls[i]):
                         self.assertTrue(topics[i] in str(message.mock_calls[i]))
                         i += 1
+
+    def test_dispatch(self):
+        """Test dispatch order messages."""
+        from trollflow2.plugins import FilePublisher
+        with mock.patch('trollflow2.plugins.Message') as message, mock.patch('trollflow2.plugins.NoisyPublisher'):
+            pub = FilePublisher()
+            job = {'product_list': self.product_list,
+                   'input_mda': self.input_mda}
+            pub(job)
+            dispatches = 0
+            for args, _kwargs in message.call_args_list:
+                mda = args[2]
+                if args[1] == 'file':
+                    self.assertIn('uri', mda)
+                    self.assertIn('uid', mda)
+                elif args[1] == 'dispatch':
+                    self.assertIn('source', mda)
+                    self.assertIn('target', mda)
+                    self.assertIn('file_mda', mda)
+                    self.assertEqual(mda['source'],
+                                     '/tmp/satdmz/pps/www/latest_2018/NOAA-15_20190217_0600_euron1_in_fname_ctth_static.png')  # noqa
+                    self.assertEqual(mda['target'],
+                                     'ftp://ic_login:very_secure_password@ftp.important_client.com/somewhere/NOAA-15_20190217_0600_euron1_in_fname_ctth_static.png')  # noqa
+                    dispatches += 1
+            self.assertEqual(dispatches, 1)
 
 
 def suite():

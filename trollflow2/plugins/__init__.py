@@ -25,7 +25,7 @@ import os
 from logging import getLogger
 from tempfile import NamedTemporaryFile
 from contextlib import contextmanager
-from urlparse import urlunsplit
+from urllib.parse import urlunsplit
 
 import dpath
 import rasterio
@@ -273,7 +273,7 @@ class FilePublisher(object):
             mda = job['input_mda'].copy()
             mda.pop('dataset', None)
             mda.pop('collection', None)
-            for fmat, fmat_config in plist_iter(job['product_list']['product_list']):
+            for fmat, fmat_config in plist_iter(job['product_list']['product_list'], mda):
                 try:
                     topic, file_mda = self.create_message(fmat, mda)
                 except KeyError:
