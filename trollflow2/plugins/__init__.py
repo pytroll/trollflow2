@@ -185,6 +185,17 @@ def save_dataset(scns, fmat, fmat_config, renames):
     return obj
 
 
+@contextmanager
+def renamed_files():
+    """Context renaming files."""
+    renames = {}
+
+    yield renames
+
+    for tmp_name, actual_name in renames.items():
+        os.rename(tmp_name, actual_name)
+
+
 def save_datasets(job):
     """Save the datasets (and trigger the computation).
 
@@ -199,15 +210,11 @@ def save_datasets(job):
     base_config = job['input_mda'].copy()
     base_config.pop('dataset', None)
 
-    renames = {}
+    with renamed_files() as renames:
+        for fmat, fmat_config in plist_iter(job['product_list']['product_list'], base_config):
+            objs.append(save_dataset(scns, fmat, fmat_config, renames))
 
-    for fmat, fmat_config in plist_iter(job['product_list']['product_list'], base_config):
-        objs.append(save_dataset(scns, fmat, fmat_config, renames))
-
-    compute_writer_results(objs)
-
-    for tmp_name, actual_name in renames.items():
-        os.rename(tmp_name, actual_name)
+        compute_writer_results(objs)
 
 
 class FilePublisher(object):
