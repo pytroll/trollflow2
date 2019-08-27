@@ -102,8 +102,6 @@ product_list:
                 dispatch:
                   - hostname: ftp.important_client.com
                     scheme: ftp
-                    username: ic_login
-                    password: very_secure_password
                     path: "/somewhere/{platform_name:s}_{start_time:%Y%m%d_%H%M}_{areaname:s}_ctth_static.{format}"
               - format: jpg
                 writer: simple_image
@@ -184,8 +182,6 @@ product_list:
                 dispatch:
                   - hostname: ftp.important_client.com
                     scheme: ftp
-                    username: ic_login
-                    password: very_secure_password
                     path: "/somewhere/{platform_name:s}_{start_time:%Y%m%d_%H%M}_{areaname:s}_ctth_static.{format}"
               - format: jpg
                 writer: simple_image
@@ -393,8 +389,6 @@ class TestSaveDatasets(TestCase):
                                 'dispatch': [{
                                     'hostname': 'ftp.important_client.com',
                                     'scheme': 'ftp',
-                                    'username': 'ic_login',
-                                    'password': 'very_secure_password',
                                     'path': '/somewhere/{platform_name:s}_{start_time:%Y%m%d_%H%M}_{areaname:s}_ctth_static.{format}',  # noqa
                                  }],
                              },
@@ -1079,7 +1073,7 @@ class TestFilePublisher(TestCase):
                     self.assertEqual(mda['source'],
                                      '/tmp/satdmz/pps/www/latest_2018/NOAA-15_20190217_0600_euron1_in_fname_ctth_static.png')  # noqa
                     self.assertEqual(mda['target'],
-                                     'ftp://ic_login:very_secure_password@ftp.important_client.com/somewhere/NOAA-15_20190217_0600_euron1_in_fname_ctth_static.png')  # noqa
+                                     'ftp://ftp.important_client.com/somewhere/NOAA-15_20190217_0600_euron1_in_fname_ctth_static.png')  # noqa
                     dispatches += 1
             self.assertEqual(dispatches, 1)
 
