@@ -4,7 +4,6 @@ python:
   - "3.7"
 install:
   - pip install codecov pytest pytest-cov
-  - pip install .
 script:
   - pytest --cov=./
 after_success:
