@@ -20,6 +20,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
+"""Test plugins."""
 
 import unittest
 import os
@@ -180,7 +181,7 @@ product_list:
         products:
           cloudtype:
             productname: cloudtype_in_fname
-            output_dir: /tmp/satdmz/pps/www/latest_2018/
+            output_dir: /tmp/satdmz/pps/www/latest_2018/{orig_platform_name}/
             formats:
               - format: png
                 writer: simple_image
@@ -206,18 +207,101 @@ input_mda = {'orig_platform_name': 'noaa15', 'orbit_number': 7993,
              'end_time': dt.datetime(2019, 2, 17, 6, 15, 10, 400000), 'etfrac': 4, 'status': 'OK',
              'format': 'CF', 'data_processing_level': '2', 'orbit': 7993, 'module': 'ppsMakePhysiography',
              'platform_name': 'NOAA-15', 'pps_version': 'v2018', 'file_was_already_processed': False,
-             'dataset': [{'uri': '/home/a001673/data/satellite/test_trollflow2/S_NWC_CMA_noaa15_07993_20190217T0600111Z_20190217T0615104Z.nc',
+             'dataset': [{'uri': '/home/a001673/data/satellite/test_trollflow2/S_NWC_CMA_noaa15_07993_20190217T0600111Z_20190217T0615104Z.nc',  # noqa
                           'uid': 'S_NWC_CMA_noaa15_07993_20190217T0600111Z_20190217T0615104Z.nc'},
-                         {'uri': '/home/a001673/data/satellite/test_trollflow2/S_NWC_CTTH_noaa15_07993_20190217T0600111Z_20190217T0615104Z.nc',
+                         {'uri': '/home/a001673/data/satellite/test_trollflow2/S_NWC_CTTH_noaa15_07993_20190217T0600111Z_20190217T0615104Z.nc',  # noqa
                           'uid': 'S_NWC_CTTH_noaa15_07993_20190217T0600111Z_20190217T0615104Z.nc'},
-                         {'uri': '/home/a001673/data/satellite/test_trollflow2/S_NWC_CT_noaa15_07993_20190217T0600111Z_20190217T0615104Z.nc',
+                         {'uri': '/home/a001673/data/satellite/test_trollflow2/S_NWC_CT_noaa15_07993_20190217T0600111Z_20190217T0615104Z.nc',  # noqa
                           'uid': 'S_NWC_CT_noaa15_07993_20190217T0600111Z_20190217T0615104Z.nc'}],
              'sensor': ['avhrr']}
 
 
 class TestSaveDatasets(TestCase):
+    """Test case for saving datasets."""
+
+    def test_prepared_filename(self):
+        """Test the `prepared_filename` context."""
+        from trollflow2.plugins import prepared_filename
+        tst_file = 'hi.png'
+
+        renames = {}
+        fmat = {'fname_pattern': tst_file}
+        with prepared_filename(fmat, renames) as filename:
+            pass
+        self.assertEqual(filename, tst_file)
+        self.assertEqual(len(renames), 0)
+
+        renames = {}
+        fmat = {'use_tmp_file': False, 'fname_pattern': tst_file}
+        with prepared_filename(fmat, renames) as filename:
+            pass
+        self.assertEqual(filename, tst_file)
+        self.assertEqual(len(renames), 0)
+
+        renames = {}
+        fmat = {'use_tmp_file': True, 'fname_pattern': tst_file}
+        with prepared_filename(fmat, renames) as filename:
+            pass
+        self.assertTrue(filename.startswith, 'tmp')
+        self.assertEqual(len(renames), 1)
+        self.assertEqual(list(renames.values())[0], tst_file)
+
+        renames = {}
+        fmat = {'use_tmp_file': True, 'fname_pattern': tst_file}
+        try:
+            with prepared_filename(fmat, renames) as filename:
+                raise KeyError('Oh no!')
+        except KeyError:
+            pass
+        self.assertTrue(filename.startswith, 'tmp')
+        self.assertEqual(len(renames), 0)
+
+        tst_dir = os.path.normpath('/tmp/bleh')
+        renames = {}
+        fmat = {'use_tmp_file': True, 'fname_pattern': tst_file, 'output_dir': tst_dir}
+        with prepared_filename(fmat, renames) as filename:
+            pass
+        self.assertTrue(filename.startswith, 'tmp')
+        self.assertEqual(len(renames), 1)
+        self.assertEqual(list(renames.values())[0], os.path.join(tst_dir, tst_file))
+
+        self.assertTrue(os.path.exists(tst_dir))
+        os.rmdir(tst_dir)
+
+    def test_prepare_filename_and_directory(self):
+        """Test filename composition and directory creation."""
+        from trollflow2.plugins import _prepare_filename_and_directory
+        tst_file = 'goes_{name}.png'
+        tst_dir = os.path.normpath('/tmp/bleh/{service}')
+        fmat = {'use_tmp_file': True, 'fname_pattern': tst_file, 'output_dir': tst_dir,
+                'name': 'mooh', 'service': 'cow'}
+        directory, filename = _prepare_filename_and_directory(fmat)
+        self.assertEqual(filename, os.path.normpath('/tmp/bleh/cow/goes_mooh.png'))
+        self.assertTrue(os.path.exists(directory))
+        os.rmdir(directory)
+
+    def test_get_temp_filename(self):
+        """Test temp filename generation."""
+        from trollflow2.plugins import _get_temp_filename
+
+        # Test uniqueness
+        class FakeFO():
+            def __init__(self, name):
+                self.name = name
+
+            def close(self):
+                pass
+
+        tst_dir = ''
+        with mock.patch('trollflow2.plugins.NamedTemporaryFile') as ntf:
+            ntf.side_effect = [FakeFO('cu'), FakeFO('cu'), FakeFO('mb'), FakeFO('er')]
+            names = []
+            for _i_ in range(3):
+                names.append(_get_temp_filename(tst_dir, names))
+            self.assertEqual(''.join(names), 'cumber')
 
     def test_save_datasets(self):
+        """Test saving datasets."""
         self.maxDiff = None
         from trollflow2.plugins import save_datasets
         job = {}
@@ -228,15 +312,16 @@ class TestSaveDatasets(TestCase):
         job['resampled_scenes'] = {}
         for area in job['product_list']['product_list']['areas']:
             job['resampled_scenes'][area] = mock.Mock()
-        with mock.patch('trollflow2.plugins.compute_writer_results') as cwr,\
-                mock.patch('trollflow2.plugins.DatasetID') as dsid:
+        with mock.patch('trollflow2.plugins.compute_writer_results'),\
+                mock.patch('trollflow2.plugins.DatasetID') as dsid,\
+                mock.patch('os.rename') as rename:
             save_datasets(job)
 
             expected_sd = [mock.call(dsid.return_value, compute=False,
-                                     filename='/tmp/satdmz/pps/www/latest_2018/NOAA-15_20190217_0600_euron1_in_fname_ctth_static.png',
+                                     filename='/tmp/satdmz/pps/www/latest_2018/NOAA-15_20190217_0600_euron1_in_fname_ctth_static.png',  # noqa
                                      format='png', writer='simple_image'),
                            mock.call(dsid.return_value, compute=False,
-                                     filename='/tmp/satdmz/pps/www/latest_2018/NOAA-15_20190217_0600_euron1_in_fname_ctth_static.jpg',
+                                     filename='/tmp/satdmz/pps/www/latest_2018/NOAA-15_20190217_0600_euron1_in_fname_ctth_static.jpg',  # noqa
                                      fill_value=0, format='jpg', writer='simple_image'),
                            mock.call(dsid.return_value, compute=False,
                                      filename='/tmp/NOAA-15_20190217_0600_omerc_bb_ct.nc',
@@ -260,6 +345,7 @@ class TestSaveDatasets(TestCase):
             self.assertTrue(os.path.basename(kwargs['filename']).startswith('tmp'))
             for ds, eds in zip(dsid.mock_calls, expected_dsid):
                 self.assertEqual(ds, eds)
+            rename.assert_called_once()
 
         dexpected = {
             'output_dir': '/tmp/satnfs/polar_out/pps2018/direct_readout/',
@@ -280,16 +366,16 @@ class TestSaveDatasets(TestCase):
                     'min_coverage': 20.0,
                     'products': {
                         'cloud_top_height': {
-                            'fname_pattern': '{platform_name:s}_{start_time:%Y%m%d_%H%M}_{areaname:s}_ctth_static.{format}',
+                            'fname_pattern': '{platform_name:s}_{start_time:%Y%m%d_%H%M}_{areaname:s}_ctth_static.{format}',  # noqa
                             'formats':
                             [{
-                                'filename': '/tmp/satdmz/pps/www/latest_2018/NOAA-15_20190217_0600_euron1_in_fname_ctth_static.png',
+                                'filename': '/tmp/satdmz/pps/www/latest_2018/NOAA-15_20190217_0600_euron1_in_fname_ctth_static.png',  # noqa
                                 'format': 'png',
                                 'writer': 'simple_image'
                             },
                              {
                                  'filename':
-                                 '/tmp/satdmz/pps/www/latest_2018/NOAA-15_20190217_0600_euron1_in_fname_ctth_static.jpg',
+                                 '/tmp/satdmz/pps/www/latest_2018/NOAA-15_20190217_0600_euron1_in_fname_ctth_static.jpg',  # noqa
                                  'fill_value':
                                  0,
                                  'format':
@@ -315,14 +401,14 @@ class TestSaveDatasets(TestCase):
                         'cloudtype': {
                             'formats': [{
                                 'filename':
-                                '/tmp/satdmz/pps/www/latest_2018/20190217_0600_germ_in_fname_cloudtype_in_fname.png',
+                                '/tmp/satdmz/pps/www/latest_2018/noaa15/20190217_0600_germ_in_fname_cloudtype_in_fname.png',  # noqa
                                 'format':
                                 'png',
                                 'writer':
                                 'simple_image'
                             }],
                             'output_dir':
-                            '/tmp/satdmz/pps/www/latest_2018/',
+                            '/tmp/satdmz/pps/www/latest_2018/{orig_platform_name}/',
                             'productname':
                             'cloudtype_in_fname'
                         }
@@ -366,8 +452,10 @@ class TestSaveDatasets(TestCase):
 
 
 class TestCreateScene(TestCase):
+    """Test case for creating a scene."""
 
     def test_create_scene(self):
+        """Test making a scene."""
         from trollflow2.plugins import create_scene
         with mock.patch("trollflow2.plugins.Scene") as scene:
             scene.return_value = "foo"
@@ -384,12 +472,15 @@ class TestCreateScene(TestCase):
 
 
 class TestLoadComposites(TestCase):
+    """Test case for loading composites."""
 
     def setUp(self):
+        """Set up the test case."""
         super().setUp()
         self.product_list = yaml.load(yaml_test1, Loader=UnsafeLoader)
 
     def test_load_composites(self):
+        """Test loading composites."""
         from trollflow2.plugins import load_composites
         scn = mock.MagicMock()
         job = {"product_list": self.product_list, "scene": scn}
@@ -397,6 +488,7 @@ class TestLoadComposites(TestCase):
         scn.load.assert_called_with({'ct', 'cloudtype', 'cloud_top_height'}, resolution=None, generate=False)
 
     def test_load_composites_with_config(self):
+        """Test loading composites with a config."""
         from trollflow2.plugins import load_composites
         scn = mock.MagicMock()
         self.product_list['product_list']['resolution'] = 1000
@@ -406,6 +498,7 @@ class TestLoadComposites(TestCase):
         scn.load.assert_called_with({'ct', 'cloudtype', 'cloud_top_height'}, resolution=1000, generate=True)
 
     def test_load_composites_with_different_resolutions(self):
+        """Test loading composites with different resolutions."""
         from trollflow2.plugins import load_composites
         scn = mock.MagicMock()
         self.product_list['product_list']['resolution'] = 1000
@@ -417,14 +510,16 @@ class TestLoadComposites(TestCase):
         scn.load.assert_any_call({'cloud_top_height'}, resolution=500, generate=True)
 
 
-
 class TestResample(TestCase):
+    """Test case for resampling."""
 
     def setUp(self):
+        """Set up the test case."""
         super().setUp()
         self.product_list = yaml.load(yaml_test1, Loader=UnsafeLoader)
 
     def test_resample(self):
+        """Test resampling."""
         from trollflow2.plugins import resample
         scn = mock.MagicMock()
         scn.resample.return_value = "foo"
@@ -474,6 +569,7 @@ class TestResample(TestCase):
                         scn.resample.mock_calls)
 
     def test_resample_satproj(self):
+        """Test keeping the satellite projection."""
         from trollflow2.plugins import resample
         scn = mock.MagicMock()
         scn.resample.return_value = "foo"
@@ -504,6 +600,7 @@ class TestResample(TestCase):
             self.assertTrue(job["resampled_scenes"][area] == "foo")
 
     def test_minmax_area(self):
+        """Test the min and max areas."""
         from trollflow2.plugins import resample
         scn = mock.MagicMock()
         scn.resample.return_value = "foo"
@@ -541,6 +638,7 @@ class TestSunlightCovers(TestCase):
     """Test the sunlight coverage."""
 
     def setUp(self):
+        """Set up the test case."""
         super().setUp()
         self.product_list = yaml.load(yaml_test1, Loader=UnsafeLoader)
         self.input_mda = {"platform_name": "NOAA-15",
@@ -550,10 +648,11 @@ class TestSunlightCovers(TestCase):
                           }
 
     def test_coverage(self):
+        """Test sunlight coverage."""
         from trollflow2.plugins import _get_sunlight_coverage
         import numpy as np
         with mock.patch('trollflow2.plugins.AreaDefBoundary') as area_def_boundary,\
-                mock.patch('trollflow2.plugins.get_twilight_poly') as get_twilight_poly:
+                mock.patch('trollflow2.plugins.get_twilight_poly'):
 
             area_def_boundary.return_value.contour_poly.intersection.return_value.area.return_value = 0.02
             area_def_boundary.return_value.contour_poly.area.return_value = 0.2
@@ -563,8 +662,10 @@ class TestSunlightCovers(TestCase):
 
 
 class TestCovers(TestCase):
+    """Test case for coverage checks."""
 
     def setUp(self):
+        """Set up the test case."""
         super().setUp()
         self.product_list = yaml.load(yaml_test1, Loader=UnsafeLoader)
         self.input_mda = {"platform_name": "NOAA-15",
@@ -575,6 +676,7 @@ class TestCovers(TestCase):
 
     @mock.patch('trollflow2.plugins.Pass', new=None)
     def test_covers_no_trollsched(self):
+        """Test coverage when pytroll schedule is missing."""
         from trollflow2.plugins import covers
         job_orig = {"foo": "bar"}
         job = job_orig.copy()
@@ -582,6 +684,7 @@ class TestCovers(TestCase):
         self.assertEqual(job, job_orig)
 
     def test_covers(self):
+        """Test coverage."""
         from trollflow2.plugins import covers
         with mock.patch('trollflow2.plugins.get_scene_coverage') as get_scene_coverage,\
                 mock.patch('trollflow2.plugins.Pass'):
@@ -612,6 +715,7 @@ class TestCovers(TestCase):
                                                   'avhrr-4', 'omerc_bb')
 
     def test_scene_coverage(self):
+        """Test scene coverage."""
         from trollflow2.plugins import get_scene_coverage
         with mock.patch('trollflow2.plugins.get_area_def') as get_area_def,\
                 mock.patch('trollflow2.plugins.Pass') as ts_pass:
@@ -628,6 +732,7 @@ class TestCovers(TestCase):
             area_coverage.assert_called_with(6)
 
     def test_covers_collection_area_id(self):
+        """Test the coverage of a collection area id."""
         from trollflow2.plugins import covers
         from trollflow2.plugins import AbortProcessing
         with mock.patch('trollflow2.plugins.get_scene_coverage') as get_scene_coverage,\
@@ -654,8 +759,10 @@ class TestCovers(TestCase):
 
 
 class TestCheckPlatform(TestCase):
+    """Test case for checking the platform."""
 
     def test_check_platform(self):
+        """Test checking the platform."""
         from trollflow2.plugins import check_platform
         from trollflow2.plugins import AbortProcessing
         with mock.patch('trollflow2.plugins.get_config_value') as get_config_value:
@@ -670,8 +777,10 @@ class TestCheckPlatform(TestCase):
 
 
 class TestMetadataAlias(TestCase):
+    """Test case for metadata alias."""
 
     def test_metadata_alias(self):
+        """Test metadata aliasing."""
         from trollflow2.plugins import metadata_alias
         mda = {'platform_name': 'noaa15', 'not_changed': True}
         product_list = {'common': {'not_metadata_aliases': True}}
@@ -691,20 +800,23 @@ class TestMetadataAlias(TestCase):
         self.assertTrue('not_in_mda' not in mda)
 
     def test_iterable_metadata(self):
+        """Test that iterable metadata gets replaced."""
         from trollflow2.plugins import metadata_alias
         mda = {'sensor': ('a/b',), 'foo': set(['c/d'])}
         product_list = {'common': {'metadata_aliases':
                                    {'sensor': {'a/b': 'a-b'},
-                                    'foo': {'c/d': 'c\d'}}}}
+                                    'foo': {'c/d': 'c-d'}}}}
         job = {'input_mda': mda, 'product_list': product_list}
         metadata_alias(job)
         self.assertEqual(job['input_mda']['sensor'], ('a-b',))
-        self.assertEqual(job['input_mda']['foo'], set(['c\d']))
+        self.assertEqual(job['input_mda']['foo'], set(['c-d']))
 
 
 class TestGetPluginConf(TestCase):
+    """Test case for get_plugin_conf."""
 
     def test_get_plugin_conf(self):
+        """Test the get_plugin_conf function."""
         from trollflow2.plugins import _get_plugin_conf
         conf = {"common": {"val1": "foo1"},
                 "product_list": {"val2": "bar2"}}
@@ -720,8 +832,10 @@ class TestGetPluginConf(TestCase):
 
 
 class TestSZACheck(TestCase):
+    """Test case for SZA check."""
 
     def test_sza_check(self):
+        """Test the SZA check."""
         from trollflow2.plugins import sza_check
         with mock.patch("trollflow2.plugins.sun_zenith_angle") as sun_zenith_angle:
             job = {}
@@ -764,8 +878,10 @@ class TestSZACheck(TestCase):
 
 
 class TestCheckSunlightCoverage(TestCase):
+    """Test case for sunlight coverage."""
 
     def setUp(self):
+        """Set up the test case."""
         super().setUp()
         self.product_list = yaml.load(yaml_test3, Loader=UnsafeLoader)
         self.input_mda = {"platform_name": "NOAA-15",
@@ -776,10 +892,11 @@ class TestCheckSunlightCoverage(TestCase):
                           }
 
     def test_product_not_loaded(self):
+        """Test that product isn't loaded when sunlight coverage is to low."""
         from trollflow2.plugins import check_sunlight_coverage
         from trollflow2.plugins import metadata_alias
         with mock.patch('trollflow2.plugins.Pass') as ts_pass,\
-                mock.patch('trollflow2.plugins.get_twilight_poly') as get_twilight_poly,\
+                mock.patch('trollflow2.plugins.get_twilight_poly'),\
                 mock.patch("trollflow2.plugins._get_sunlight_coverage") as _get_sunlight_coverage:
             job = {}
             scene = mock.MagicMock()
@@ -801,12 +918,15 @@ class TestCheckSunlightCoverage(TestCase):
 
 
 class TestOverviews(TestCase):
+    """Test case for overviews."""
 
     def setUp(self):
+        """Set up the test case."""
         super().setUp()
         self.product_list = yaml.load(yaml_test1)
 
     def test_add_overviews(self):
+        """Test adding overviews."""
         from trollflow2.plugins import add_overviews
         with mock.patch('trollflow2.plugins.Resampling') as resampling,\
                 mock.patch('trollflow2.plugins.rasterio') as rasterio:
@@ -826,8 +946,10 @@ class TestOverviews(TestCase):
 
 
 class TestFilePublisher(TestCase):
+    """Test case for File publisher."""
 
     def setUp(self):
+        """Set up the test case."""
         super().setUp()
         self.product_list = yaml.load(yaml_test2, Loader=UnsafeLoader)
         # Skip omerc_bb are, there's no fname_pattern
@@ -836,6 +958,7 @@ class TestFilePublisher(TestCase):
         self.input_mda['uri'] = 'foo.nc'
 
     def test_filepublisher_with_compose(self):
+        """Test filepublisher with compose."""
         from trollflow2.plugins import FilePublisher
         from trollflow2.dict_tools import plist_iter
         from trollsift import compose
@@ -866,13 +989,14 @@ class TestFilePublisher(TestCase):
             pub.pub.stop.assert_called()
             i = 0
             for area in job['product_list']['product_list']['areas']:
-                for prod in job['product_list']['product_list']['areas'][area]:
+                for _prod in job['product_list']['product_list']['areas'][area]:
                     # Skip calls to __str__
                     if 'call().__str__()' != str(message.mock_calls[i]):
                         self.assertTrue(topics[i] in str(message.mock_calls[i]))
                         i += 1
 
     def test_filepublisher_without_compose(self):
+        """Test filepublisher without compose."""
         from trollflow2.plugins import FilePublisher
         from trollflow2.dict_tools import plist_iter
         from trollsift import compose
@@ -903,7 +1027,7 @@ class TestFilePublisher(TestCase):
             pub.pub.stop.assert_called()
             i = 0
             for area in job['product_list']['product_list']['areas']:
-                for prod in job['product_list']['product_list']['areas'][area]:
+                for _prod in job['product_list']['product_list']['areas'][area]:
                     # Skip calls to __str__
                     if 'call().__str__()' != str(message.mock_calls[i]):
                         self.assertTrue(topics[i] in str(message.mock_calls[i]))
@@ -911,7 +1035,7 @@ class TestFilePublisher(TestCase):
 
 
 def suite():
-    """The test suite for test_writers."""
+    """Test suite for test_writers."""
     loader = unittest.TestLoader()
     my_suite = unittest.TestSuite()
     my_suite.addTest(loader.loadTestsFromTestCase(TestSaveDatasets))
