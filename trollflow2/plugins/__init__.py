@@ -171,6 +171,7 @@ def prepared_filename(fmat, renames):
 
 def save_dataset(scns, fmat, fmat_config, renames):
     """Save one dataset to file, not doing the actual computation."""
+    obj = None
     try:
         with prepared_filename(fmat, renames) as filename:
             res = fmat.get('resolution', None)
@@ -212,7 +213,9 @@ def save_datasets(job):
 
     with renamed_files() as renames:
         for fmat, fmat_config in plist_iter(job['product_list']['product_list'], base_config):
-            objs.append(save_dataset(scns, fmat, fmat_config, renames))
+            obj = save_dataset(scns, fmat, fmat_config, renames)
+            if obj is not None:
+                objs.append(obj)
 
         compute_writer_results(objs)
 
