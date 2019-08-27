@@ -250,8 +250,6 @@ class FilePublisher(object):
         """Create a uri from dispatch info."""
         path = compose(ditem['path'], fmat)
         netloc = ditem.get('hostname', '')
-        if 'username' in ditem:
-            netloc = ':'.join([ditem['username'], ditem['password']]) + '@' + netloc
 
         return urlunsplit((ditem.get('scheme', ''), netloc, path, '', ''))
 
