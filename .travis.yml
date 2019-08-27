@@ -3,7 +3,7 @@ python:
   - "3.6"
   - "3.7"
 install:
-  - pip install codecov pytest pytest-cov
+  - pip install codecov pytest pytest-cov pyyaml dpath trollsift
 script:
   - pytest --cov=./
 after_success:
