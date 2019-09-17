@@ -239,12 +239,22 @@ class FilePublisher(object):
     def create_message(fmat, mda):
         """Create a message topic and mda."""
         topic_pattern = fmat["publish_topic"]
-
         file_mda = mda.copy()
 
-        file_mda['uri'] = fmat['filename']
+        file_mda['uri'] = os.path.abspath(fmat['filename'])
 
         file_mda['uid'] = os.path.basename(fmat['filename'])
+        file_mda['product'] = fmat['product']
+        file_mda['productname'] = fmat['productname']
+        file_mda['area'] = fmat['area']
+        file_mda['areaname'] = fmat['areaname']
+        file_mda['format'] = fmat['format']
+        for extra_info in ['area_coverage_percent', 'area_sunlight_coverage_percent']:
+            try:
+                file_mda[extra_info] = fmat[extra_info]
+            except KeyError:
+                pass
+
         topic = compose(topic_pattern, fmat)
         return topic, file_mda
 
@@ -336,7 +346,7 @@ def covers(job):
 
         cov = get_scene_coverage(platform_name, start_time, end_time,
                                  sensor, area)
-
+        product_list['product_list']['areas'][area]['area_coverage_percent'] = cov
         if cov < min_coverage:
             LOG.info(
                 "Area coverage %.2f %% below threshold %.2f %%",
@@ -484,6 +494,7 @@ def check_sunlight_coverage(job):
             if min_day is None:
                 continue
             coverage = _get_sunlight_coverage(area_def, start_time, overpass)
+            product_list['product_list']['areas'][area]['area_sunlight_coverage_percent'] = coverage * 100
             if coverage < (min_day / 100.0):
                 LOG.info("Not enough sunlight coverage in "
                          "product '%s', removed.", product)
