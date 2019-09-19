@@ -39,7 +39,7 @@ master_doc = 'index'
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = ['sphinx.ext.autodoc',
-    'sphinx.ext.todo']
+              'sphinx.ext.todo']
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -160,6 +160,3 @@ texinfo_documents = [
      author, 'Trollflow2', 'One line description of project.',
      'Miscellaneous'),
 ]
-
-
-
