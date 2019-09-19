@@ -1,5 +1,5 @@
 .. Trollflow2 documentation master file, created by
-   sphinx-quickstart on Mon Apr  8 19:25:50 2019.
+   sphinx-quickstart on Thu Sep 19 23:01:42 2019.
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
@@ -15,17 +15,27 @@ Trollflow2 is a batch runner for Satpy.
 
 See the example playlist (`pl.yaml`) for inspiration.
 
+The launcher
+------------
+
+.. automodule:: trollflow2.launcher
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 Available plugins
 -----------------
 
-.. currentmodule:: trollflow2.plugins
+.. currentmodule:: trollflow2.plugings
 
 The `check_sunlight_coverage` plugin
 ************************************
 
-.. autofunction:: check_sunlight_coverage
+.. function:: check_sunlight_coverage
 
 
+              
 Product list
 ------------
 
