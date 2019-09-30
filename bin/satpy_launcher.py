@@ -59,6 +59,6 @@ if __name__ == "__main__":
         from satpy.utils import debug_on
         debug_on()
 
-    LOG = getLogger(__name__)
+    LOG = getLogger("satpy_launcher")
 
     run(prod_list, topics=topics, test_message=test_message)
