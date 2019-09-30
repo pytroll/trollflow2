@@ -22,19 +22,40 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 """Test plugins."""
 
-import unittest
+import ast
+import datetime as dt
 import os
+import re
+import unittest
+from unittest import mock
+
 import yaml
+
+from trollflow2.tests.utils import TestCase
+
 try:
     from yaml import UnsafeLoader
 except ImportError:
     from yaml import Loader as UnsafeLoader
 
-from unittest import mock
 
-import datetime as dt
+def tuple_constructor(loader, node):
+    """Construct a tuple."""
+    def parse_tup_el(el):
+        return ast.literal_eval(el.strip())
+    value = loader.construct_scalar(node)
+    tup_elements = value[1:-1].split(',')
+    if tup_elements[-1] == '':
+        tup_elements.pop(-1)
+    tup = tuple((parse_tup_el(el) for el in tup_elements))
+    return tup
 
-from trollflow2.tests.utils import TestCase
+
+tuple_regex = r'\( *([\w.]+|"[\w\s.]*") *(, *([\w.]+|"[\w\s.]*") *)*((, *([\w.]+|"[\w\s.]*") *)|(, *))\)'
+yaml.add_constructor(u'!tuple', tuple_constructor, UnsafeLoader)
+yaml.add_implicit_resolver(u'!tuple', re.compile(tuple_regex), None, UnsafeLoader)
+
+
 yaml_test1 = """
 product_list:
   something: foo
@@ -187,6 +208,12 @@ product_list:
                 writer: simple_image
                 fill_value: 0
             fname_pattern: "{platform_name:s}_{start_time:%Y%m%d_%H%M}_{areaname:s}_ctth_static.{format}"
+          ("ct", "ctth"):
+            productname: ct_and_ctth
+            output_dir: /tmp/satdmz/pps/www/latest_2018/
+            formats:
+              - format: nc
+                writer: cf
 
       germ:
         areaname: germ_in_fname
@@ -330,7 +357,6 @@ class TestSaveDatasets(TestCase):
                 mock.patch('trollflow2.plugins.DatasetID') as dsid,\
                 mock.patch('os.rename') as rename:
             save_datasets(job)
-
             expected_sd = [mock.call(dsid.return_value, compute=False,
                                      filename='/tmp/satdmz/pps/www/latest_2018/NOAA-15_20190217_0600_euron1_in_fname_ctth_static.png',  # noqa
                                      format='png', writer='simple_image'),
@@ -344,8 +370,13 @@ class TestSaveDatasets(TestCase):
                                      filename='/tmp/NOAA-15_20190217_0600_omerc_bb_cloud_top_height.tif',
                                      format='tif', writer='geotiff')
                            ]
+            expected_sds = [mock.call(datasets=[dsid.return_value, dsid.return_value], compute=False,
+                            filename='/tmp/satdmz/pps/www/latest_2018/NOAA-15_20190217_0600_euron1_in_fname_ct_and_ctth.nc',  # noqa
+                            writer='cf')]
             expected_dsid = [mock.call(name='cloud_top_height', resolution=None, modifiers=None),
                              mock.call(name='cloud_top_height', resolution=None, modifiers=None),
+                             mock.call(name='ct', resolution=None, modifiers=None),
+                             mock.call(name='ctth', resolution=None, modifiers=None),
                              mock.call(name='cloudtype', resolution=None, modifiers=None),
                              mock.call(name='ct', resolution=None, modifiers=None),
                              mock.call(name='cloud_top_height', resolution=500, modifiers=None)
@@ -355,6 +386,9 @@ class TestSaveDatasets(TestCase):
                         + job['resampled_scenes']['omerc_bb'].save_dataset.mock_calls)
             for sd, esd in zip(sd_calls, expected_sd):
                 self.assertEqual(sd, esd)
+            sds_calls = job['resampled_scenes']['euron1'].save_datasets.mock_calls
+            for sds, esds in zip(sds_calls, expected_sds):
+                self.assertDictEqual(sds[2], esds[2])
             args, kwargs = job['resampled_scenes']['germ'].save_dataset.call_args_list[0]
             self.assertTrue(os.path.basename(kwargs['filename']).startswith('tmp'))
             for ds, eds in zip(dsid.mock_calls, expected_dsid):
@@ -406,7 +440,17 @@ class TestSaveDatasets(TestCase):
                             '/tmp/satdmz/pps/www/latest_2018/',
                             'productname':
                             'cloud_top_height_in_fname'
-                        }
+                        },
+                        ('ct', 'ctth'): {
+                            'formats':
+                            [{
+                                'filename': '/tmp/satdmz/pps/www/latest_2018/NOAA-15_20190217_0600_euron1_in_fname_ct_and_ctth.nc',  # noqa
+                                'format': 'nc',
+                                'writer': 'cf'
+                            }],
+                            'output_dir': '/tmp/satdmz/pps/www/latest_2018/',
+                            'productname': 'ct_and_ctth'
+                        },
                     }
                 },
                 'germ': {
