@@ -78,7 +78,7 @@ Example
               - format: png
                 writer: simple_image
                 fname_pattern: "{start_time:%Y%m%d_%H%M}_{platform_name:s}_{productname:s}_{variant:s}.{format}"
-          ("1", "2"):
+          ("1", "2"):  # This will load both channels one and two, but will keep them together when being saved to a single file.
             productname: visible_channels
             formats:
               - format: nc
