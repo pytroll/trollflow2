@@ -27,8 +27,6 @@ import os
 import unittest
 from unittest import mock
 
-from trollflow2.launcher import yaml, UnsafeLoader
-
 from trollflow2.tests.utils import TestCase
 
 
@@ -320,6 +318,7 @@ class TestSaveDatasets(TestCase):
     def test_save_datasets(self):
         """Test saving datasets."""
         self.maxDiff = None
+        from trollflow2.launcher import yaml, UnsafeLoader
         from trollflow2.plugins import save_datasets
         job = {}
         job['input_mda'] = input_mda
@@ -516,6 +515,7 @@ class TestLoadComposites(TestCase):
     def setUp(self):
         """Set up the test case."""
         super().setUp()
+        from trollflow2.launcher import yaml, UnsafeLoader
         self.product_list = yaml.load(yaml_test1, Loader=UnsafeLoader)
 
     def test_load_composites(self):
@@ -555,6 +555,7 @@ class TestResample(TestCase):
     def setUp(self):
         """Set up the test case."""
         super().setUp()
+        from trollflow2.launcher import yaml, UnsafeLoader
         self.product_list = yaml.load(yaml_test1, Loader=UnsafeLoader)
 
     def test_resample(self):
@@ -679,6 +680,7 @@ class TestSunlightCovers(TestCase):
     def setUp(self):
         """Set up the test case."""
         super().setUp()
+        from trollflow2.launcher import yaml, UnsafeLoader
         self.product_list = yaml.load(yaml_test1, Loader=UnsafeLoader)
         self.input_mda = {"platform_name": "NOAA-15",
                           "sensor": "avhrr-3",
@@ -706,6 +708,7 @@ class TestCheckSunlightCoverage(TestCase):
     def setUp(self):
         """Set up the test case."""
         super().setUp()
+        from trollflow2.launcher import yaml, UnsafeLoader
         self.product_list = yaml.load(yaml_test3, Loader=UnsafeLoader)
         self.input_mda = {"platform_name": "NOAA-15",
                           "sensor": "avhrr-3",
@@ -746,6 +749,7 @@ class TestCovers(TestCase):
     def setUp(self):
         """Set up the test case."""
         super().setUp()
+        from trollflow2.launcher import yaml, UnsafeLoader
         self.product_list = yaml.load(yaml_test1, Loader=UnsafeLoader)
         self.input_mda = {"platform_name": "NOAA-15",
                           "sensor": "avhrr-3",
@@ -921,6 +925,7 @@ class TestSZACheck(TestCase):
             scene = mock.MagicMock()
             scene.attrs = {'start_time': 42}
             job['scene'] = scene
+            from trollflow2.launcher import yaml, UnsafeLoader
             product_list = yaml.load(yaml_test1, Loader=UnsafeLoader)
             job['product_list'] = product_list.copy()
             # Run without any settings
@@ -962,6 +967,7 @@ class TestOverviews(TestCase):
     def setUp(self):
         """Set up the test case."""
         super().setUp()
+        from trollflow2.launcher import yaml
         self.product_list = yaml.load(yaml_test1)
 
     def test_add_overviews(self):
@@ -990,6 +996,7 @@ class TestFilePublisher(TestCase):
     def setUp(self):
         """Set up the test case."""
         super().setUp()
+        from trollflow2.launcher import yaml, UnsafeLoader
         self.product_list = yaml.load(yaml_test_publish, Loader=UnsafeLoader)
         # Skip omerc_bb area, there's no fname_pattern
         del self.product_list['product_list']['areas']['omerc_bb']
