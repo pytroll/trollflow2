@@ -485,18 +485,23 @@ def check_sunlight_coverage(job):
             config = get_config_value(product_list, prod_path, "sunlight_coverage")
             if config is None:
                 continue
-            min_day = config['min']
+            min_day = config.get('min')
+            max_day = config.get('max')
             use_pass = config.get('check_pass', False)
             if use_pass:
                 overpass = Pass(platform_name, start_time, end_time, instrument=sensor)
             else:
                 overpass = None
-            if min_day is None:
+            if min_day is None and max_day is None:
                 continue
             coverage = _get_sunlight_coverage(area_def, start_time, overpass)
             product_list['product_list']['areas'][area]['area_sunlight_coverage_percent'] = coverage * 100
-            if coverage < (min_day / 100.0):
+            if min_day is not None and coverage < (min_day / 100.0):
                 LOG.info("Not enough sunlight coverage in "
+                         "product '%s', removed.", product)
+                dpath.util.delete(product_list, prod_path)
+            if max_day is not None and coverage > (max_day / 100.0):
+                LOG.info("Too much sunlight coverage in "
                          "product '%s', removed.", product)
                 dpath.util.delete(product_list, prod_path)
 
