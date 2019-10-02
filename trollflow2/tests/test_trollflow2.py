@@ -22,38 +22,14 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 """Test plugins."""
 
-import ast
 import datetime as dt
 import os
-import re
 import unittest
 from unittest import mock
 
-import yaml
+from trollflow2.launcher import yaml, UnsafeLoader
 
 from trollflow2.tests.utils import TestCase
-
-try:
-    from yaml import UnsafeLoader
-except ImportError:
-    from yaml import Loader as UnsafeLoader
-
-
-def tuple_constructor(loader, node):
-    """Construct a tuple."""
-    def parse_tup_el(el):
-        return ast.literal_eval(el.strip())
-    value = loader.construct_scalar(node)
-    tup_elements = value[1:-1].split(',')
-    if tup_elements[-1] == '':
-        tup_elements.pop(-1)
-    tup = tuple((parse_tup_el(el) for el in tup_elements))
-    return tup
-
-
-tuple_regex = r'\( *([\w.]+|"[\w\s.]*") *(, *([\w.]+|"[\w\s.]*") *)*((, *([\w.]+|"[\w\s.]*") *)|(, *))\)'
-yaml.add_constructor(u'!tuple', tuple_constructor, UnsafeLoader)
-yaml.add_implicit_resolver(u'!tuple', re.compile(tuple_regex), None, UnsafeLoader)
 
 
 yaml_test1 = """
