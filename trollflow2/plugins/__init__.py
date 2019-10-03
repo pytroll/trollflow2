@@ -245,10 +245,12 @@ class FilePublisher(object):
 
         file_mda['uid'] = os.path.basename(fmat['filename'])
         file_mda['product'] = fmat['product']
-        file_mda['productname'] = fmat['productname']
         file_mda['area'] = fmat['area']
-        file_mda['areaname'] = fmat['areaname']
-        file_mda['format'] = fmat['format']
+        for key in ['productname', 'areaname', 'format']:
+            try:
+                file_mda[key] = fmat[key]
+            except KeyError:
+                pass
         for extra_info in ['area_coverage_percent', 'area_sunlight_coverage_percent']:
             try:
                 file_mda[extra_info] = fmat[extra_info]
