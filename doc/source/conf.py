@@ -15,6 +15,7 @@
 # import os
 # import sys
 # sys.path.insert(0, os.path.abspath('.'))
+import pyspectral.version as current_version
 import sys
 import os
 
@@ -108,8 +109,6 @@ source_suffix = '.rst'
 # The master toctree document.
 master_doc = 'index'
 
-
-import pyspectral.version as current_version
 
 # The full version, including alpha/beta/rc tags.
 release = current_version.get_versions()['version']
