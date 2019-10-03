@@ -81,7 +81,10 @@ def load_composites(job):
     composites_by_res = {}
     for flat_prod_cfg, _prod_cfg in plist_iter(job['product_list']['product_list'], level='product'):
         res = flat_prod_cfg.get('resolution', None)
-        composites_by_res.setdefault(res, set()).add(flat_prod_cfg['product'])
+        if isinstance(flat_prod_cfg['product'], (tuple, list, set)):
+            composites_by_res.setdefault(res, set()).update(flat_prod_cfg['product'])
+        else:
+            composites_by_res.setdefault(res, set()).add(flat_prod_cfg['product'])
     scn = job['scene']
     generate = job['product_list']['product_list'].get('delay_composites', True) is False
     for resolution, composites in composites_by_res.items():
@@ -176,12 +179,22 @@ def save_dataset(scns, fmat, fmat_config, renames):
     try:
         with prepared_filename(fmat, renames) as filename:
             res = fmat.get('resolution', None)
-            dsid = DatasetID(name=fmat['product'], resolution=res, modifiers=None)
             kwargs = fmat_config.copy()
+            kwargs.pop('fname_pattern', None)
             kwargs.pop('dispatch', None)
-            obj = scns[fmat['area']].save_dataset(dsid,
-                                                  filename=filename,
-                                                  compute=False, **kwargs)
+            if isinstance(fmat['product'], (tuple, list, set)):
+                kwargs.pop('format')
+                dsids = []
+                for prod in fmat['product']:
+                    dsids.append(DatasetID(name=prod, resolution=res, modifiers=None))
+                obj = scns[fmat['area']].save_datasets(datasets=dsids,
+                                                       filename=filename,
+                                                       compute=False, **kwargs)
+            else:
+                dsid = DatasetID(name=fmat['product'], resolution=res, modifiers=None)
+                obj = scns[fmat['area']].save_dataset(dsid,
+                                                      filename=filename,
+                                                      compute=False, **kwargs)
     except KeyError as err:
         LOG.info('Skipping %s: %s', fmat['productname'], str(err))
     else:
@@ -477,15 +490,20 @@ def check_sunlight_coverage(job):
         products = list(product_list['product_list']['areas'][area]['products'].keys())
         for product in products:
             try:
-                area_def = job['resampled_scenes'][area][product].attrs['area']
+                if isinstance(product, tuple):
+                    prod = job['resampled_scenes'][area][product[0]]
+                else:
+                    prod = job['resampled_scenes'][area][product]
             except KeyError:
                 LOG.warning("No dataset %s for this scene and area %s", product, area)
                 continue
+            else:
+                area_def = prod.attrs['area']
             prod_path = "/product_list/areas/%s/products/%s" % (area, product)
             config = get_config_value(product_list, prod_path, "sunlight_coverage")
             if config is None:
                 continue
-            min_day = config['min']
+            min_day = config.get('min')
             use_pass = config.get('check_pass', False)
             if use_pass:
                 overpass = Pass(platform_name, start_time, end_time, instrument=sensor)

@@ -35,13 +35,79 @@ The `check_sunlight_coverage` plugin
 .. function:: check_sunlight_coverage
 
 
-              
+
 Product list
 ------------
 
 * `resolution` is available only at the root and product levels
 * `productname`, `areaname` are the names to use for product and area in the
-  filename. If not provided, they default to the actual product and area names. 
+  filename. If not provided, they default to the actual product and area names.
+
+Example
+*******
+
+.. code-block:: yaml
+
+  product_list:
+    output_dir: &output_dir
+      "/data/{variant}/"
+    use_extern_calib: false
+    fname_pattern: &fname
+      "{platform_name}_{start_time:%Y%m%d_%H%M}_{areaname}_{productname}.{format}"
+    publish_topic: /raster/2A/avhrr
+    reader: avhrr_l1b_aapp
+    mask_area: True
+    delay_composites: True
+    use_tmp_file: True
+    metadata_aliases:
+      variant:
+        EARS: regional
+        DR: direct_readout
+    min_coverage: 25
+    areas:
+      baws:
+        areaname: baws
+        products:
+          overview_sun:
+            sunlight_coverage:
+              min: 10
+              check_pass: True
+            productname: overview
+            output_dir: "/data/some/other/place"
+            formats:
+              - format: png
+                writer: simple_image
+                fname_pattern: "{start_time:%Y%m%d_%H%M}_{platform_name:s}_{productname:s}_{variant:s}.{format}"
+          ("1", "2"):  # This will load both channels one and two, but will keep them together when being saved to a single file.
+            productname: visible_channels
+            formats:
+              - format: nc
+                writer: cf
+                fname_pattern: "{start_time:%Y%m%d_%H%M}_{platform_name:s}_{productname:s}_{variant:s}.{format}"
+          green_snow:
+            sunlight_coverage:
+              min: 10
+              check_pass: True
+            productname: green_snow
+            formats:
+              - format: tif
+                writer: geotiff
+                fname_pattern: "{start_time:%Y%m%d_%H%M}_{platform_name:s}_{productname:s}_{variant:s}.{format}"
+          natural_color_sun:
+            sunlight_coverage:
+              min: 10
+              check_pass: True
+            productname: natural_color
+            formats:
+              - format: tif
+                writer: geotiff
+                fname_pattern: "{start_time:%Y%m%d_%H%M}_{platform_name:s}_natural_{variant:s}.{format}"
+          cloudtop:
+            productname: cloudtop
+            formats:
+              - format: tif
+                writer: geotiff
+                fname_pattern: "{start_time:%Y%m%d_%H%M}_{platform_name:s}_{productname:s}_{variant:s}.{format}"
 
 
 
