@@ -183,7 +183,7 @@ def save_dataset(scns, fmat, fmat_config, renames):
                                                   filename=filename,
                                                   compute=False, **kwargs)
     except KeyError as err:
-        LOG.info('Skipping %s: %s', fmat['productname'], str(err))
+        LOG.info('Skipping %s: %s', fmat['product'], str(err))
     else:
         fmat_config['filename'] = renames.get(filename, filename)
     return obj
