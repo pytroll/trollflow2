@@ -20,6 +20,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
+"""Test the launcher module."""
 
 import unittest
 import yaml
@@ -115,8 +116,10 @@ product_list:
 
 
 class TestGetAreaPriorities(TestCase):
+    """Test case for area priorities."""
 
     def test_get_area_priorities(self):
+        """Test getting the area priorities."""
         from trollflow2.launcher import get_area_priorities
         prodlist = yaml.load(yaml_test1, Loader=UnsafeLoader)
 
@@ -131,8 +134,10 @@ class TestGetAreaPriorities(TestCase):
 
 
 class TestMessageToJobs(TestCase):
+    """Test case for converting a message to jobs."""
 
     def test_message_to_jobs(self):
+        """Test converting message to jobs."""
         from trollflow2.launcher import message_to_jobs
         prodlist = yaml.load(yaml_test1, Loader=UnsafeLoader)
         msg = mock.MagicMock()
@@ -157,6 +162,7 @@ class TestMessageToJobs(TestCase):
         self.assertTrue('germ' in jobs[999]['product_list']['product_list']['areas'])
 
     def test_message_to_jobs_minimal(self):
+        """Test converting a message to minimal jobs."""
         from trollflow2.launcher import message_to_jobs
         prodlist = yaml.load(yaml_test_minimal, Loader=UnsafeLoader)
         msg = mock.MagicMock()
@@ -181,14 +187,16 @@ class TestMessageToJobs(TestCase):
         self.assertIn('output_dir', jobs[999]['product_list']['product_list'])
 
 
-
 class TestRun(TestCase):
+    """Test case for running the plugins."""
 
     def setUp(self):
+        """Set up the test case."""
         super().setUp()
         self.config = yaml.load(yaml_test1, Loader=UnsafeLoader)
 
     def test_run(self):
+        """Test running."""
         from trollflow2.launcher import run
         with mock.patch('trollflow2.launcher.yaml.load') as yaml_load,\
                 mock.patch('trollflow2.launcher.open'),\
@@ -224,6 +232,7 @@ class TestRun(TestCase):
             lc_.assert_called_with(topics=['/topic3'])
 
     def test_run_keyboard_interrupt(self):
+        """Test interrupting the run with a ctrl-C."""
         from trollflow2.launcher import run
         with mock.patch('trollflow2.launcher.yaml.load'),\
                 mock.patch('trollflow2.launcher.open'),\
@@ -238,7 +247,10 @@ class TestRun(TestCase):
 
 
 class TestExpand(TestCase):
+    """Test expanding the product list."""
+
     def test_expand(self):
+        """Test expanding the product list."""
         from trollflow2.launcher import expand
         inside = {'a': 'b'}
         outside = {'c': inside, 'd': inside}
@@ -247,8 +259,10 @@ class TestExpand(TestCase):
 
 
 class TestProcess(TestCase):
+    """Test case for the subprocessing."""
 
     def test_process(self):
+        """Test subprocessing."""
         from trollflow2.launcher import process
         with mock.patch('trollflow2.launcher.traceback') as traceback,\
                 mock.patch('trollflow2.launcher.sendmail') as sendmail,\
@@ -293,19 +307,6 @@ class TestProcess(TestCase):
             # Test failure in yaml.load(), e.g. bad formatting
             open_.side_effect = yaml.YAMLError
             process("msg", "prod_list")
-
-
-def suite():
-    """The test suite for test_writers."""
-    loader = unittest.TestLoader()
-    my_suite = unittest.TestSuite()
-    my_suite.addTest(loader.loadTestsFromTestCase(TestGetAreaPriorities))
-    my_suite.addTest(loader.loadTestsFromTestCase(TestMessageToJobs))
-    my_suite.addTest(loader.loadTestsFromTestCase(TestRun))
-    my_suite.addTest(loader.loadTestsFromTestCase(TestProcess))
-    my_suite.addTest(loader.loadTestsFromTestCase(TestExpand))
-
-    return my_suite
 
 
 if __name__ == '__main__':

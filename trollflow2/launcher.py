@@ -20,13 +20,19 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
+"""The launcher module.
+
+This delegate the actual running of the plugins to a subprocess to avoid any
+memory buildup.
+"""
+
 
 from logging import getLogger
 try:
     from posttroll.listener import ListenerContainer
 except ImportError:
     ListenerContainer = None
-from six.moves.queue import Empty as queue_empty
+from six.moves.queue import Empty
 
 import yaml
 try:
@@ -43,20 +49,12 @@ from six.moves.urllib.parse import urlparse
 import traceback
 import gc
 
-"""The order of basic things is:
-- Create the scene
-- Generate the composites
-- Resample
-- Save to file
-"""
-
 LOG = getLogger("launcher")
 DEFAULT_PRIORITY = 999
 
 
 def get_test_message(test_message_file):
-    """Read file and retrieve the test message"""
-
+    """Read file and retrieve the test message."""
     msg = None
     if test_message_file:
         with open(test_message_file) as fpt:
@@ -66,7 +64,7 @@ def get_test_message(test_message_file):
 
 
 def run(prod_list, topics=None, test_message=None):
-
+    """Spawn one or multiple subprocesses to run the jobs from the product list."""
     tmessage = get_test_message(test_message)
     if tmessage:
         from threading import Thread as Process
@@ -91,7 +89,7 @@ def run(prod_list, topics=None, test_message=None):
             if not tmessage:
                 listener.stop()
             return
-        except queue_empty:
+        except Empty:
             continue
 
         proc = Process(target=process, args=(msg, prod_list))
