@@ -20,43 +20,58 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
+"""Launcher for trollflow2."""
 
+import ast
+import copy
+import gc
+import re
+import traceback
+from collections import OrderedDict
 from logging import getLogger
+
+import yaml
+from six.moves.queue import Empty
+from six.moves.urllib.parse import urlparse
+
+from trollflow2.dict_tools import gen_dict_extract, plist_iter
+from trollflow2.plugins import AbortProcessing
+
 try:
     from posttroll.listener import ListenerContainer
 except ImportError:
     ListenerContainer = None
-from six.moves.queue import Empty as queue_empty
 
-import yaml
 try:
     from yaml import UnsafeLoader, BaseLoader
 except ImportError:
     from yaml import Loader as UnsafeLoader
     from yaml import BaseLoader
 
-from trollflow2.dict_tools import gen_dict_extract, plist_iter
-from trollflow2.plugins import AbortProcessing
-from collections import OrderedDict
-import copy
-from six.moves.urllib.parse import urlparse
-import traceback
-import gc
-
-"""The order of basic things is:
-- Create the scene
-- Generate the composites
-- Resample
-- Save to file
-"""
 
 LOG = getLogger("launcher")
 DEFAULT_PRIORITY = 999
 
 
-def get_test_message(test_message_file):
-    """Read file and retrieve the test message"""
+def tuple_constructor(loader, node):
+    """Construct a tuple."""
+    def parse_tup_el(el):
+        return ast.literal_eval(el.strip())
+    value = loader.construct_scalar(node)
+    tup_elements = value[1:-1].split(',')
+    if tup_elements[-1] == '':
+        tup_elements.pop(-1)
+    tup = tuple((parse_tup_el(el) for el in tup_elements))
+    return tup
 
+
+tuple_regex = r'\( *([\w.]+|"[\w\s.]*") *(, *([\w.]+|"[\w\s.]*") *)*((, *([\w.]+|"[\w\s.]*") *)|(, *))\)'
+yaml.add_constructor(u'!tuple', tuple_constructor, UnsafeLoader)
+yaml.add_implicit_resolver(u'!tuple', re.compile(tuple_regex), None, UnsafeLoader)
+
+
+def get_test_message(test_message_file):
+    """Read file and retrieve the test message."""
     msg = None
     if test_message_file:
         with open(test_message_file) as fpt:
@@ -66,7 +81,7 @@ def get_test_message(test_message_file):
 
 
 def run(prod_list, topics=None, test_message=None):
-
+    """Run."""
     tmessage = get_test_message(test_message)
     if tmessage:
         from threading import Thread as Process
@@ -91,7 +106,7 @@ def run(prod_list, topics=None, test_message=None):
             if not tmessage:
                 listener.stop()
             return
-        except queue_empty:
+        except Empty:
             continue
 
         proc = Process(target=process, args=(msg, prod_list))
