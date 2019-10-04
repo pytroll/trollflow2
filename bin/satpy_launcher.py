@@ -26,11 +26,7 @@ from logging import getLogger
 import argparse
 
 from trollflow2.launcher import run
-from satpy.utils import debug_on
-debug_on()
-
-LOG = getLogger(__name__)
-
+import logging
 
 if __name__ == "__main__":
 
@@ -45,10 +41,24 @@ if __name__ == "__main__":
     parser.add_argument("--test_message", '-m',
                         help="File path with the message used for testing offline",
                         type=str, required=False)
+    parser.add_argument("--log-config", '-c',
+                        help="Log config file (yaml) to use",
+                        type=str, required=False)
 
     args = parser.parse_args()
     prod_list = args.product_list
     test_message = args.test_message
     topics = args.topic
+
+    if args.log_config is not None:
+        with open(args.log_config) as fd:
+            import yaml
+            log_dict = yaml.load(fd.read())
+            logging.config.dictConfig(log_dict)
+    else:
+        from satpy.utils import debug_on
+        debug_on()
+
+    LOG = getLogger("satpy_launcher")
 
     run(prod_list, topics=topics, test_message=test_message)
