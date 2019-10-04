@@ -57,7 +57,7 @@ HANDLERS = {}
 
 
 def register_vcs_handler(vcs, method):  # decorator
-    """Decorator to mark a method as the handler for a particular VCS."""
+    """Decorate to mark a method as the handler for a particular VCS."""
     def decorate(f):
         """Store f in HANDLERS[vcs][method]."""
         if vcs not in HANDLERS:
@@ -113,7 +113,7 @@ def versions_from_parentdir(parentdir_prefix, root, verbose):
     """
     rootdirs = []
 
-    for i in range(3):
+    for _i in range(3):
         dirname = os.path.basename(root)
         if dirname.startswith(parentdir_prefix):
             return {"version": dirname[len(parentdir_prefix):],
@@ -180,8 +180,8 @@ def git_versions_from_keywords(keywords, tag_prefix, verbose):
     refs = set([r.strip() for r in refnames.strip("()").split(",")])
     # starting in git-1.8.3, tags are listed as "tag: foo-1.0" instead of
     # just "foo-1.0". If we see a "tag: " prefix, prefer those.
-    TAG = "tag: "
-    tags = set([r[len(TAG):] for r in refs if r.startswith(TAG)])
+    tag = "tag: "
+    tags = set([r[len(tag):] for r in refs if r.startswith(tag)])
     if not tags:
         # Either we're using git < 1.8.3, or there really are no tags. We use
         # a heuristic: assume all version tags have a digit. The old git %d
@@ -221,11 +221,11 @@ def git_pieces_from_vcs(tag_prefix, root, verbose, run_command=run_command):
     expanded, and _version.py hasn't already been rewritten with a short
     version string, meaning we're inside a checked out source tree.
     """
-    GITS = ["git"]
+    gits = ["git"]
     if sys.platform == "win32":
-        GITS = ["git.cmd", "git.exe"]
+        gits = ["git.cmd", "git.exe"]
 
-    out, rc = run_command(GITS, ["rev-parse", "--git-dir"], cwd=root,
+    out, rc = run_command(gits, ["rev-parse", "--git-dir"], cwd=root,
                           hide_stderr=True)
     if rc != 0:
         if verbose:
@@ -234,7 +234,7 @@ def git_pieces_from_vcs(tag_prefix, root, verbose, run_command=run_command):
 
     # if there is a tag matching tag_prefix, this yields TAG-NUM-gHEX[-dirty]
     # if there isn't one, this yields HEX[-dirty] (no NUM)
-    describe_out, rc = run_command(GITS, ["describe", "--tags", "--dirty",
+    describe_out, rc = run_command(gits, ["describe", "--tags", "--dirty",
                                           "--always", "--long",
                                           "--match", "%s*" % tag_prefix],
                                    cwd=root)
@@ -242,7 +242,7 @@ def git_pieces_from_vcs(tag_prefix, root, verbose, run_command=run_command):
     if describe_out is None:
         raise NotThisMethod("'git describe' failed")
     describe_out = describe_out.strip()
-    full_out, rc = run_command(GITS, ["rev-parse", "HEAD"], cwd=root)
+    full_out, rc = run_command(gits, ["rev-parse", "HEAD"], cwd=root)
     if full_out is None:
         raise NotThisMethod("'git rev-parse' failed")
     full_out = full_out.strip()
@@ -293,12 +293,12 @@ def git_pieces_from_vcs(tag_prefix, root, verbose, run_command=run_command):
     else:
         # HEX: no tags
         pieces["closest-tag"] = None
-        count_out, rc = run_command(GITS, ["rev-list", "HEAD", "--count"],
+        count_out, rc = run_command(gits, ["rev-list", "HEAD", "--count"],
                                     cwd=root)
         pieces["distance"] = int(count_out)  # total number of commits
 
     # commit date: see ISO-8601 comment in git_versions_from_keywords()
-    date = run_command(GITS, ["show", "-s", "--format=%ci", "HEAD"],
+    date = run_command(gits, ["show", "-s", "--format=%ci", "HEAD"],
                        cwd=root)[0].strip()
     pieces["date"] = date.strip().replace(" ", "T", 1).replace(" ", "", 1)
 
@@ -495,7 +495,7 @@ def get_versions():
         # versionfile_source is the relative path from the top of the source
         # tree (where the .git directory might live) to this file. Invert
         # this to find the root from __file__.
-        for i in cfg.versionfile_source.split('/'):
+        for _i in cfg.versionfile_source.split('/'):
             root = os.path.dirname(root)
     except NameError:
         return {"version": "0+unknown", "full-revisionid": None,

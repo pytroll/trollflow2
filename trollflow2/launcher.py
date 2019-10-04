@@ -20,7 +20,12 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
-"""Launcher for trollflow2."""
+"""The launcher module.
+
+This delegate the actual running of the plugins to a subprocess to avoid any
+memory buildup.
+"""
+
 
 import ast
 import copy
@@ -81,7 +86,7 @@ def get_test_message(test_message_file):
 
 
 def run(prod_list, topics=None, test_message=None):
-    """Run."""
+    """Spawn one or multiple subprocesses to run the jobs from the product list."""
     tmessage = get_test_message(test_message)
     if tmessage:
         from threading import Thread as Process

@@ -22,6 +22,7 @@
 
 import dpath
 
+
 def plist_iter(product_list, base_mda=None, level=None):
     """Iterate over the product list at a configurable level.
 
@@ -54,7 +55,7 @@ def plist_iter(product_list, base_mda=None, level=None):
             if level == 'product':
                 yield pconfig, prod_config
                 continue
-            for idx, file_config in enumerate(pconfig.get('formats', [{'format': 'tif', 'writer': 'geotiff'}])):
+            for file_config in pconfig.get('formats', [{'format': 'tif', 'writer': 'geotiff'}]):
                 fconfig = pconfig.copy()
                 fconfig.pop('formats', None)
                 fconfig.update(file_config)
@@ -77,9 +78,9 @@ def gen_dict_extract(var, key):
 
 
 def get_config_value(config, path, key, default=None):
-    """Get the most local config value for key *key* starting from the
-    dictionary path *path*. If nothing is found, path "/common/" is
-    also checked, and if still nothing is found, return *default*.
+    """Get the most local config value for key *key* starting from the dictionary path *path*.
+
+    If nothing is found, path "/common/" is also checked, and if still nothing is found, return *default*.
     """
     path_parts = path.split('/')
     # Loop starting from the current path, and continue upwards

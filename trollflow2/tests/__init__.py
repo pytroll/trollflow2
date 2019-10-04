@@ -15,26 +15,4 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
-
-import sys
-import logging
-import unittest
-
-from trollflow2.tests import (test_trollflow2, test_launcher, test_dict_tools)
-
-
-def suite():
-    """The global test suite.
-    """
-    logging.basicConfig(level=logging.DEBUG)
-
-    mysuite = unittest.TestSuite()
-    mysuite.addTests(test_trollflow2.suite())
-    mysuite.addTests(test_launcher.suite())
-    mysuite.addTests(test_dict_tools.suite())
-
-    return mysuite
-
-
-def load_tests(loader, tests, pattern):
-    return suite()
+"""Init for tests."""
