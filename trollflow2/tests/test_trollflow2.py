@@ -82,6 +82,8 @@ product_list:
   something: foo
   min_coverage: 5.0
   publish_topic: /raster/
+  extra_metadata:
+    processing_center: SMHI
   areas:
       euron1:
         areaname: euron1_in_fname
@@ -1040,6 +1042,7 @@ class TestFilePublisher(TestCase):
                     if 'call().__str__()' != str(message.mock_calls[i]):
                         self.assertTrue(topics[i] in str(message.mock_calls[i]))
                         i += 1
+            self.assertEqual(message.call_args[0][2]['processing_center'], 'SMHI')
 
     def test_filepublisher_without_compose(self):
         """Test filepublisher without compose."""
@@ -1103,27 +1106,6 @@ class TestFilePublisher(TestCase):
                                      'ftp://ftp.important_client.com/somewhere/NOAA-15_20190217_0600_euron1_in_fname_ctth_static.png')  # noqa
                     dispatches += 1
             self.assertEqual(dispatches, 1)
-
-
-def suite():
-    """Test suite for test_writers."""
-    loader = unittest.TestLoader()
-    my_suite = unittest.TestSuite()
-    my_suite.addTest(loader.loadTestsFromTestCase(TestSaveDatasets))
-    my_suite.addTest(loader.loadTestsFromTestCase(TestCreateScene))
-    my_suite.addTest(loader.loadTestsFromTestCase(TestLoadComposites))
-    my_suite.addTest(loader.loadTestsFromTestCase(TestResample))
-    my_suite.addTest(loader.loadTestsFromTestCase(TestCovers))
-    my_suite.addTest(loader.loadTestsFromTestCase(TestCheckPlatform))
-    my_suite.addTest(loader.loadTestsFromTestCase(TestMetadataAlias))
-    my_suite.addTest(loader.loadTestsFromTestCase(TestGetPluginConf))
-    my_suite.addTest(loader.loadTestsFromTestCase(TestSZACheck))
-    my_suite.addTest(loader.loadTestsFromTestCase(TestSunlightCovers))
-    my_suite.addTest(loader.loadTestsFromTestCase(TestCheckSunlightCoverage))
-    my_suite.addTest(loader.loadTestsFromTestCase(TestOverviews))
-    my_suite.addTest(loader.loadTestsFromTestCase(TestFilePublisher))
-
-    return my_suite
 
 
 if __name__ == '__main__':

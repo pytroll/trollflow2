@@ -253,6 +253,7 @@ class FilePublisher(object):
         """Create a message topic and mda."""
         topic_pattern = fmat["publish_topic"]
         file_mda = mda.copy()
+        file_mda.update(fmat.get('extra_metadata', {}))
 
         file_mda['uri'] = os.path.abspath(fmat['filename'])
 
