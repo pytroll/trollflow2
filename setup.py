@@ -24,17 +24,27 @@
 """Setup for trollflow2."""
 
 from setuptools import setup
-import versioneer
 import sys
+
+try:
+    # HACK: https://github.com/pypa/setuptools_scm/issues/190#issuecomment-351181286
+    # Stop setuptools_scm from including all repository files
+    import setuptools_scm.integration
+    setuptools_scm.integration.find_files = lambda _: []
+except ImportError:
+    pass
+
 
 install_requires = ['pyyaml', 'dpath', 'trollsift']
 if "test" not in sys.argv:
     install_requires += ['posttroll', 'satpy', 'pyorbital']
 
-setup(name="trollflow2",
-      version=versioneer.get_version(),
-      cmdclass=versioneer.get_cmdclass(),
+NAME = 'trollflow2'
+README = open('README.md', 'r').read()
+
+setup(name=NAME,
       description='Pytroll workflow execution framework',
+      long_description=README,
       author='Martin Raspaud',
       author_email='martin.raspaud@smhi.se',
       classifiers=["Development Status :: 4 - Beta",
