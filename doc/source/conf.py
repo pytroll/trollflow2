@@ -20,8 +20,6 @@
 # import sys
 # sys.path.insert(0, os.path.abspath('.'))
 
-import sys
-import os
 from pkg_resources import get_distribution
 
 # The version info for the project you're documenting, acts as replacement for
