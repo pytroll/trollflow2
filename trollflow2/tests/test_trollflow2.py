@@ -1082,7 +1082,7 @@ class TestFilePublisher(TestCase):
     def test_filepublisher_kwargs(self):
         """Test filepublisher keyword argument usage."""
         from trollflow2.plugins import FilePublisher
-        with mock.patch('trollflow2.plugins.Message') as message, mock.patch('trollflow2.plugins.NoisyPublisher') as nb_:
+        with mock.patch('trollflow2.plugins.Message'), mock.patch('trollflow2.plugins.NoisyPublisher') as nb_:
             pub = FilePublisher()
             pub.pub.start.assert_called_once()
             assert mock.call('l2processor', nameservers=None) in nb_.mock_calls
