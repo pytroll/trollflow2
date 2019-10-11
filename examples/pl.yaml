@@ -150,6 +150,9 @@ workers:
   - fun: !!python/name:trollflow2.plugins.resample
   - fun: !!python/name:trollflow2.plugins.save_datasets
   - fun: !!python/object:trollflow2.plugins.FilePublisher {}
+  # Or add "nameservers" kwarg
+  # - fun: !!python/object:trollflow2.plugins.FilePublisher {nameservers: [localhost]}
+
 
 # Things to run in case of a crash
 #crash_handlers:
