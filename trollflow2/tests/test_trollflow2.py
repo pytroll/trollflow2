@@ -1079,6 +1079,17 @@ class TestFilePublisher(TestCase):
                         self.assertTrue(topics[i] in str(message.mock_calls[i]))
                         i += 1
 
+    def test_filepublisher_kwargs(self):
+        """Test filepublisher keyword argument usage."""
+        from trollflow2.plugins import FilePublisher
+        with mock.patch('trollflow2.plugins.Message') as message, mock.patch('trollflow2.plugins.NoisyPublisher') as nb_:
+            pub = FilePublisher()
+            pub.pub.start.assert_called_once()
+            assert mock.call('l2processor', nameservers=None) in nb_.mock_calls
+            pub = FilePublisher(nameservers=['localhost'])
+            assert mock.call('l2processor',
+                             nameservers=['localhost']) in nb_.mock_calls
+
     def test_dispatch(self):
         """Test dispatch order messages."""
         from trollflow2.plugins import FilePublisher
