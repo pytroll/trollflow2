@@ -85,7 +85,8 @@ def get_test_message(test_message_file):
     return msg
 
 
-def run(prod_list, topics=None, test_message=None):
+def run(prod_list, topics=None, test_message=None, nameserver='localhost',
+        addresses=None):
     """Spawn one or multiple subprocesses to run the jobs from the product list."""
     tmessage = get_test_message(test_message)
     if tmessage:
@@ -99,7 +100,8 @@ def run(prod_list, topics=None, test_message=None):
     topics = topics or config['product_list'].pop('subscribe_topics', None)
 
     if not tmessage:
-        listener = ListenerContainer(topics=topics)
+        listener = ListenerContainer(topics=topics, nameserver=nameserver,
+                                     addresses=addresses)
 
     while True:
         try:

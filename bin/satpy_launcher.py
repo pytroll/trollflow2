@@ -28,8 +28,9 @@ import argparse
 from trollflow2.launcher import run
 import logging
 
-if __name__ == "__main__":
 
+def parse_args():
+    """Parse commandline arguments."""
     parser = argparse.ArgumentParser(
         description='Launch trollflow2 processing with Satpy listening on the specified Posttroll topic(s)')
     parser.add_argument("topic", nargs='*',
@@ -44,11 +45,25 @@ if __name__ == "__main__":
     parser.add_argument("--log-config", '-c',
                         help="Log config file (yaml) to use",
                         type=str, required=False)
+    parser.add_argument('-n', "--nameserver", required=False, type=str,
+                        help="Nameserver to connect to")
+    parser.add_argument('-a', "--addresses", required=False, type=str,
+                        help=("Direct TCP portconnections as comma-separated "
+                              "list: 'tcp://127.0.0.1:12345,tcp://123.456.789.0:9013'"))
 
-    args = parser.parse_args()
+    return parser.parse_args()
+
+
+def main():
+    """Launch trollflow2."""
+    args = parse_args()
     prod_list = args.product_list
     test_message = args.test_message
     topics = args.topic
+    nameserver = args.nameserver or "localhost"
+    addresses = args.addresses
+    if isinstance(addresses, str):
+        addresses = addresses.split(',')
 
     if args.log_config is not None:
         with open(args.log_config) as fd:
@@ -61,4 +76,9 @@ if __name__ == "__main__":
 
     LOG = getLogger("satpy_launcher")
 
-    run(prod_list, topics=topics, test_message=test_message)
+    run(prod_list, topics=topics, test_message=test_message,
+        nameserver=nameserver, addresses=addresses)
+
+
+if __name__ == "__main__":
+    main()
