@@ -46,10 +46,11 @@ def parse_args():
                         help="Log config file (yaml) to use",
                         type=str, required=False)
     parser.add_argument('-n', "--nameserver", required=False, type=str,
-                        help="Nameserver to connect to")
+                        help="Nameserver to connect to", default='localhost')
     parser.add_argument('-a', "--addresses", required=False, type=str,
-                        help=("Direct TCP portconnections as comma-separated "
-                              "list: 'tcp://127.0.0.1:12345,tcp://123.456.789.0:9013'"))
+                        help=("Add direct TCP port connection.  Can be used several times: "
+                              "'-a tcp://127.0.0.1:12345 -a tcp://123.456.789.0:9013'"),
+                        action="append")
 
     return parser.parse_args()
 
@@ -60,10 +61,8 @@ def main():
     prod_list = args.product_list
     test_message = args.test_message
     topics = args.topic
-    nameserver = args.nameserver or "localhost"
+    nameserver = args.nameserver
     addresses = args.addresses
-    if isinstance(addresses, str):
-        addresses = addresses.split(',')
 
     if args.log_config is not None:
         with open(args.log_config) as fd:
