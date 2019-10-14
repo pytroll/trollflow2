@@ -1085,9 +1085,9 @@ class TestFilePublisher(TestCase):
         with mock.patch('trollflow2.plugins.Message'), mock.patch('trollflow2.plugins.NoisyPublisher') as nb_:
             pub = FilePublisher()
             pub.pub.start.assert_called_once()
-            assert mock.call('l2processor', nameservers=None) in nb_.mock_calls
-            pub = FilePublisher(nameservers=['localhost'])
-            assert mock.call('l2processor',
+            assert mock.call('l2processor', port=0, nameservers=None) in nb_.mock_calls
+            pub = FilePublisher(port=40000, nameservers=['localhost'])
+            assert mock.call('l2processor', port=40000,
                              nameservers=['localhost']) in nb_.mock_calls
 
     def test_dispatch(self):
