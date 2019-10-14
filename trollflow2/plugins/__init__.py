@@ -328,7 +328,7 @@ def covers(job):
 
     col_area = job['product_list']['product_list'].get('coverage_by_collection_area', False)
     if col_area and 'collection_area_id' in job['input_mda']:
-        if job['input_mda']['collection_area_id'] not in job['product_list']['product_list']:
+        if job['input_mda']['collection_area_id'] not in job['product_list']['product_list']['areas']:
             raise AbortProcessing(
                 "Area collection ID '%s' does not match "
                 "production area(s) %s" % (job['input_mda']['collection_area_id'],
