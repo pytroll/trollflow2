@@ -240,11 +240,12 @@ class FilePublisher(object):
     """Publisher for generated files."""
 
     # todo add support for custom port and nameserver
-    def __new__(cls, nameservers=None):
+    def __new__(cls, port=0, nameservers=None):
         """Create new instance."""
         self = super().__new__(cls)
         LOG.debug('Starting publisher')
-        self.pub = NoisyPublisher('l2processor', nameservers=nameservers)
+        self.pub = NoisyPublisher('l2processor', port=port,
+                                  nameservers=nameservers)
         self.pub.start()
         return self
 
