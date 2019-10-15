@@ -239,7 +239,6 @@ def save_datasets(job):
 class FilePublisher(object):
     """Publisher for generated files."""
 
-    # todo add support for custom port and nameserver
     def __new__(cls, port=0, nameservers=None):
         """Create new instance."""
         self = super().__new__(cls)
