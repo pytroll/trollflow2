@@ -838,11 +838,15 @@ class TestCovers(TestCase):
             # By default collection_area_id isn't checked so nothing should happen
             job['input_mda']['collection_area_id'] = 'not_in_pl'
             covers(job)
-            # Turn coverage check on, so area not in the product list should raise
-            # AbortProcessing
+            # Turn coverage check on, so area not in the product list
+            # should raise AbortProcessing
             job['product_list']['product_list']['coverage_by_collection_area'] = True
             with self.assertRaises(AbortProcessing):
                 covers(job)
+
+            # And with existing area there shouldn't be an exception
+            job['input_mda']['collection_area_id'] = 'euron1'
+            covers(job)
 
 
 class TestCheckPlatform(TestCase):
