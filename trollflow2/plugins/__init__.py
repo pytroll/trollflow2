@@ -339,8 +339,9 @@ def covers(job):
         if job['input_mda']['collection_area_id'] not in job['product_list']['product_list']['areas']:
             raise AbortProcessing(
                 "Area collection ID '%s' does not match "
-                "production area(s) %s" % (job['input_mda']['collection_area_id'],
-                                           str(list(job['product_list']['product_list']))))
+                "production area(s) %s" % (
+                    job['input_mda']['collection_area_id'],
+                    str(list(job['product_list']['product_list']['areas']))))
 
     product_list = job['product_list'].copy()
 
