@@ -230,6 +230,10 @@ input_mda = {'orig_platform_name': 'noaa15', 'orbit_number': 7993,
                           'uid': 'S_NWC_CT_noaa15_07993_20190217T0600111Z_20190217T0615104Z.nc'}],
              'sensor': ['avhrr']}
 
+YAML_FILE_PUBLISHER = """
+!!python/object:trollflow2.plugins.FilePublisher {port: 40002, nameservers: [localhost]}
+"""
+
 
 class TestSaveDatasets(TestCase):
     """Test case for saving datasets."""
@@ -967,8 +971,8 @@ class TestOverviews(TestCase):
     def setUp(self):
         """Set up the test case."""
         super().setUp()
-        from trollflow2.launcher import yaml
-        self.product_list = yaml.load(yaml_test1)
+        from trollflow2.launcher import yaml, BaseLoader
+        self.product_list = yaml.load(yaml_test1, Loader=BaseLoader)
 
     def test_add_overviews(self):
         """Test adding overviews."""
@@ -1081,14 +1085,32 @@ class TestFilePublisher(TestCase):
 
     def test_filepublisher_kwargs(self):
         """Test filepublisher keyword argument usage."""
+        import yaml
         from trollflow2.plugins import FilePublisher
+
+        # Direct instantiation
         with mock.patch('trollflow2.plugins.Message'), mock.patch('trollflow2.plugins.NoisyPublisher') as nb_:
             pub = FilePublisher()
             pub.pub.start.assert_called_once()
             assert mock.call('l2processor', port=0, nameservers=None) in nb_.mock_calls
+            assert pub.port == 0
+            assert pub.nameservers is None
             pub = FilePublisher(port=40000, nameservers=['localhost'])
             assert mock.call('l2processor', port=40000,
                              nameservers=['localhost']) in nb_.mock_calls
+            assert pub.port == 40000
+            assert pub.nameservers == ['localhost']
+            assert len(pub.pub.start.mock_calls) == 2
+
+        # Instantiate via loading YAML
+        with mock.patch('trollflow2.plugins.Message'), mock.patch('trollflow2.plugins.NoisyPublisher') as nb_:
+
+            fpub = yaml.load(YAML_FILE_PUBLISHER, Loader=yaml.UnsafeLoader)
+            assert mock.call('l2processor', port=40002,
+                             nameservers=['localhost']) in nb_.mock_calls
+            fpub.pub.start.assert_called_once()
+            assert fpub.port == 40002
+            assert fpub.nameservers == ['localhost']
 
     def test_dispatch(self):
         """Test dispatch order messages."""

@@ -240,14 +240,21 @@ class FilePublisher(object):
     """Publisher for generated files."""
 
     # todo add support for custom port and nameserver
-    def __new__(cls, port=0, nameservers=None):
+    def __init__(self, port=0, nameservers=None):
         """Create new instance."""
-        self = super().__new__(cls)
+        self.pub = None
+        self.port = port
+        self.nameservers = nameservers
+        self.__setstate__({'port': port, 'nameservers': nameservers})
+
+    def __setstate__(self, kwargs):
+        """Set things running even when loading from YAML."""
         LOG.debug('Starting publisher')
-        self.pub = NoisyPublisher('l2processor', port=port,
-                                  nameservers=nameservers)
+        self.port = kwargs.get('port', 0)
+        self.nameservers = kwargs.get('nameservers', None)
+        self.pub = NoisyPublisher('l2processor', port=self.port,
+                                  nameservers=self.nameservers)
         self.pub.start()
-        return self
 
     @staticmethod
     def create_message(fmat, mda):
@@ -310,7 +317,8 @@ class FilePublisher(object):
                 self.pub.send(str(msg))
                 self.send_dispatch_messages(fmat, fmat_config, topic, file_mda)
         finally:
-            self.pub.stop()
+            if self.pub:
+                self.pub.stop()
 
     def __del__(self):
         """Stop the publisher when last reference is deleted."""
