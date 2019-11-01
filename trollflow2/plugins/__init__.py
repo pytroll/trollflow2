@@ -125,6 +125,7 @@ def resample(job):
             else:
                 job['resampled_scenes'][area] = scn
         else:
+            LOG.debug("area: %s, area_conf: %s", area, str(area_conf))
             job['resampled_scenes'][area] = scn.resample(area, **area_conf)
 
 
