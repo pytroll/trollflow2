@@ -183,6 +183,7 @@ def expand(yml):
 
 def process(msg, prod_list):
     """Process a message."""
+    config = {}
     try:
         with open(prod_list) as fid:
             config = yaml.load(fid.read(), Loader=UnsafeLoader)
