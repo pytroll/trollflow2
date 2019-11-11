@@ -332,6 +332,8 @@ class TestSaveDatasets(TestCase):
             'product_list': yaml.load(yaml_test_save, Loader=UnsafeLoader)['product_list'],
         }
         job['resampled_scenes'] = {}
+        the_queue = mock.MagicMock()
+        job['produced_files'] = the_queue
         for area in job['product_list']['product_list']['areas']:
             job['resampled_scenes'][area] = mock.Mock()
         with mock.patch('trollflow2.plugins.compute_writer_results'),\
