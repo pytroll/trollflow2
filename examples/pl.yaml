@@ -35,6 +35,9 @@ product_list: &product_list
   # Check area coverage by `collection_area_id` in the input metadata.
   #   Default: False
   # coverage_by_collection_area: True
+  # Add extra metadata to the published messages
+  # extra_metadata:
+  #   processing_center: SMHI
 
   areas:
     omerc_bb:
