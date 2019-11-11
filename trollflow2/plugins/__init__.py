@@ -123,6 +123,10 @@ def resample(job):
                 job['resampled_scenes'][area] = scn.resample(scn.max_area(),
                                                              **area_conf)
             else:
+                # The composites need to be created for the saving to work
+                if not set(scn.wishlist).issuperset(scn.wishlist):
+                    LOG.debug("Generating composites for 'null' area.")
+                    scn.load(scn.wishlist, generate=True)
                 job['resampled_scenes'][area] = scn
         else:
             LOG.debug("area: %s, area_conf: %s", area, str(area_conf))
