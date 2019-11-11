@@ -219,6 +219,22 @@ product_list:
               - format: tif
                 writer: geotiff
 """
+
+yaml_test_null_area = """
+product_list:
+  areas:
+      null:
+        areaname: foo
+        products:
+          cloud_top_height:
+            productname: ctth
+            output_dir: /tmp/
+            formats:
+              - format: png
+                writer: simple_image
+            fname_pattern: "{platform_name:s}_{start_time:%Y%m%d_%H%M}_{areaname:s}_ctth_static.{format}"
+"""
+
 input_mda = {'orig_platform_name': 'noaa15', 'orbit_number': 7993,
              'start_time': dt.datetime(2019, 2, 17, 6, 0, 11, 100000), 'stfrac': 1,
              'end_time': dt.datetime(2019, 2, 17, 6, 15, 10, 400000), 'etfrac': 4, 'status': 'OK',
@@ -678,6 +694,28 @@ class TestResample(TestCase):
                                   mask_area=False,
                                   epsilon=0.0) in
                         scn.resample.mock_calls)
+
+
+class TestResampleNullArea(TestCase):
+    """Test case for resampling."""
+
+    def setUp(self):
+        """Set up the test case."""
+        super().setUp()
+        from trollflow2.launcher import yaml, UnsafeLoader
+        self.product_list = yaml.load(yaml_test_null_area, Loader=UnsafeLoader)
+
+    def test_resample_null_area(self):
+        """Test handling a `None` area in resampling."""
+        from trollflow2.plugins import resample
+        scn = mock.MagicMock()
+        scn.datasets.keys.return_value = ['a', 'b', 'c']
+        scn.wishlist = {'abc'}
+        product_list = self.product_list.copy()
+        job = {"scene": scn, "product_list": product_list.copy()}
+        resample(job)
+        self.assertTrue(mock.call({'abc'}, generate=True) in
+                        scn.load.mock_calls)
 
 
 class TestSunlightCovers(TestCase):
