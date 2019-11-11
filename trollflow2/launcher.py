@@ -87,7 +87,7 @@ def get_test_message(test_message_file):
     return msg
 
 
-def check_results(produced_files, start_time):
+def check_results(produced_files, start_time, exitcode):
     """Make sure the composites have been saved."""
     end_time = datetime.now()
     error_detected = False
@@ -103,6 +103,12 @@ def check_results(produced_files, start_time):
                 error_detected = True
         except Empty:
             break
+    if exitcode != 0:
+        error_detected = True
+        if exitcode < 0:
+            LOG.error('Process killed with signal %d', -exitcode)
+        else:
+            LOG.error('Process crashed with exit code %d', exitcode)
     if not error_detected:
         ellapsed = end_time - start_time
         LOG.info('All files produced nominally in %s.', str(ellapsed), extra={'time': ellapsed})
@@ -145,7 +151,11 @@ def run(prod_list, topics=None, test_message=None, nameserver='localhost',
         start_time = datetime.now()
         proc.start()
         proc.join()
-        check_results(produced_files, start_time)
+        try:
+            exitcode = proc.exitcode
+        except AttributeError:
+            exitcode = 0
+        check_results(produced_files, start_time, exitcode)
         if tmessage:
             break
 
@@ -213,6 +223,12 @@ def process(msg, prod_list, produced_files):
     try:
         with open(prod_list) as fid:
             config = yaml.load(fid.read(), Loader=UnsafeLoader)
+    except (IOError, yaml.YAMLError):
+        # Either open() or yaml.load() failed
+        LOG.exception("Process crashed, check YAML file.")
+        raise
+
+    try:
         config = expand(config)
         jobs = message_to_jobs(msg, config)
         for prio in sorted(jobs.keys()):
@@ -225,21 +241,19 @@ def process(msg, prod_list, produced_files):
                     cwrk.pop('fun')(job, **cwrk)
             except AbortProcessing as err:
                 LOG.info(str(err))
-    except (IOError, yaml.YAMLError):
-        # Either open() or yaml.load() failed
-        LOG.exception("Process crashed, check YAML file.")
-        return
     except Exception:
         LOG.exception("Process crashed")
         if "crash_handlers" in config:
             trace = traceback.format_exc()
             for hand in config['crash_handlers']['handlers']:
                 hand['fun'](config['crash_handlers']['config'], trace)
-
-    # Remove config and run garbage collection so all remaining
-    # references e.g. to FilePublisher should be removed
-    del config
-    gc.collect()
+        raise
+    finally:
+        # Remove config and run garbage collection so all remaining
+        # references e.g. to FilePublisher should be removed
+        LOG.debug('Cleaning up')
+        del config
+        gc.collect()
 
 
 def sendmail(config, trace):
