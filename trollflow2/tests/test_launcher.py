@@ -220,7 +220,8 @@ class TestRun(TestCase):
             Process.assert_called_with(args=('foo', prod_list), target=process)
             proc_ret.start.assert_called_once()
             proc_ret.join.assert_called_once()
-            lc_.assert_called_with(topics=['/topic1', '/topic2'])
+            lc_.assert_called_with(addresses=None, nameserver='localhost',
+                                   topics=['/topic1', '/topic2'])
             # Subscriber topics are removed from config
             self.assertTrue('subscribe_topics' not in self.config['product_list'])
             # Topics are given as command line option
@@ -229,7 +230,8 @@ class TestRun(TestCase):
                 run(prod_list, topics=['/topic3'])
             except KeyboardInterrupt:
                 pass
-            lc_.assert_called_with(topics=['/topic3'])
+            lc_.assert_called_with(addresses=None, nameserver='localhost',
+                                   topics=['/topic3'])
 
     def test_run_keyboard_interrupt(self):
         """Test interrupting the run with a ctrl-C."""

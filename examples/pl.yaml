@@ -153,6 +153,9 @@ workers:
   - fun: !!python/name:trollflow2.plugins.resample
   - fun: !!python/name:trollflow2.plugins.save_datasets
   - fun: !!python/object:trollflow2.plugins.FilePublisher {}
+  # Or add keyword arguments
+  # - fun: !!python/object:trollflow2.plugins.FilePublisher {port: 40002, nameservers: [localhost]}
+
 
 # Things to run in case of a crash
 #crash_handlers:

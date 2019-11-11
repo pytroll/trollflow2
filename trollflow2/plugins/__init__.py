@@ -125,6 +125,7 @@ def resample(job):
             else:
                 job['resampled_scenes'][area] = scn
         else:
+            LOG.debug("area: %s, area_conf: %s", area, str(area_conf))
             job['resampled_scenes'][area] = scn.resample(area, **area_conf)
 
 
@@ -239,14 +240,21 @@ def save_datasets(job):
 class FilePublisher(object):
     """Publisher for generated files."""
 
-    # todo add support for custom port and nameserver
-    def __new__(cls):
+    def __init__(self, port=0, nameservers=None):
         """Create new instance."""
-        self = super().__new__(cls)
+        self.pub = None
+        self.port = port
+        self.nameservers = nameservers
+        self.__setstate__({'port': port, 'nameservers': nameservers})
+
+    def __setstate__(self, kwargs):
+        """Set things running even when loading from YAML."""
         LOG.debug('Starting publisher')
-        self.pub = NoisyPublisher('l2processor')
+        self.port = kwargs.get('port', 0)
+        self.nameservers = kwargs.get('nameservers', None)
+        self.pub = NoisyPublisher('l2processor', port=self.port,
+                                  nameservers=self.nameservers)
         self.pub.start()
-        return self
 
     @staticmethod
     def create_message(fmat, mda):
@@ -310,7 +318,8 @@ class FilePublisher(object):
                 self.pub.send(str(msg))
                 self.send_dispatch_messages(fmat, fmat_config, topic, file_mda)
         finally:
-            self.pub.stop()
+            if self.pub:
+                self.pub.stop()
 
     def __del__(self):
         """Stop the publisher when last reference is deleted."""
@@ -332,8 +341,9 @@ def covers(job):
         if job['input_mda']['collection_area_id'] not in job['product_list']['product_list']['areas']:
             raise AbortProcessing(
                 "Area collection ID '%s' does not match "
-                "production area(s) %s" % (job['input_mda']['collection_area_id'],
-                                           str(list(job['product_list']['product_list']))))
+                "production area(s) %s" % (
+                    job['input_mda']['collection_area_id'],
+                    str(list(job['product_list']['product_list']['areas']))))
 
     product_list = job['product_list'].copy()
 
