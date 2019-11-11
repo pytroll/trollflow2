@@ -30,9 +30,11 @@ memory buildup.
 import ast
 import copy
 import gc
+import os
 import re
 import traceback
 from collections import OrderedDict
+from datetime import datetime
 from logging import getLogger
 
 import yaml
@@ -54,7 +56,7 @@ except ImportError:
     from yaml import BaseLoader
 
 
-LOG = getLogger("launcher")
+LOG = getLogger(__name__)
 DEFAULT_PRIORITY = 999
 
 
@@ -85,15 +87,38 @@ def get_test_message(test_message_file):
     return msg
 
 
+def check_results(produced_files, start_time):
+    """Make sure the composites have been saved."""
+    end_time = datetime.now()
+    error_detected = False
+    while True:
+        try:
+            saved_file = produced_files.get(block=False)
+            try:
+                if os.path.getsize(saved_file) == 0:
+                    LOG.error("Empty file detected: %s", saved_file)
+                    error_detected = True
+            except FileNotFoundError:
+                LOG.error("Missing file: %s", saved_file)
+                error_detected = True
+        except Empty:
+            break
+    if not error_detected:
+        ellapsed = end_time - start_time
+        LOG.info('All files produced nominally in %s.', str(ellapsed), extra={'time': ellapsed})
+
+
 def run(prod_list, topics=None, test_message=None, nameserver='localhost',
         addresses=None):
     """Spawn one or multiple subprocesses to run the jobs from the product list."""
+    LOG.info("Launching trollflow2")
     tmessage = get_test_message(test_message)
     if tmessage:
         from threading import Thread as Process
+        from six.moves.queue import Queue
         from posttroll.message import Message
     else:
-        from multiprocessing import Process
+        from multiprocessing import Process, Queue
 
     with open(prod_list) as fid:
         config = yaml.load(fid.read(), Loader=BaseLoader)
@@ -115,10 +140,12 @@ def run(prod_list, topics=None, test_message=None, nameserver='localhost',
             return
         except Empty:
             continue
-
-        proc = Process(target=process, args=(msg, prod_list))
+        produced_files = Queue()
+        proc = Process(target=process, args=(msg, prod_list, produced_files))
+        start_time = datetime.now()
         proc.start()
         proc.join()
+        check_results(produced_files, start_time)
         if tmessage:
             break
 
@@ -164,7 +191,6 @@ def message_to_jobs(msg, product_list):
                     jobs[prio]['product_list'][section]['areas'][area] = product_list[section]['areas'][area]
             else:
                 jobs[prio]['product_list'][section] = product_list[section]
-
     return jobs
 
 
@@ -181,7 +207,7 @@ def expand(yml):
     return yml
 
 
-def process(msg, prod_list):
+def process(msg, prod_list, produced_files):
     """Process a message."""
     config = {}
     try:
@@ -192,6 +218,7 @@ def process(msg, prod_list):
         for prio in sorted(jobs.keys()):
             job = jobs[prio]
             job['processing_priority'] = prio
+            job['produced_files'] = produced_files
             try:
                 for wrk in config['workers']:
                     cwrk = wrk.copy()

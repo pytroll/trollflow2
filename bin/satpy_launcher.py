@@ -22,7 +22,6 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 """The satpy launcher."""
 
-from logging import getLogger
 import argparse
 
 from trollflow2.launcher import run
@@ -39,10 +38,10 @@ def parse_args():
     parser.add_argument("product_list",
                         help="The yaml file with the product list",
                         type=str)
-    parser.add_argument("--test_message", '-m',
+    parser.add_argument("-m", "--test_message",
                         help="File path with the message used for testing offline",
                         type=str, required=False)
-    parser.add_argument("--log-config", '-c',
+    parser.add_argument("-c", "--log-config",
                         help="Log config file (yaml) to use",
                         type=str, required=False)
     parser.add_argument('-n', "--nameserver", required=False, type=str,
@@ -72,8 +71,6 @@ def main():
     else:
         from satpy.utils import debug_on
         debug_on()
-
-    LOG = getLogger("satpy_launcher")
 
     run(prod_list, topics=topics, test_message=test_message,
         nameserver=nameserver, addresses=addresses)
