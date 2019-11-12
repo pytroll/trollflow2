@@ -15,6 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
+"""Utilities for testing trollflow2."""
 
 import unittest
 from unittest import mock
@@ -26,8 +27,12 @@ try:
 except ImportError:
     pass
 
+
 def find_missing_modules():
-    #http://www.voidspace.org.uk/python/mock/examples.html#mocking-imports-with-patch-dict
+    """Find the missing modules.
+
+    PFE: http://www.voidspace.org.uk/python/mock/examples.html#mocking-imports-with-patch-dict
+    """
     import_mock = mock.MagicMock()
     modules = dict()
     module_patcher = None
@@ -57,6 +62,7 @@ class TestCase(unittest.TestCase):
     """Patch the missing imports."""
 
     def setUp(self):
+        """Set up the test case."""
         self.mock = mock.MagicMock()
         if module_patcher is not None:
             module_patcher.start()

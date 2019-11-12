@@ -22,9 +22,9 @@
 """Trollflow2 plugins."""
 
 import os
+from contextlib import contextmanager
 from logging import getLogger
 from tempfile import NamedTemporaryFile
-from contextlib import contextmanager
 from urllib.parse import urlunsplit
 
 import dpath
@@ -81,7 +81,10 @@ def load_composites(job):
     composites_by_res = {}
     for flat_prod_cfg, _prod_cfg in plist_iter(job['product_list']['product_list'], level='product'):
         res = flat_prod_cfg.get('resolution', None)
-        composites_by_res.setdefault(res, set()).add(flat_prod_cfg['product'])
+        if isinstance(flat_prod_cfg['product'], (tuple, list, set)):
+            composites_by_res.setdefault(res, set()).update(flat_prod_cfg['product'])
+        else:
+            composites_by_res.setdefault(res, set()).add(flat_prod_cfg['product'])
     scn = job['scene']
     generate = job['product_list']['product_list'].get('delay_composites', True) is False
     for resolution, composites in composites_by_res.items():
@@ -120,8 +123,13 @@ def resample(job):
                 job['resampled_scenes'][area] = scn.resample(scn.max_area(),
                                                              **area_conf)
             else:
+                # The composites need to be created for the saving to work
+                if not set(scn.datasets.keys()).issuperset(scn.wishlist):
+                    LOG.debug("Generating composites for 'null' area (satellite projection).")
+                    scn.load(scn.wishlist, generate=True)
                 job['resampled_scenes'][area] = scn
         else:
+            LOG.debug("area: %s, area_conf: %s", area, str(area_conf))
             job['resampled_scenes'][area] = scn.resample(area, **area_conf)
 
 
@@ -176,14 +184,24 @@ def save_dataset(scns, fmat, fmat_config, renames):
     try:
         with prepared_filename(fmat, renames) as filename:
             res = fmat.get('resolution', None)
-            dsid = DatasetID(name=fmat['product'], resolution=res, modifiers=None)
             kwargs = fmat_config.copy()
+            kwargs.pop('fname_pattern', None)
             kwargs.pop('dispatch', None)
-            obj = scns[fmat['area']].save_dataset(dsid,
-                                                  filename=filename,
-                                                  compute=False, **kwargs)
+            if isinstance(fmat['product'], (tuple, list, set)):
+                kwargs.pop('format')
+                dsids = []
+                for prod in fmat['product']:
+                    dsids.append(DatasetID(name=prod, resolution=res, modifiers=None))
+                obj = scns[fmat['area']].save_datasets(datasets=dsids,
+                                                       filename=filename,
+                                                       compute=False, **kwargs)
+            else:
+                dsid = DatasetID(name=fmat['product'], resolution=res, modifiers=None)
+                obj = scns[fmat['area']].save_dataset(dsid,
+                                                      filename=filename,
+                                                      compute=False, **kwargs)
     except KeyError as err:
-        LOG.info('Skipping %s: %s', fmat['productname'], str(err))
+        LOG.info('Skipping %s: %s', fmat['product'], str(err))
     else:
         fmat_config['filename'] = renames.get(filename, filename)
     return obj
@@ -219,6 +237,7 @@ def save_datasets(job):
             obj = save_dataset(scns, fmat, fmat_config, renames)
             if obj is not None:
                 objs.append(obj)
+                job['produced_files'].put(fmat_config['filename'])
 
         compute_writer_results(objs)
 
@@ -226,29 +245,39 @@ def save_datasets(job):
 class FilePublisher(object):
     """Publisher for generated files."""
 
-    # todo add support for custom port and nameserver
-    def __new__(cls):
+    def __init__(self, port=0, nameservers=None):
         """Create new instance."""
-        self = super().__new__(cls)
+        self.pub = None
+        self.port = port
+        self.nameservers = nameservers
+        self.__setstate__({'port': port, 'nameservers': nameservers})
+
+    def __setstate__(self, kwargs):
+        """Set things running even when loading from YAML."""
         LOG.debug('Starting publisher')
-        self.pub = NoisyPublisher('l2processor')
+        self.port = kwargs.get('port', 0)
+        self.nameservers = kwargs.get('nameservers', None)
+        self.pub = NoisyPublisher('l2processor', port=self.port,
+                                  nameservers=self.nameservers)
         self.pub.start()
-        return self
 
     @staticmethod
     def create_message(fmat, mda):
         """Create a message topic and mda."""
         topic_pattern = fmat["publish_topic"]
         file_mda = mda.copy()
+        file_mda.update(fmat.get('extra_metadata', {}))
 
         file_mda['uri'] = os.path.abspath(fmat['filename'])
 
         file_mda['uid'] = os.path.basename(fmat['filename'])
         file_mda['product'] = fmat['product']
-        file_mda['productname'] = fmat['productname']
         file_mda['area'] = fmat['area']
-        file_mda['areaname'] = fmat['areaname']
-        file_mda['format'] = fmat['format']
+        for key in ['productname', 'areaname', 'format']:
+            try:
+                file_mda[key] = fmat[key]
+            except KeyError:
+                pass
         for extra_info in ['area_coverage_percent', 'area_sunlight_coverage_percent']:
             try:
                 file_mda[extra_info] = fmat[extra_info]
@@ -288,13 +317,15 @@ class FilePublisher(object):
                 try:
                     topic, file_mda = self.create_message(fmat, mda)
                 except KeyError:
+                    LOG.debug('Could not create a message for %s.', str(fmat))
                     continue
                 msg = Message(topic, 'file', file_mda)
                 LOG.debug('Publishing %s', str(msg))
                 self.pub.send(str(msg))
                 self.send_dispatch_messages(fmat, fmat_config, topic, file_mda)
         finally:
-            self.pub.stop()
+            if self.pub:
+                self.pub.stop()
 
     def __del__(self):
         """Stop the publisher when last reference is deleted."""
@@ -313,11 +344,12 @@ def covers(job):
 
     col_area = job['product_list']['product_list'].get('coverage_by_collection_area', False)
     if col_area and 'collection_area_id' in job['input_mda']:
-        if job['input_mda']['collection_area_id'] not in job['product_list']['product_list']:
+        if job['input_mda']['collection_area_id'] not in job['product_list']['product_list']['areas']:
             raise AbortProcessing(
                 "Area collection ID '%s' does not match "
-                "production area(s) %s" % (job['input_mda']['collection_area_id'],
-                                           str(list(job['product_list']['product_list']))))
+                "production area(s) %s" % (
+                    job['input_mda']['collection_area_id'],
+                    str(list(job['product_list']['product_list']['areas']))))
 
     product_list = job['product_list'].copy()
 
@@ -477,10 +509,15 @@ def check_sunlight_coverage(job):
         products = list(product_list['product_list']['areas'][area]['products'].keys())
         for product in products:
             try:
-                area_def = job['resampled_scenes'][area][product].attrs['area']
+                if isinstance(product, tuple):
+                    prod = job['resampled_scenes'][area][product[0]]
+                else:
+                    prod = job['resampled_scenes'][area][product]
             except KeyError:
                 LOG.warning("No dataset %s for this scene and area %s", product, area)
                 continue
+            else:
+                area_def = prod.attrs['area']
             prod_path = "/product_list/areas/%s/products/%s" % (area, product)
             config = get_config_value(product_list, prod_path, "sunlight_coverage")
             if config is None:

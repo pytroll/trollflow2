@@ -22,19 +22,14 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 """Test plugins."""
 
-import unittest
+import datetime as dt
 import os
-import yaml
-try:
-    from yaml import UnsafeLoader
-except ImportError:
-    from yaml import Loader as UnsafeLoader
-
+import unittest
 from unittest import mock
 
-import datetime as dt
-
 from trollflow2.tests.utils import TestCase
+
+
 yaml_test1 = """
 product_list:
   something: foo
@@ -87,6 +82,8 @@ product_list:
   something: foo
   min_coverage: 5.0
   publish_topic: /raster/
+  extra_metadata:
+    processing_center: SMHI
   areas:
       euron1:
         areaname: euron1_in_fname
@@ -187,6 +184,12 @@ product_list:
                 writer: simple_image
                 fill_value: 0
             fname_pattern: "{platform_name:s}_{start_time:%Y%m%d_%H%M}_{areaname:s}_ctth_static.{format}"
+          ("ct", "ctth"):
+            productname: ct_and_ctth
+            output_dir: /tmp/satdmz/pps/www/latest_2018/
+            formats:
+              - format: nc
+                writer: cf
 
       germ:
         areaname: germ_in_fname
@@ -216,6 +219,22 @@ product_list:
               - format: tif
                 writer: geotiff
 """
+
+yaml_test_null_area = """
+product_list:
+  areas:
+      null:
+        areaname: foo
+        products:
+          cloud_top_height:
+            productname: ctth
+            output_dir: /tmp/
+            formats:
+              - format: png
+                writer: simple_image
+            fname_pattern: "{platform_name:s}_{start_time:%Y%m%d_%H%M}_{areaname:s}_ctth_static.{format}"
+"""
+
 input_mda = {'orig_platform_name': 'noaa15', 'orbit_number': 7993,
              'start_time': dt.datetime(2019, 2, 17, 6, 0, 11, 100000), 'stfrac': 1,
              'end_time': dt.datetime(2019, 2, 17, 6, 15, 10, 400000), 'etfrac': 4, 'status': 'OK',
@@ -228,6 +247,10 @@ input_mda = {'orig_platform_name': 'noaa15', 'orbit_number': 7993,
                          {'uri': '/home/a001673/data/satellite/test_trollflow2/S_NWC_CT_noaa15_07993_20190217T0600111Z_20190217T0615104Z.nc',  # noqa
                           'uid': 'S_NWC_CT_noaa15_07993_20190217T0600111Z_20190217T0615104Z.nc'}],
              'sensor': ['avhrr']}
+
+YAML_FILE_PUBLISHER = """
+!!python/object:trollflow2.plugins.FilePublisher {port: 40002, nameservers: [localhost]}
+"""
 
 
 class TestSaveDatasets(TestCase):
@@ -317,6 +340,7 @@ class TestSaveDatasets(TestCase):
     def test_save_datasets(self):
         """Test saving datasets."""
         self.maxDiff = None
+        from trollflow2.launcher import yaml, UnsafeLoader
         from trollflow2.plugins import save_datasets
         job = {}
         job['input_mda'] = input_mda
@@ -324,13 +348,14 @@ class TestSaveDatasets(TestCase):
             'product_list': yaml.load(yaml_test_save, Loader=UnsafeLoader)['product_list'],
         }
         job['resampled_scenes'] = {}
+        the_queue = mock.MagicMock()
+        job['produced_files'] = the_queue
         for area in job['product_list']['product_list']['areas']:
             job['resampled_scenes'][area] = mock.Mock()
         with mock.patch('trollflow2.plugins.compute_writer_results'),\
                 mock.patch('trollflow2.plugins.DatasetID') as dsid,\
                 mock.patch('os.rename') as rename:
             save_datasets(job)
-
             expected_sd = [mock.call(dsid.return_value, compute=False,
                                      filename='/tmp/satdmz/pps/www/latest_2018/NOAA-15_20190217_0600_euron1_in_fname_ctth_static.png',  # noqa
                                      format='png', writer='simple_image'),
@@ -344,8 +369,13 @@ class TestSaveDatasets(TestCase):
                                      filename='/tmp/NOAA-15_20190217_0600_omerc_bb_cloud_top_height.tif',
                                      format='tif', writer='geotiff')
                            ]
+            expected_sds = [mock.call(datasets=[dsid.return_value, dsid.return_value], compute=False,
+                            filename='/tmp/satdmz/pps/www/latest_2018/NOAA-15_20190217_0600_euron1_in_fname_ct_and_ctth.nc',  # noqa
+                            writer='cf')]
             expected_dsid = [mock.call(name='cloud_top_height', resolution=None, modifiers=None),
                              mock.call(name='cloud_top_height', resolution=None, modifiers=None),
+                             mock.call(name='ct', resolution=None, modifiers=None),
+                             mock.call(name='ctth', resolution=None, modifiers=None),
                              mock.call(name='cloudtype', resolution=None, modifiers=None),
                              mock.call(name='ct', resolution=None, modifiers=None),
                              mock.call(name='cloud_top_height', resolution=500, modifiers=None)
@@ -355,6 +385,9 @@ class TestSaveDatasets(TestCase):
                         + job['resampled_scenes']['omerc_bb'].save_dataset.mock_calls)
             for sd, esd in zip(sd_calls, expected_sd):
                 self.assertEqual(sd, esd)
+            sds_calls = job['resampled_scenes']['euron1'].save_datasets.mock_calls
+            for sds, esds in zip(sds_calls, expected_sds):
+                self.assertDictEqual(sds[2], esds[2])
             args, kwargs = job['resampled_scenes']['germ'].save_dataset.call_args_list[0]
             self.assertTrue(os.path.basename(kwargs['filename']).startswith('tmp'))
             for ds, eds in zip(dsid.mock_calls, expected_dsid):
@@ -406,7 +439,17 @@ class TestSaveDatasets(TestCase):
                             '/tmp/satdmz/pps/www/latest_2018/',
                             'productname':
                             'cloud_top_height_in_fname'
-                        }
+                        },
+                        ('ct', 'ctth'): {
+                            'formats':
+                            [{
+                                'filename': '/tmp/satdmz/pps/www/latest_2018/NOAA-15_20190217_0600_euron1_in_fname_ct_and_ctth.nc',  # noqa
+                                'format': 'nc',
+                                'writer': 'cf'
+                            }],
+                            'output_dir': '/tmp/satdmz/pps/www/latest_2018/',
+                            'productname': 'ct_and_ctth'
+                        },
                     }
                 },
                 'germ': {
@@ -469,6 +512,15 @@ class TestSaveDatasets(TestCase):
         }
         self.assertDictEqual(dexpected, job['product_list']['product_list'])
 
+        filenames = ['/tmp/satdmz/pps/www/latest_2018/NOAA-15_20190217_0600_euron1_in_fname_ctth_static.png',
+                     '/tmp/satdmz/pps/www/latest_2018/NOAA-15_20190217_0600_euron1_in_fname_ctth_static.jpg',
+                     '/tmp/satdmz/pps/www/latest_2018/NOAA-15_20190217_0600_euron1_in_fname_ct_and_ctth.nc',
+                     '/tmp/satdmz/pps/www/latest_2018/noaa15/20190217_0600_germ_in_fname_cloudtype_in_fname.png',
+                     '/tmp/NOAA-15_20190217_0600_omerc_bb_ct.nc',
+                     '/tmp/NOAA-15_20190217_0600_omerc_bb_cloud_top_height.tif']
+        for fname, efname in zip(the_queue.put.mock_calls, filenames):
+            self.assertEqual(fname, mock.call(efname))
+
 
 class TestCreateScene(TestCase):
     """Test case for creating a scene."""
@@ -496,6 +548,7 @@ class TestLoadComposites(TestCase):
     def setUp(self):
         """Set up the test case."""
         super().setUp()
+        from trollflow2.launcher import yaml, UnsafeLoader
         self.product_list = yaml.load(yaml_test1, Loader=UnsafeLoader)
 
     def test_load_composites(self):
@@ -535,6 +588,7 @@ class TestResample(TestCase):
     def setUp(self):
         """Set up the test case."""
         super().setUp()
+        from trollflow2.launcher import yaml, UnsafeLoader
         self.product_list = yaml.load(yaml_test1, Loader=UnsafeLoader)
 
     def test_resample(self):
@@ -653,12 +707,41 @@ class TestResample(TestCase):
                         scn.resample.mock_calls)
 
 
+class TestResampleNullArea(TestCase):
+    """Test case for resampling."""
+
+    def setUp(self):
+        """Set up the test case."""
+        super().setUp()
+        from trollflow2.launcher import yaml, UnsafeLoader
+        self.product_list = yaml.load(yaml_test_null_area, Loader=UnsafeLoader)
+
+    def test_resample_null_area(self):
+        """Test handling a `None` area in resampling."""
+        from trollflow2.plugins import resample
+        scn = mock.MagicMock()
+        product_list = self.product_list.copy()
+        job = {"scene": scn, "product_list": product_list.copy()}
+        # The composites have been generated
+        scn.datasets.keys.return_value = ['abc']
+        scn.wishlist = {'abc'}
+        resample(job)
+        scn.load.assert_not_called()
+        # The composites have not been generated
+        scn.datasets.keys.return_value = ['a', 'b', 'c']
+        scn.wishlist = {'abc'}
+        resample(job)
+        self.assertTrue(mock.call({'abc'}, generate=True) in
+                        scn.load.mock_calls)
+
+
 class TestSunlightCovers(TestCase):
     """Test the sunlight coverage."""
 
     def setUp(self):
         """Set up the test case."""
         super().setUp()
+        from trollflow2.launcher import yaml, UnsafeLoader
         self.product_list = yaml.load(yaml_test1, Loader=UnsafeLoader)
         self.input_mda = {"platform_name": "NOAA-15",
                           "sensor": "avhrr-3",
@@ -686,6 +769,7 @@ class TestCheckSunlightCoverage(TestCase):
     def setUp(self):
         """Set up the test case."""
         super().setUp()
+        from trollflow2.launcher import yaml, UnsafeLoader
         self.product_list = yaml.load(yaml_test3, Loader=UnsafeLoader)
         self.input_mda = {"platform_name": "NOAA-15",
                           "sensor": "avhrr-3",
@@ -766,6 +850,7 @@ class TestCovers(TestCase):
     def setUp(self):
         """Set up the test case."""
         super().setUp()
+        from trollflow2.launcher import yaml, UnsafeLoader
         self.product_list = yaml.load(yaml_test1, Loader=UnsafeLoader)
         self.input_mda = {"platform_name": "NOAA-15",
                           "sensor": "avhrr-3",
@@ -850,11 +935,15 @@ class TestCovers(TestCase):
             # By default collection_area_id isn't checked so nothing should happen
             job['input_mda']['collection_area_id'] = 'not_in_pl'
             covers(job)
-            # Turn coverage check on, so area not in the product list should raise
-            # AbortProcessing
+            # Turn coverage check on, so area not in the product list
+            # should raise AbortProcessing
             job['product_list']['product_list']['coverage_by_collection_area'] = True
             with self.assertRaises(AbortProcessing):
                 covers(job)
+
+            # And with existing area there shouldn't be an exception
+            job['input_mda']['collection_area_id'] = 'euron1'
+            covers(job)
 
 
 class TestCheckPlatform(TestCase):
@@ -941,6 +1030,7 @@ class TestSZACheck(TestCase):
             scene = mock.MagicMock()
             scene.attrs = {'start_time': 42}
             job['scene'] = scene
+            from trollflow2.launcher import yaml, UnsafeLoader
             product_list = yaml.load(yaml_test1, Loader=UnsafeLoader)
             job['product_list'] = product_list.copy()
             # Run without any settings
@@ -982,7 +1072,8 @@ class TestOverviews(TestCase):
     def setUp(self):
         """Set up the test case."""
         super().setUp()
-        self.product_list = yaml.safe_load(yaml_test1)
+        from trollflow2.launcher import yaml, BaseLoader
+        self.product_list = yaml.load(yaml_test1, Loader=BaseLoader)
 
     def test_add_overviews(self):
         """Test adding overviews."""
@@ -1010,6 +1101,7 @@ class TestFilePublisher(TestCase):
     def setUp(self):
         """Set up the test case."""
         super().setUp()
+        from trollflow2.launcher import yaml, UnsafeLoader
         self.product_list = yaml.load(yaml_test_publish, Loader=UnsafeLoader)
         # Skip omerc_bb area, there's no fname_pattern
         del self.product_list['product_list']['areas']['omerc_bb']
@@ -1053,6 +1145,7 @@ class TestFilePublisher(TestCase):
                     if 'call().__str__()' != str(message.mock_calls[i]):
                         self.assertTrue(topics[i] in str(message.mock_calls[i]))
                         i += 1
+            self.assertEqual(message.call_args[0][2]['processing_center'], 'SMHI')
 
     def test_filepublisher_without_compose(self):
         """Test filepublisher without compose."""
@@ -1092,6 +1185,35 @@ class TestFilePublisher(TestCase):
                         self.assertTrue(topics[i] in str(message.mock_calls[i]))
                         i += 1
 
+    def test_filepublisher_kwargs(self):
+        """Test filepublisher keyword argument usage."""
+        import yaml
+        from trollflow2.plugins import FilePublisher
+
+        # Direct instantiation
+        with mock.patch('trollflow2.plugins.Message'), mock.patch('trollflow2.plugins.NoisyPublisher') as nb_:
+            pub = FilePublisher()
+            pub.pub.start.assert_called_once()
+            assert mock.call('l2processor', port=0, nameservers=None) in nb_.mock_calls
+            assert pub.port == 0
+            assert pub.nameservers is None
+            pub = FilePublisher(port=40000, nameservers=['localhost'])
+            assert mock.call('l2processor', port=40000,
+                             nameservers=['localhost']) in nb_.mock_calls
+            assert pub.port == 40000
+            assert pub.nameservers == ['localhost']
+            assert len(pub.pub.start.mock_calls) == 2
+
+        # Instantiate via loading YAML
+        with mock.patch('trollflow2.plugins.Message'), mock.patch('trollflow2.plugins.NoisyPublisher') as nb_:
+
+            fpub = yaml.load(YAML_FILE_PUBLISHER, Loader=yaml.UnsafeLoader)
+            assert mock.call('l2processor', port=40002,
+                             nameservers=['localhost']) in nb_.mock_calls
+            fpub.pub.start.assert_called_once()
+            assert fpub.port == 40002
+            assert fpub.nameservers == ['localhost']
+
     def test_dispatch(self):
         """Test dispatch order messages."""
         from trollflow2.plugins import FilePublisher
@@ -1116,27 +1238,6 @@ class TestFilePublisher(TestCase):
                                      'ftp://ftp.important_client.com/somewhere/NOAA-15_20190217_0600_euron1_in_fname_ctth_static.png')  # noqa
                     dispatches += 1
             self.assertEqual(dispatches, 1)
-
-
-def suite():
-    """Test suite for test_writers."""
-    loader = unittest.TestLoader()
-    my_suite = unittest.TestSuite()
-    my_suite.addTest(loader.loadTestsFromTestCase(TestSaveDatasets))
-    my_suite.addTest(loader.loadTestsFromTestCase(TestCreateScene))
-    my_suite.addTest(loader.loadTestsFromTestCase(TestLoadComposites))
-    my_suite.addTest(loader.loadTestsFromTestCase(TestResample))
-    my_suite.addTest(loader.loadTestsFromTestCase(TestCovers))
-    my_suite.addTest(loader.loadTestsFromTestCase(TestCheckPlatform))
-    my_suite.addTest(loader.loadTestsFromTestCase(TestMetadataAlias))
-    my_suite.addTest(loader.loadTestsFromTestCase(TestGetPluginConf))
-    my_suite.addTest(loader.loadTestsFromTestCase(TestSZACheck))
-    my_suite.addTest(loader.loadTestsFromTestCase(TestSunlightCovers))
-    my_suite.addTest(loader.loadTestsFromTestCase(TestCheckSunlightCoverage))
-    my_suite.addTest(loader.loadTestsFromTestCase(TestOverviews))
-    my_suite.addTest(loader.loadTestsFromTestCase(TestFilePublisher))
-
-    return my_suite
 
 
 if __name__ == '__main__':

@@ -20,6 +20,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
+"""Test the launcher module."""
 
 import unittest
 import yaml
@@ -115,8 +116,10 @@ product_list:
 
 
 class TestGetAreaPriorities(TestCase):
+    """Test case for area priorities."""
 
     def test_get_area_priorities(self):
+        """Test getting the area priorities."""
         from trollflow2.launcher import get_area_priorities
         prodlist = yaml.load(yaml_test1, Loader=UnsafeLoader)
 
@@ -131,8 +134,10 @@ class TestGetAreaPriorities(TestCase):
 
 
 class TestMessageToJobs(TestCase):
+    """Test case for converting a message to jobs."""
 
     def test_message_to_jobs(self):
+        """Test converting message to jobs."""
         from trollflow2.launcher import message_to_jobs
         prodlist = yaml.load(yaml_test1, Loader=UnsafeLoader)
         msg = mock.MagicMock()
@@ -157,6 +162,7 @@ class TestMessageToJobs(TestCase):
         self.assertTrue('germ' in jobs[999]['product_list']['product_list']['areas'])
 
     def test_message_to_jobs_minimal(self):
+        """Test converting a message to minimal jobs."""
         from trollflow2.launcher import message_to_jobs
         prodlist = yaml.load(yaml_test_minimal, Loader=UnsafeLoader)
         msg = mock.MagicMock()
@@ -181,20 +187,23 @@ class TestMessageToJobs(TestCase):
         self.assertIn('output_dir', jobs[999]['product_list']['product_list'])
 
 
-
 class TestRun(TestCase):
+    """Test case for running the plugins."""
 
     def setUp(self):
+        """Set up the test case."""
         super().setUp()
         self.config = yaml.load(yaml_test1, Loader=UnsafeLoader)
 
     def test_run(self):
+        """Test running."""
         from trollflow2.launcher import run
         with mock.patch('trollflow2.launcher.yaml.load') as yaml_load,\
                 mock.patch('trollflow2.launcher.open'),\
                 mock.patch('trollflow2.launcher.process') as process,\
                 mock.patch('multiprocessing.Process') as Process,\
-                mock.patch('trollflow2.launcher.ListenerContainer') as lc_:
+                mock.patch('trollflow2.launcher.ListenerContainer') as lc_,\
+                mock.patch('multiprocessing.Queue') as queue:
             listener = mock.MagicMock()
             listener.output_queue.get.return_value = 'foo'
             lc_.return_value = listener
@@ -203,16 +212,19 @@ class TestRun(TestCase):
             # stop looping
             proc_ret.join.side_effect = KeyboardInterrupt
             yaml_load.return_value = self.config
+            the_queue = mock.MagicMock()
+            queue.return_value = the_queue
             prod_list = 'bar'
             try:
                 run(prod_list)
             except KeyboardInterrupt:
                 pass
             listener.output_queue.called_once()
-            Process.assert_called_with(args=('foo', prod_list), target=process)
+            Process.assert_called_with(args=('foo', prod_list, the_queue), target=process)
             proc_ret.start.assert_called_once()
             proc_ret.join.assert_called_once()
-            lc_.assert_called_with(topics=['/topic1', '/topic2'])
+            lc_.assert_called_with(addresses=None, nameserver='localhost',
+                                   topics=['/topic1', '/topic2'])
             # Subscriber topics are removed from config
             self.assertTrue('subscribe_topics' not in self.config['product_list'])
             # Topics are given as command line option
@@ -221,9 +233,11 @@ class TestRun(TestCase):
                 run(prod_list, topics=['/topic3'])
             except KeyboardInterrupt:
                 pass
-            lc_.assert_called_with(topics=['/topic3'])
+            lc_.assert_called_with(addresses=None, nameserver='localhost',
+                                   topics=['/topic3'])
 
     def test_run_keyboard_interrupt(self):
+        """Test interrupting the run with a ctrl-C."""
         from trollflow2.launcher import run
         with mock.patch('trollflow2.launcher.yaml.load'),\
                 mock.patch('trollflow2.launcher.open'),\
@@ -238,7 +252,10 @@ class TestRun(TestCase):
 
 
 class TestExpand(TestCase):
+    """Test expanding the product list."""
+
     def test_expand(self):
+        """Test expanding the product list."""
         from trollflow2.launcher import expand
         inside = {'a': 'b'}
         outside = {'c': inside, 'd': inside}
@@ -247,8 +264,10 @@ class TestExpand(TestCase):
 
 
 class TestProcess(TestCase):
+    """Test case for the subprocessing."""
 
     def test_process(self):
+        """Test subprocessing."""
         from trollflow2.launcher import process
         with mock.patch('trollflow2.launcher.traceback') as traceback,\
                 mock.patch('trollflow2.launcher.sendmail') as sendmail,\
@@ -256,6 +275,7 @@ class TestProcess(TestCase):
                 mock.patch('trollflow2.launcher.yaml') as yaml_,\
                 mock.patch('trollflow2.launcher.message_to_jobs') as message_to_jobs,\
                 mock.patch('trollflow2.launcher.open') as open_:
+
             fid = mock.MagicMock()
             fid.read.return_value = yaml_test1
             open_.return_value.__enter__.return_value = fid
@@ -267,45 +287,36 @@ class TestProcess(TestCase):
             expand.return_value = {"workers": [{"fun": fun1}]}
 
             message_to_jobs.return_value = {1: {"job1": dict([])}}
-            process("msg", "prod_list")
+            the_queue = mock.MagicMock()
+            process("msg", "prod_list", the_queue)
             open_.assert_called_with("prod_list")
             yaml_.load.assert_called_once()
             message_to_jobs.assert_called_with("msg", {"workers": [{"fun": fun1}]})
-            fun1.assert_called_with({'job1': {}, 'processing_priority': 1})
+            fun1.assert_called_with({'job1': {}, 'processing_priority': 1, 'produced_files': the_queue})
             # Test that errors are propagated
             fun1.side_effect = KeyboardInterrupt
             with self.assertRaises(KeyboardInterrupt):
-                process("msg", "prod_list")
+                process("msg", "prod_list", the_queue)
             # Test crash hander call.  This will raise KeyError as there
             # are no configured workers in the config returned by expand()
             traceback.format_exc.return_value = 'baz'
             crash_handlers = {"crash_handlers": {"config": {"foo": "bar"},
                                                  "handlers": [{"fun": sendmail}]}}
             expand.return_value = crash_handlers
-            process("msg", "prod_list")
+            with self.assertRaises(KeyError):
+                process("msg", "prod_list", the_queue)
             config = crash_handlers['crash_handlers']['config']
             sendmail.assert_called_once_with(config, 'baz')
 
             # Test failure in open(), e.g. a missing file
             open_.side_effect = IOError
-            process("msg", "prod_list")
+            with self.assertRaises(IOError):
+                process("msg", "prod_list", the_queue)
 
             # Test failure in yaml.load(), e.g. bad formatting
             open_.side_effect = yaml.YAMLError
-            process("msg", "prod_list")
-
-
-def suite():
-    """The test suite for test_writers."""
-    loader = unittest.TestLoader()
-    my_suite = unittest.TestSuite()
-    my_suite.addTest(loader.loadTestsFromTestCase(TestGetAreaPriorities))
-    my_suite.addTest(loader.loadTestsFromTestCase(TestMessageToJobs))
-    my_suite.addTest(loader.loadTestsFromTestCase(TestRun))
-    my_suite.addTest(loader.loadTestsFromTestCase(TestProcess))
-    my_suite.addTest(loader.loadTestsFromTestCase(TestExpand))
-
-    return my_suite
+            with self.assertRaises(yaml.YAMLError):
+                process("msg", "prod_list", the_queue)
 
 
 if __name__ == '__main__':
