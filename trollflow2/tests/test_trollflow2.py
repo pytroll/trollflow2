@@ -796,12 +796,52 @@ class TestCheckSunlightCoverage(TestCase):
             job['resampled_scenes'] = {}
             for area in job['product_list']['product_list']['areas']:
                 job['resampled_scenes'][area] = {}
-
             # Run without any settings
             check_sunlight_coverage(job)
 
             _get_sunlight_coverage.assert_not_called()
             ts_pass.assert_not_called()
+
+    def test_sunlight_filter(self):
+        """Test that product isn't loaded when sunlight coverage is to low."""
+        from trollflow2.plugins import check_sunlight_coverage
+        from trollflow2.plugins import metadata_alias
+        with mock.patch('trollflow2.plugins.Pass'),\
+                mock.patch('trollflow2.plugins.get_twilight_poly'),\
+                mock.patch("trollflow2.plugins._get_sunlight_coverage") as _get_sunlight_coverage:
+            job = {}
+            scene = mock.MagicMock()
+            scene.attrs = {'start_time': 42}
+            job['scene'] = scene
+            job['product_list'] = self.product_list.copy()
+            job['input_mda'] = self.input_mda.copy()
+            metadata_alias(job)
+
+            job['resampled_scenes'] = {}
+            for area in job['product_list']['product_list']['areas']:
+                job['resampled_scenes'][area] = {}
+            job['product_list']['product_list']['sunlight_coverage'] = {'min': 10, 'max': 40}
+            green_snow = mock.MagicMock()
+            green_snow.name = 'Green Snow Mock'
+            job['resampled_scenes']['euron1']['green_snow'] = green_snow
+            green_snow.attrs.__getitem__.return_value = 'euron1'
+            # Run without any settings
+            _get_sunlight_coverage.return_value = .3
+            check_sunlight_coverage(job)
+
+            pl_green = job['product_list']['product_list']['areas']['euron1']['products']['green_snow']
+
+            _get_sunlight_coverage.assert_called_once()
+            self.assertIn('green_snow', job['product_list']['product_list']['areas']['euron1']['products'])
+
+            _get_sunlight_coverage.return_value = 0
+            check_sunlight_coverage(job)
+            self.assertNotIn('green_snow', job['product_list']['product_list']['areas']['euron1']['products'])
+
+            job['product_list']['product_list']['areas']['euron1']['products']['green_snow'] = pl_green
+            _get_sunlight_coverage.return_value = 1
+            check_sunlight_coverage(job)
+            self.assertNotIn('green_snow', job['product_list']['product_list']['areas']['euron1']['products'])
 
 
 class TestCovers(TestCase):
