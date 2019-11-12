@@ -507,7 +507,7 @@ def check_sunlight_coverage(job):
 
 
 def _get_sunlight_coverage(area_def, start_time, overpass=None):
-    """Get the sunlight coverage of *area_def* at *start_time*."""
+    """Get the sunlight coverage of *area_def* at *start_time* as a value between 0 and 1."""
     adp = AreaDefBoundary(area_def, frequency=100).contour_poly
     poly = get_twilight_poly(start_time)
     if overpass is not None:
