@@ -110,8 +110,8 @@ def check_results(produced_files, start_time, exitcode):
         else:
             LOG.error('Process crashed with exit code %d', exitcode)
     if not error_detected:
-        ellapsed = end_time - start_time
-        LOG.info('All files produced nominally in %s.', str(ellapsed), extra={'time': ellapsed})
+        elapsed = end_time - start_time
+        LOG.info('All files produced nominally in %s.', str(elapsed), extra={'time': elapsed})
 
 
 def run(prod_list, topics=None, test_message=None, nameserver='localhost',
