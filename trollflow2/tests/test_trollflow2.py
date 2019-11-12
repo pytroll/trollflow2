@@ -332,6 +332,8 @@ class TestSaveDatasets(TestCase):
             'product_list': yaml.load(yaml_test_save, Loader=UnsafeLoader)['product_list'],
         }
         job['resampled_scenes'] = {}
+        the_queue = mock.MagicMock()
+        job['produced_files'] = the_queue
         for area in job['product_list']['product_list']['areas']:
             job['resampled_scenes'][area] = mock.Mock()
         with mock.patch('trollflow2.plugins.compute_writer_results'),\
@@ -493,6 +495,15 @@ class TestSaveDatasets(TestCase):
             }
         }
         self.assertDictEqual(dexpected, job['product_list']['product_list'])
+
+        filenames = ['/tmp/satdmz/pps/www/latest_2018/NOAA-15_20190217_0600_euron1_in_fname_ctth_static.png',
+                     '/tmp/satdmz/pps/www/latest_2018/NOAA-15_20190217_0600_euron1_in_fname_ctth_static.jpg',
+                     '/tmp/satdmz/pps/www/latest_2018/NOAA-15_20190217_0600_euron1_in_fname_ct_and_ctth.nc',
+                     '/tmp/satdmz/pps/www/latest_2018/noaa15/20190217_0600_germ_in_fname_cloudtype_in_fname.png',
+                     '/tmp/NOAA-15_20190217_0600_omerc_bb_ct.nc',
+                     '/tmp/NOAA-15_20190217_0600_omerc_bb_cloud_top_height.tif']
+        for fname, efname in zip(the_queue.put.mock_calls, filenames):
+            self.assertEqual(fname, mock.call(efname))
 
 
 class TestCreateScene(TestCase):

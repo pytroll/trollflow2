@@ -22,9 +22,9 @@
 """Trollflow2 plugins."""
 
 import os
+from contextlib import contextmanager
 from logging import getLogger
 from tempfile import NamedTemporaryFile
-from contextlib import contextmanager
 from urllib.parse import urlunsplit
 
 import dpath
@@ -233,6 +233,7 @@ def save_datasets(job):
             obj = save_dataset(scns, fmat, fmat_config, renames)
             if obj is not None:
                 objs.append(obj)
+                job['produced_files'].put(fmat_config['filename'])
 
         compute_writer_results(objs)
 
@@ -312,6 +313,7 @@ class FilePublisher(object):
                 try:
                     topic, file_mda = self.create_message(fmat, mda)
                 except KeyError:
+                    LOG.debug('Could not create a message for %s.', str(fmat))
                     continue
                 msg = Message(topic, 'file', file_mda)
                 LOG.debug('Publishing %s', str(msg))

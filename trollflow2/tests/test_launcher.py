@@ -202,7 +202,8 @@ class TestRun(TestCase):
                 mock.patch('trollflow2.launcher.open'),\
                 mock.patch('trollflow2.launcher.process') as process,\
                 mock.patch('multiprocessing.Process') as Process,\
-                mock.patch('trollflow2.launcher.ListenerContainer') as lc_:
+                mock.patch('trollflow2.launcher.ListenerContainer') as lc_,\
+                mock.patch('multiprocessing.Queue') as queue:
             listener = mock.MagicMock()
             listener.output_queue.get.return_value = 'foo'
             lc_.return_value = listener
@@ -211,13 +212,15 @@ class TestRun(TestCase):
             # stop looping
             proc_ret.join.side_effect = KeyboardInterrupt
             yaml_load.return_value = self.config
+            the_queue = mock.MagicMock()
+            queue.return_value = the_queue
             prod_list = 'bar'
             try:
                 run(prod_list)
             except KeyboardInterrupt:
                 pass
             listener.output_queue.called_once()
-            Process.assert_called_with(args=('foo', prod_list), target=process)
+            Process.assert_called_with(args=('foo', prod_list, the_queue), target=process)
             proc_ret.start.assert_called_once()
             proc_ret.join.assert_called_once()
             lc_.assert_called_with(addresses=None, nameserver='localhost',
@@ -272,6 +275,7 @@ class TestProcess(TestCase):
                 mock.patch('trollflow2.launcher.yaml') as yaml_,\
                 mock.patch('trollflow2.launcher.message_to_jobs') as message_to_jobs,\
                 mock.patch('trollflow2.launcher.open') as open_:
+
             fid = mock.MagicMock()
             fid.read.return_value = yaml_test1
             open_.return_value.__enter__.return_value = fid
@@ -283,32 +287,36 @@ class TestProcess(TestCase):
             expand.return_value = {"workers": [{"fun": fun1}]}
 
             message_to_jobs.return_value = {1: {"job1": dict([])}}
-            process("msg", "prod_list")
+            the_queue = mock.MagicMock()
+            process("msg", "prod_list", the_queue)
             open_.assert_called_with("prod_list")
             yaml_.load.assert_called_once()
             message_to_jobs.assert_called_with("msg", {"workers": [{"fun": fun1}]})
-            fun1.assert_called_with({'job1': {}, 'processing_priority': 1})
+            fun1.assert_called_with({'job1': {}, 'processing_priority': 1, 'produced_files': the_queue})
             # Test that errors are propagated
             fun1.side_effect = KeyboardInterrupt
             with self.assertRaises(KeyboardInterrupt):
-                process("msg", "prod_list")
+                process("msg", "prod_list", the_queue)
             # Test crash hander call.  This will raise KeyError as there
             # are no configured workers in the config returned by expand()
             traceback.format_exc.return_value = 'baz'
             crash_handlers = {"crash_handlers": {"config": {"foo": "bar"},
                                                  "handlers": [{"fun": sendmail}]}}
             expand.return_value = crash_handlers
-            process("msg", "prod_list")
+            with self.assertRaises(KeyError):
+                process("msg", "prod_list", the_queue)
             config = crash_handlers['crash_handlers']['config']
             sendmail.assert_called_once_with(config, 'baz')
 
             # Test failure in open(), e.g. a missing file
             open_.side_effect = IOError
-            process("msg", "prod_list")
+            with self.assertRaises(IOError):
+                process("msg", "prod_list", the_queue)
 
             # Test failure in yaml.load(), e.g. bad formatting
             open_.side_effect = yaml.YAMLError
-            process("msg", "prod_list")
+            with self.assertRaises(yaml.YAMLError):
+                process("msg", "prod_list", the_queue)
 
 
 if __name__ == '__main__':
