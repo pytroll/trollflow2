@@ -309,27 +309,24 @@ class FilePublisher(object):
 
     def __call__(self, job):
         """Call the publisher."""
-        try:
-            mda = job['input_mda'].copy()
-            mda.pop('dataset', None)
-            mda.pop('collection', None)
-            for fmat, fmat_config in plist_iter(job['product_list']['product_list'], mda):
-                try:
-                    topic, file_mda = self.create_message(fmat, mda)
-                except KeyError:
-                    LOG.debug('Could not create a message for %s.', str(fmat))
-                    continue
-                msg = Message(topic, 'file', file_mda)
-                LOG.debug('Publishing %s', str(msg))
-                self.pub.send(str(msg))
-                self.send_dispatch_messages(fmat, fmat_config, topic, file_mda)
-        finally:
-            if self.pub:
-                self.pub.stop()
+        mda = job['input_mda'].copy()
+        mda.pop('dataset', None)
+        mda.pop('collection', None)
+        for fmat, fmat_config in plist_iter(job['product_list']['product_list'], mda):
+            try:
+                topic, file_mda = self.create_message(fmat, mda)
+            except KeyError:
+                LOG.debug('Could not create a message for %s.', str(fmat))
+                continue
+            msg = Message(topic, 'file', file_mda)
+            LOG.debug('Publishing %s', str(msg))
+            self.pub.send(str(msg))
+            self.send_dispatch_messages(fmat, fmat_config, topic, file_mda)
 
     def __del__(self):
         """Stop the publisher when last reference is deleted."""
-        self.pub.stop()
+        if self.pub:
+            self.pub.stop()
 
 
 def covers(job):

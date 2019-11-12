@@ -1239,6 +1239,21 @@ class TestFilePublisher(TestCase):
                     dispatches += 1
             self.assertEqual(dispatches, 1)
 
+    def test_stopping(self):
+        """Test dispatch order messages."""
+        from trollflow2.plugins import FilePublisher
+        nb_ = mock.MagicMock()
+        with mock.patch('trollflow2.plugins.Message'), mock.patch('trollflow2.plugins.NoisyPublisher') as nb:
+            nb.return_value = nb_
+            pub = FilePublisher()
+            job = {'product_list': self.product_list,
+                   'input_mda': self.input_mda}
+            pub(job)
+
+        nb_.stop.assert_not_called()
+        del pub
+        nb_.stop.assert_called_once()
+
 
 if __name__ == '__main__':
     unittest.main()
