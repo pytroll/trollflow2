@@ -1243,7 +1243,7 @@ class TestFilePublisher(TestCase):
         """Test dispatch order messages."""
         from trollflow2.plugins import FilePublisher
         nb_ = mock.MagicMock()
-        with mock.patch('trollflow2.plugins.Message') as message, mock.patch('trollflow2.plugins.NoisyPublisher') as nb:
+        with mock.patch('trollflow2.plugins.Message'), mock.patch('trollflow2.plugins.NoisyPublisher') as nb:
             nb.return_value = nb_
             pub = FilePublisher()
             job = {'product_list': self.product_list,
