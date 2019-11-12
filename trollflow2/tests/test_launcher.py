@@ -303,17 +303,20 @@ class TestProcess(TestCase):
             crash_handlers = {"crash_handlers": {"config": {"foo": "bar"},
                                                  "handlers": [{"fun": sendmail}]}}
             expand.return_value = crash_handlers
-            process("msg", "prod_list", the_queue)
+            with self.assertRaises(KeyError):
+                process("msg", "prod_list", the_queue)
             config = crash_handlers['crash_handlers']['config']
             sendmail.assert_called_once_with(config, 'baz')
 
             # Test failure in open(), e.g. a missing file
             open_.side_effect = IOError
-            process("msg", "prod_list", the_queue)
+            with self.assertRaises(IOError):
+                process("msg", "prod_list", the_queue)
 
             # Test failure in yaml.load(), e.g. bad formatting
             open_.side_effect = yaml.YAMLError
-            process("msg", "prod_list", the_queue)
+            with self.assertRaises(yaml.YAMLError):
+                process("msg", "prod_list", the_queue)
 
 
 if __name__ == '__main__':
