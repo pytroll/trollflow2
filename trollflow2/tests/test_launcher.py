@@ -291,10 +291,15 @@ class TestProcess(TestCase):
             fun1.stop.assert_not_called()
             process("msg", "prod_list", the_queue)
             fun1.stop.assert_called_once()
+
             open_.assert_called_with("prod_list")
             yaml_.load.assert_called_once()
             message_to_jobs.assert_called_with("msg", {"workers": [{"fun": fun1}]})
             fun1.assert_called_with({'job1': {}, 'processing_priority': 1, 'produced_files': the_queue})
+
+            fun1.stop = mock.MagicMock(side_effect=AttributeError('boo'))
+            process("msg", "prod_list", the_queue)
+
             # Test that errors are propagated
             fun1.side_effect = KeyboardInterrupt
             with self.assertRaises(KeyboardInterrupt):
