@@ -288,7 +288,9 @@ class TestProcess(TestCase):
 
             message_to_jobs.return_value = {1: {"job1": dict([])}}
             the_queue = mock.MagicMock()
+            fun1.stop.assert_not_called()
             process("msg", "prod_list", the_queue)
+            fun1.stop.assert_called_once()
             open_.assert_called_with("prod_list")
             yaml_.load.assert_called_once()
             message_to_jobs.assert_called_with("msg", {"workers": [{"fun": fun1}]})
