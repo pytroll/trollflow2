@@ -26,11 +26,12 @@ from contextlib import contextmanager
 from logging import getLogger
 from tempfile import NamedTemporaryFile
 from urllib.parse import urlunsplit
+import time
 
 import dpath
 import rasterio
 from posttroll.message import Message
-from posttroll.publisher import NoisyPublisher
+from posttroll.publisher import Publish
 from pyorbital.astronomy import sun_zenith_angle
 from pyresample.boundary import AreaDefBoundary
 from rasterio.enums import Resampling
@@ -247,7 +248,6 @@ class FilePublisher(object):
 
     def __init__(self, port=0, nameservers=None):
         """Create new instance."""
-        self.pub = None
         self.port = port
         self.nameservers = nameservers
         self.__setstate__({'port': port, 'nameservers': nameservers})
@@ -257,9 +257,6 @@ class FilePublisher(object):
         LOG.debug('Starting publisher')
         self.port = kwargs.get('port', 0)
         self.nameservers = kwargs.get('nameservers', None)
-        self.pub = NoisyPublisher('l2processor', port=self.port,
-                                  nameservers=self.nameservers)
-        self.pub.start()
 
     @staticmethod
     def create_message(fmat, mda):
@@ -312,21 +309,20 @@ class FilePublisher(object):
         mda = job['input_mda'].copy()
         mda.pop('dataset', None)
         mda.pop('collection', None)
-        for fmat, fmat_config in plist_iter(job['product_list']['product_list'], mda):
-            try:
-                topic, file_mda = self.create_message(fmat, mda)
-            except KeyError:
-                LOG.debug('Could not create a message for %s.', str(fmat))
-                continue
-            msg = Message(topic, 'file', file_mda)
-            LOG.debug('Publishing %s', str(msg))
-            self.pub.send(str(msg))
-            self.send_dispatch_messages(fmat, fmat_config, topic, file_mda)
-
-    def __del__(self):
-        """Stop the publisher when last reference is deleted."""
-        if self.pub:
-            self.pub.stop()
+        with Publish('l2processor', port=self.port,
+                     nameservers=self.nameservers) as pub:
+            # Wait for publisher to register
+            time.sleep(2.0)
+            for fmat, fmat_config in plist_iter(job['product_list']['product_list'], mda):
+                try:
+                    topic, file_mda = self.create_message(fmat, mda)
+                except KeyError:
+                    LOG.debug('Could not create a message for %s.', str(fmat))
+                    continue
+                msg = Message(topic, 'file', file_mda)
+                LOG.debug('Publishing %s', str(msg))
+                self.pub.send(str(msg))
+                self.send_dispatch_messages(fmat, fmat_config, topic, file_mda)
 
 
 def covers(job):
