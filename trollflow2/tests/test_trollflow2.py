@@ -1239,8 +1239,8 @@ class TestFilePublisher(TestCase):
                     dispatches += 1
             self.assertEqual(dispatches, 1)
 
-    def test_stopping(self):
-        """Test dispatch order messages."""
+    def test_deleting(self):
+        """Test deleting the publisher."""
         from trollflow2.plugins import FilePublisher
         nb_ = mock.MagicMock()
         with mock.patch('trollflow2.plugins.Message'), mock.patch('trollflow2.plugins.NoisyPublisher') as nb:
@@ -1252,6 +1252,21 @@ class TestFilePublisher(TestCase):
 
         nb_.stop.assert_not_called()
         del pub
+        nb_.stop.assert_called_once()
+
+    def test_stopping(self):
+        """Test stopping the publisher."""
+        from trollflow2.plugins import FilePublisher
+        nb_ = mock.MagicMock()
+        with mock.patch('trollflow2.plugins.Message'), mock.patch('trollflow2.plugins.NoisyPublisher') as nb:
+            nb.return_value = nb_
+            pub = FilePublisher()
+            job = {'product_list': self.product_list,
+                   'input_mda': self.input_mda}
+            pub(job)
+
+        nb_.stop.assert_not_called()
+        pub.stop()
         nb_.stop.assert_called_once()
 
 

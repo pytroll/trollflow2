@@ -252,6 +252,11 @@ def process(msg, prod_list, produced_files):
         # Remove config and run garbage collection so all remaining
         # references e.g. to FilePublisher should be removed
         LOG.debug('Cleaning up')
+        for wrk in config.get("workers", []):
+            try:
+                wrk['fun'].stop()
+            except AttributeError:
+                continue
         del config
         gc.collect()
 

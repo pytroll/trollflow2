@@ -24,10 +24,26 @@ The launcher
     :show-inheritance:
 
 
-Available plugins
------------------
+Plugins
+-------
 
-.. currentmodule:: trollflow2.plugings
+The plugins are callables that are to be run in order for the batch processing
+to happen. These are usually functions, but they can be a class with a
+`__call__` method implemented. If they are to be instanciated from the yaml
+configuration file, a `__setstate__` method will need to be implemented if
+arguments are to be passed for the initialization of the class.
+
+If the callable has a `stop` method, it will be called without arguments at the
+end of each run (one scene).
+
+An example of such a callable class used in trollflow2 is the
+`class:FilePublisher`.
+
+
+Available plugins
++++++++++++++++++
+
+.. currentmodule:: trollflow2.plugins
 
 The `check_sunlight_coverage` plugin
 ************************************
