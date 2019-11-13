@@ -309,7 +309,7 @@ class FilePublisher(object):
                     continue
                 msg = Message(topic, 'file', file_mda)
                 LOG.debug('Publishing %s', str(msg))
-                self.pub.send(str(msg))
+                pub.send(str(msg))
 
 
 def covers(job):
