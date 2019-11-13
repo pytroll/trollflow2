@@ -323,10 +323,14 @@ class FilePublisher(object):
             self.pub.send(str(msg))
             self.send_dispatch_messages(fmat, fmat_config, topic, file_mda)
 
-    def __del__(self):
-        """Stop the publisher when last reference is deleted."""
+    def stop(self):
+        """Stop the publisher."""
         if self.pub:
             self.pub.stop()
+
+    def __del__(self):
+        """Stop the publisher when last reference is deleted."""
+        self.stop()
 
 
 def covers(job):
