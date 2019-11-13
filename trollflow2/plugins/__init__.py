@@ -292,18 +292,6 @@ class FilePublisher(object):
 
         return urlunsplit((ditem.get('scheme', ''), netloc, path, '', ''))
 
-    def send_dispatch_messages(self, fmat, fmat_config, topic, file_mda):
-        """Send dispatch messages corresponding to a file."""
-        for dispatch_item in fmat_config.get('dispatch', []):
-            mda = {
-                'file_mda': file_mda,
-                'source': fmat_config['filename'],
-                'target': self.create_dispatch_uri(dispatch_item, fmat)
-                }
-            msg = Message(topic, 'dispatch', mda)
-            LOG.debug('Sending dispatch order: %s', str(msg))
-            self.pub.send(str(msg))
-
     def __call__(self, job):
         """Call the publisher."""
         mda = job['input_mda'].copy()
@@ -322,7 +310,6 @@ class FilePublisher(object):
                 msg = Message(topic, 'file', file_mda)
                 LOG.debug('Publishing %s', str(msg))
                 self.pub.send(str(msg))
-                self.send_dispatch_messages(fmat, fmat_config, topic, file_mda)
 
 
 def covers(job):
