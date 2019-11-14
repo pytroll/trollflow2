@@ -1,3 +1,34 @@
+## Version 0.6.0 (2019/11/14)
+
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR 65](https://github.com/pytroll/trollflow2/pull/65) - Stop the workers when the process is done
+* [PR 63](https://github.com/pytroll/trollflow2/pull/63) - Fix publisher stopping after first processed area
+* [PR 61](https://github.com/pytroll/trollflow2/pull/61) - Ensure composites are generated for scenes without resampling
+* [PR 60](https://github.com/pytroll/trollflow2/pull/60) - Check the area from correct level of the product list
+* [PR 55](https://github.com/pytroll/trollflow2/pull/55) - Make productname, areaname and format optional in the published message
+
+#### Features added
+
+* [PR 65](https://github.com/pytroll/trollflow2/pull/65) - Stop the workers when the process is done
+* [PR 62](https://github.com/pytroll/trollflow2/pull/62) - Check if the composites are actually produced when the trollflow2 process is over
+* [PR 61](https://github.com/pytroll/trollflow2/pull/61) - Ensure composites are generated for scenes without resampling
+* [PR 59](https://github.com/pytroll/trollflow2/pull/59) - Add "nameserver" and "addresses" command-line options
+* [PR 57](https://github.com/pytroll/trollflow2/pull/57) - Add the possibility to add extra metadata to the published messages
+* [PR 56](https://github.com/pytroll/trollflow2/pull/56) - Add GitHub templates and make flake8 happy
+* [PR 53](https://github.com/pytroll/trollflow2/pull/53) - Add max daylight coverage feature
+* [PR 52](https://github.com/pytroll/trollflow2/pull/52) - Add the possibility to provide a log config to satpy_laucher.py
+* [PR 51](https://github.com/pytroll/trollflow2/pull/51) - Allow multiple bands tuple to be passed as a single composite
+* [PR 50](https://github.com/pytroll/trollflow2/pull/50) - Fix the RTD pages
+* [PR 49](https://github.com/pytroll/trollflow2/pull/49) - Add some metadata to the published file messages
+* [PR 48](https://github.com/pytroll/trollflow2/pull/48) - Switch to pytest and add codecov reports
+* [PR 47](https://github.com/pytroll/trollflow2/pull/47) - Add dispatch order messages
+* [PR 46](https://github.com/pytroll/trollflow2/pull/46) - Make writing via tmp file more robust
+
+In this release 19 pull requests were closed.
 
 ## Version v0.5.0 (2019/07/01)
 
