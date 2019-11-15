@@ -181,7 +181,7 @@ def message_to_jobs(msg, product_list):
     formats = product_list['product_list'].get('formats', None)
     for _product, pconfig in plist_iter(product_list['product_list'], level='product'):
         if 'formats' not in pconfig and formats is not None:
-            pconfig['formats'] = formats.copy()
+            pconfig['formats'] = copy.deepcopy(formats)
     jobs = OrderedDict()
     priorities = get_area_priorities(product_list)
     # TODO: check the uri is accessible from the current host.
