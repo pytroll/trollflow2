@@ -1,3 +1,15 @@
+## Version 0.6.1 (2019/11/15)
+
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR 66](https://github.com/pytroll/trollflow2/pull/66) - Fix formats dictionary being the same object
+
+In this release 1 pull request was closed.
+
+
 ## Version 0.6.0 (2019/11/14)
 
 
