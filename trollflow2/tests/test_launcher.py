@@ -185,6 +185,10 @@ class TestMessageToJobs(TestCase):
                                                      'productname': 'overview'}}})])
         self.assertDictEqual(jobs[999]['product_list']['product_list']['areas'], expected)
         self.assertIn('output_dir', jobs[999]['product_list']['product_list'])
+        # Test that the formats are not the same object
+        prods = jobs[999]['product_list']['product_list']['areas']['euro4']['products']
+        self.assertFalse(prods['overview']['formats'][0] is
+                         prods['natural_color']['formats'][0])
 
 
 class TestRun(TestCase):
