@@ -592,13 +592,14 @@ def _get_product_area_def(job, area, product):
             scn = job['resampled_scenes'][area]
         else:
             scn = job['scene']
-            if isinstance(product, tuple):
-                prod = scn[product[0]]
-            else:
-                prod = scn[product]
+
+        if isinstance(product, tuple):
+            prod = scn[product[0]]
+        else:
+            prod = scn[product]
     except KeyError:
         try:
-            prod = scn[scn.keys()[0]]
+            prod = scn[list(scn.keys())[0]]
         except IndexError:
             LOG.warning("No dataset %s for this scene and area %s",
                         product, area)
