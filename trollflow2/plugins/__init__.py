@@ -552,8 +552,8 @@ def check_sunlight_coverage(job):
                             "No dataset %s for this scene and area %s",
                             product, area)
                         continue
-                else:
-                    area_def = prod.attrs['area']
+
+                area_def = prod.attrs['area']
 
             if use_pass:
                 overpass = Pass(platform_name, start_time, end_time, instrument=sensor)
