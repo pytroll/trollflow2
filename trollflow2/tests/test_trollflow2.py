@@ -764,6 +764,66 @@ class TestSunlightCovers(TestCase):
                                        0.1)
 
 
+class TestGetProductAreaDef(TestCase):
+    """Test case for finding area definition for a product."""
+
+    def test_get_product_area_def(self):
+        """Test _get_product_area_def()."""
+        from trollflow2.plugins import _get_product_area_def
+        # scn = mock.MagicMock()
+        # scn.__getitem__.side_effect = KeyError
+
+        # No area nor product
+        scn = dict([])
+        job = {'scene': scn}
+        area = 'area'
+        product = 'product'
+        res = _get_product_area_def(job, area, product)
+        self.assertIsNone(res)
+
+        # Area not in the scene, take area def from the available first dataset
+        adef = mock.MagicMock()
+        prod = mock.MagicMock()
+        prod.attrs.__getitem__.return_value = adef
+        scn['1'] = prod
+        job = {'scene': scn}
+        res = _get_product_area_def(job, area, product)
+        self.assertTrue(res is adef)
+        prod.attrs.__getitem__.assert_called_once()
+
+        # Area from the un-resampled scene
+        adef = mock.MagicMock()
+        prod = mock.MagicMock()
+        prod.attrs.__getitem__.return_value = adef
+        prod2 = mock.MagicMock()
+        prod2.attrs.__getitem__.return_value = None
+        scn = {area: prod, '1': prod2}
+        job = {'scene': scn}
+        res = _get_product_area_def(job, area, product)
+        self.assertTrue(res is adef)
+        prod.attrs.__getitem__.assert_called_once()
+        prod2.attrs.__getitem__.assert_not_called()
+        # Product is a tuple
+        res = _get_product_area_def(job, area, (product, 'foo'))
+        self.assertTrue(res is adef)
+
+        # Area from a resampled scene
+        adef = mock.MagicMock()
+        prod = mock.MagicMock()
+        prod.attrs.__getitem__.return_value = adef
+        prod2 = mock.MagicMock()
+        prod2.attrs.__getitem__.return_value = None
+        scn = {area: prod, '1': prod2}
+        job = {'resampled_scenes': {area: scn}}
+        res = _get_product_area_def(job, area, product)
+        self.assertTrue(res is adef)
+        prod.attrs.__getitem__.assert_called_once()
+        prod2.attrs.__getitem__.assert_not_called()
+        # Product is a tuple
+        res = _get_product_area_def(job, area, (product, 'foo'))
+        self.assertTrue(res is adef)
+
+
 class TestCheckSunlightCoverage(TestCase):
     """Test case for sunlight coverage."""
 
