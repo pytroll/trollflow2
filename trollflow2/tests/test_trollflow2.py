@@ -753,8 +753,9 @@ class TestSunlightCovers(TestCase):
         """Test sunlight coverage."""
         from trollflow2.plugins import _get_sunlight_coverage
         import numpy as np
-        with mock.patch('trollflow2.plugins.AreaDefBoundary') as area_def_boundary,\
-                mock.patch('trollflow2.plugins.get_twilight_poly'):
+        with mock.patch('trollflow2.plugins.AreaDefBoundary') as area_def_boundary, \
+                mock.patch('trollflow2.plugins.get_twilight_poly'), \
+                mock.patch('trollflow2.plugins.get_area_def'):
 
             area_def_boundary.return_value.contour_poly.intersection.return_value.area.return_value = 0.02
             area_def_boundary.return_value.contour_poly.area.return_value = 0.2
