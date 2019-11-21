@@ -32,13 +32,14 @@ import rasterio
 from posttroll.message import Message
 from posttroll.publisher import NoisyPublisher
 from pyorbital.astronomy import sun_zenith_angle
-from pyresample.boundary import AreaDefBoundary
+from pyresample.boundary import AreaDefBoundary, Boundary
 from pyresample.area_config import AreaNotFound
 from rasterio.enums import Resampling
 from satpy import Scene
 from satpy.dataset import DatasetID
 from satpy.resample import get_area_def
 from satpy.writers import compute_writer_results
+from satpy.readers.utils import get_geostationary_bounding_box
 from trollflow2.dict_tools import get_config_value, plist_iter
 from trollsift import compose
 
@@ -558,7 +559,12 @@ def check_sunlight_coverage(job):
 
 def _get_sunlight_coverage(area_def, start_time, overpass=None):
     """Get the sunlight coverage of *area_def* at *start_time* as a value between 0 and 1."""
-    adp = AreaDefBoundary(area_def, frequency=100).contour_poly
+    if area_def.proj_dict.get('proj') == 'geos':
+        adp = Boundary(
+            *get_geostationary_bounding_box(area_def,
+                                            nb_points=100)).contour_poly
+    else:
+        adp = AreaDefBoundary(area_def, frequency=100).contour_poly
     poly = get_twilight_poly(start_time)
     if overpass is not None:
         ovp = overpass.boundary.contour_poly
