@@ -535,25 +535,9 @@ def check_sunlight_coverage(job):
                 continue
 
             if area_def is None:
-                try:
-                    if 'resampled_scenes' in job:
-                        scn = job['resampled_scenes'][area]
-                    else:
-                        scn = job['scene']
-                    if isinstance(product, tuple):
-                        prod = scn[product[0]]
-                    else:
-                        prod = scn[product]
-                except KeyError:
-                    try:
-                        prod = scn[scn.keys()[0]]
-                    except IndexError:
-                        LOG.warning(
-                            "No dataset %s for this scene and area %s",
-                            product, area)
-                        continue
-
-                area_def = prod.attrs['area']
+                area_def = _get_product_area_def(job, area, product)
+                if area_def is None:
+                    continue
 
             if use_pass:
                 overpass = Pass(platform_name, start_time, end_time, instrument=sensor)
@@ -599,6 +583,28 @@ def _get_sunlight_coverage(area_def, start_time, overpass=None):
         daylight_area = daylight.area()
         total_area = adp.area()
         return daylight_area / total_area
+
+
+def _get_product_area_def(job, area, product):
+    """Get area definition for a product."""
+    try:
+        if 'resampled_scenes' in job:
+            scn = job['resampled_scenes'][area]
+        else:
+            scn = job['scene']
+            if isinstance(product, tuple):
+                prod = scn[product[0]]
+            else:
+                prod = scn[product]
+    except KeyError:
+        try:
+            prod = scn[scn.keys()[0]]
+        except IndexError:
+            LOG.warning("No dataset %s for this scene and area %s",
+                        product, area)
+            return None
+
+    return prod.attrs['area']
 
 
 def add_overviews(job):
