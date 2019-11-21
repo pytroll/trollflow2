@@ -165,6 +165,10 @@ product_list: &product_list
 workers:
   - fun: !!python/name:trollflow2.plugins.create_scene
   # Check sunlight area coverage fraction.  See configuration above.
+  #   The worker can be in three different stages:
+  #   - after create_scene: when area is defined in areas.yaml
+  #   - after load_composites: when area is `null` (save full disk GEO data)
+  #   - after resampler: for backwards compatibility
   # - fun: !!python/name:trollflow2.plugins.check_sunlight_coverage
   - fun: !!python/name:trollflow2.plugins.load_composites
   - fun: !!python/name:trollflow2.plugins.resample

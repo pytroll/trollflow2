@@ -33,6 +33,7 @@ from posttroll.message import Message
 from posttroll.publisher import NoisyPublisher
 from pyorbital.astronomy import sun_zenith_angle
 from pyresample.boundary import AreaDefBoundary
+from pyresample.area_config import AreaNotFound
 from rasterio.enums import Resampling
 from satpy import Scene
 from satpy.dataset import DatasetID
@@ -515,7 +516,10 @@ def check_sunlight_coverage(job):
 
     for area in areas:
         products = list(product_list['product_list']['areas'][area]['products'].keys())
-        area_def = get_area_def(area)
+        try:
+            area_def = get_area_def(area)
+        except AreaNotFound:
+            area_def = None
         for product in products:
             prod_path = "/product_list/areas/%s/products/%s" % (area, product)
             config = get_config_value(product_list, prod_path, "sunlight_coverage")
@@ -524,14 +528,33 @@ def check_sunlight_coverage(job):
             min_day = config.get('min')
             max_day = config.get('max')
             use_pass = config.get('check_pass', False)
-            if use_pass:
-                overpass = Pass(platform_name, start_time, end_time, instrument=sensor)
-            else:
-                overpass = None
+
             if min_day is None and max_day is None:
                 LOG.info("Sunlight coverage not configured for %s / %s",
                          product, area)
                 continue
+
+            if area_def is None:
+                try:
+                    if 'resampled_scenes' in job:
+                        scn_stage = job['resampled_scenes'][area]
+                    else:
+                        scn_stage = job['scene']
+                    if isinstance(product, tuple):
+                        prod = scn_stage[product[0]]
+                    else:
+                        prod = scn_stage[product]
+                except KeyError:
+                    LOG.warning("No dataset %s for this scene and area %s", product, area)
+                    continue
+                else:
+                    area_def = prod.attrs['area']
+
+            if use_pass:
+                overpass = Pass(platform_name, start_time, end_time, instrument=sensor)
+            else:
+                overpass = None
+
             coverage = _get_sunlight_coverage(area_def, start_time, overpass)
             product_list['product_list']['areas'][area]['area_sunlight_coverage_percent'] = coverage * 100
             if min_day is not None and coverage < (min_day / 100.0):
