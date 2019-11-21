@@ -537,16 +537,21 @@ def check_sunlight_coverage(job):
             if area_def is None:
                 try:
                     if 'resampled_scenes' in job:
-                        scn_stage = job['resampled_scenes'][area]
+                        scn = job['resampled_scenes'][area]
                     else:
-                        scn_stage = job['scene']
+                        scn = job['scene']
                     if isinstance(product, tuple):
-                        prod = scn_stage[product[0]]
+                        prod = scn[product[0]]
                     else:
-                        prod = scn_stage[product]
+                        prod = scn[product]
                 except KeyError:
-                    LOG.warning("No dataset %s for this scene and area %s", product, area)
-                    continue
+                    try:
+                        prod = scn[scn.keys()[0]]
+                    except IndexError:
+                        LOG.warning(
+                            "No dataset %s for this scene and area %s",
+                            product, area)
+                        continue
                 else:
                     area_def = prod.attrs['area']
 
