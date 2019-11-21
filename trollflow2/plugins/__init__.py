@@ -41,6 +41,7 @@ from satpy.writers import compute_writer_results
 from trollflow2.dict_tools import get_config_value, plist_iter
 from trollsift import compose
 
+
 # Allow trollsched to be missing
 try:
     from trollsched.satpass import Pass
@@ -480,11 +481,17 @@ def sza_check(job):
 
 
 def check_sunlight_coverage(job):
-    """Remove products with too low daytime coverage.
+    """Remove products with too low/high sunlight coverage.
 
-    This plugins looks for a parameter called `min_sunlight_coverage` in the
-    product list, expressed in % (so between 0 and 100). If the sunlit fraction
-    is less than configured, the affected products will be discarded.
+    This plugins looks for a dictionary called `sunlight_coverage` in
+    the product list, with members `min` and/or `max` that define the
+    minimum and/or maximum allowed sunlight coverage within the scene.
+    The limits are expressed in % (so between 0 and 100).  If the
+    sunlit fraction is outside the set limits, the affected products
+    will be discarded.  It is also possible to define `check_pass:
+    True` in this dictionary to check the sunlit fraction within the
+    overpass of an polar-orbiting satellite.
+
     """
     if get_twilight_poly is None:
         LOG.error("Trollsched import failed, sunlight coverage calculation not possible")
@@ -531,6 +538,8 @@ def check_sunlight_coverage(job):
             else:
                 overpass = None
             if min_day is None and max_day is None:
+                LOG.info("Sunlight coverage not configured for %s / %s",
+                         product, area)
                 continue
             coverage = _get_sunlight_coverage(area_def, start_time, overpass)
             product_list['product_list']['areas'][area]['area_sunlight_coverage_percent'] = coverage * 100
