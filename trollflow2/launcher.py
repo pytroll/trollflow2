@@ -219,13 +219,16 @@ def expand(yml):
 
 def process(msg, prod_list, produced_files):
     """Process a message."""
-    from zmq.error import ZMQError
     config = {}
-
     try:
         with open(prod_list) as fid:
             config = yaml.load(fid.read(), Loader=UnsafeLoader)
+    except (IOError, yaml.YAMLError):
+        # Either open() or yaml.load() failed
+        LOG.exception("Process crashed, check YAML file.")
+        raise
 
+    try:
         config = expand(config)
         jobs = message_to_jobs(msg, config)
         for prio in sorted(jobs.keys()):
@@ -238,13 +241,6 @@ def process(msg, prod_list, produced_files):
                     cwrk.pop('fun')(job, **cwrk)
             except AbortProcessing as err:
                 LOG.info(str(err))
-    except (IOError, yaml.YAMLError):
-        # Either open() or yaml.load() failed
-        LOG.exception("Process crashed, check YAML file.")
-        raise
-    except ZMQError:
-        LOG.exception("Process crashed due to ZMQError")
-        raise
     except Exception:
         LOG.exception("Process crashed")
         if "crash_handlers" in config:
