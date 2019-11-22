@@ -219,11 +219,12 @@ def expand(yml):
 
 def process(msg, prod_list, produced_files):
     """Process a message."""
+    from zmq.error import ZMQError
     config = {}
     try:
         with open(prod_list) as fid:
             config = yaml.load(fid.read(), Loader=UnsafeLoader)
-    except (IOError, yaml.YAMLError):
+    except (IOError, yaml.YAMLError, ZMQError):
         # Either open() or yaml.load() failed
         LOG.exception("Process crashed, check YAML file.")
         raise
