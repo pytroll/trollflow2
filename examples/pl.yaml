@@ -38,6 +38,14 @@ product_list: &product_list
   # Add extra metadata to the published messages
   # extra_metadata:
   #   processing_center: SMHI
+  # Check fraction of sunlit area.  Remove affected products outside the
+  #   given limits.  For daytime products define only `min`, and for nighttime
+  #   products define only `max`.  To check sunlit fraction within a swath of
+  #   a polar-orbiting satellite, define `check_pass: True`.
+  # sunlight_coverage:
+  #   min: 20.0  # if lower than this, products are removed
+  #   max: 80.0  # if higher than this, products are removed
+  #   check_pass: True  # check coverage within the swath
 
   areas:
     omerc_bb:
@@ -156,6 +164,12 @@ product_list: &product_list
 
 workers:
   - fun: !!python/name:trollflow2.plugins.create_scene
+  # Check sunlight area coverage fraction.  See configuration above.
+  #   The worker can be in three different stages:
+  #   - after create_scene: when area is defined in areas.yaml
+  #   - after load_composites: when area is `null` (save full disk GEO data)
+  #   - after resampler: for backwards compatibility
+  # - fun: !!python/name:trollflow2.plugins.check_sunlight_coverage
   - fun: !!python/name:trollflow2.plugins.load_composites
   - fun: !!python/name:trollflow2.plugins.resample
   - fun: !!python/name:trollflow2.plugins.save_datasets

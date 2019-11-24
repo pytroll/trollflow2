@@ -32,14 +32,17 @@ import rasterio
 from posttroll.message import Message
 from posttroll.publisher import NoisyPublisher
 from pyorbital.astronomy import sun_zenith_angle
-from pyresample.boundary import AreaDefBoundary
+from pyresample.boundary import AreaDefBoundary, Boundary
+from pyresample.area_config import AreaNotFound
 from rasterio.enums import Resampling
 from satpy import Scene
 from satpy.dataset import DatasetID
 from satpy.resample import get_area_def
 from satpy.writers import compute_writer_results
+from satpy.readers.utils import get_geostationary_bounding_box
 from trollflow2.dict_tools import get_config_value, plist_iter
 from trollsift import compose
+
 
 # Allow trollsched to be missing
 try:
@@ -480,11 +483,17 @@ def sza_check(job):
 
 
 def check_sunlight_coverage(job):
-    """Remove products with too low daytime coverage.
+    """Remove products with too low/high sunlight coverage.
 
-    This plugins looks for a parameter called `min_sunlight_coverage` in the
-    product list, expressed in % (so between 0 and 100). If the sunlit fraction
-    is less than configured, the affected products will be discarded.
+    This plugins looks for a dictionary called `sunlight_coverage` in
+    the product list, with members `min` and/or `max` that define the
+    minimum and/or maximum allowed sunlight coverage within the scene.
+    The limits are expressed in % (so between 0 and 100).  If the
+    sunlit fraction is outside the set limits, the affected products
+    will be discarded.  It is also possible to define `check_pass:
+    True` in this dictionary to check the sunlit fraction within the
+    overpass of an polar-orbiting satellite.
+
     """
     if get_twilight_poly is None:
         LOG.error("Trollsched import failed, sunlight coverage calculation not possible")
@@ -508,17 +517,13 @@ def check_sunlight_coverage(job):
 
     for area in areas:
         products = list(product_list['product_list']['areas'][area]['products'].keys())
+        try:
+            area_def = get_area_def(area)
+        except AreaNotFound:
+            area_def = None
+        coverage = {True: None, False: None}
+        overpass = None
         for product in products:
-            try:
-                if isinstance(product, tuple):
-                    prod = job['resampled_scenes'][area][product[0]]
-                else:
-                    prod = job['resampled_scenes'][area][product]
-            except KeyError:
-                LOG.warning("No dataset %s for this scene and area %s", product, area)
-                continue
-            else:
-                area_def = prod.attrs['area']
             prod_path = "/product_list/areas/%s/products/%s" % (area, product)
             config = get_config_value(product_list, prod_path, "sunlight_coverage")
             if config is None:
@@ -526,19 +531,31 @@ def check_sunlight_coverage(job):
             min_day = config.get('min')
             max_day = config.get('max')
             use_pass = config.get('check_pass', False)
-            if use_pass:
-                overpass = Pass(platform_name, start_time, end_time, instrument=sensor)
-            else:
-                overpass = None
+
             if min_day is None and max_day is None:
+                LOG.info("Sunlight coverage not configured for %s / %s",
+                         product, area)
                 continue
-            coverage = _get_sunlight_coverage(area_def, start_time, overpass)
-            product_list['product_list']['areas'][area]['area_sunlight_coverage_percent'] = coverage * 100
-            if min_day is not None and coverage < (min_day / 100.0):
+
+            if area_def is None:
+                area_def = _get_product_area_def(job, area, product)
+                if area_def is None:
+                    continue
+
+            if use_pass and overpass is None:
+                overpass = Pass(platform_name, start_time, end_time, instrument=sensor)
+
+            if coverage[use_pass] is None:
+                coverage[use_pass] = _get_sunlight_coverage(area_def,
+                                                            start_time,
+                                                            overpass)
+            area_conf = product_list['product_list']['areas'][area]
+            area_conf['area_sunlight_coverage_percent'] = coverage[use_pass] * 100
+            if min_day is not None and coverage[use_pass] < (min_day / 100.0):
                 LOG.info("Not enough sunlight coverage in "
                          "product '%s', removed.", product)
                 dpath.util.delete(product_list, prod_path)
-            if max_day is not None and coverage > (max_day / 100.0):
+            if max_day is not None and coverage[use_pass] > (max_day / 100.0):
                 LOG.info("Too much sunlight coverage in "
                          "product '%s', removed.", product)
                 dpath.util.delete(product_list, prod_path)
@@ -546,7 +563,12 @@ def check_sunlight_coverage(job):
 
 def _get_sunlight_coverage(area_def, start_time, overpass=None):
     """Get the sunlight coverage of *area_def* at *start_time* as a value between 0 and 1."""
-    adp = AreaDefBoundary(area_def, frequency=100).contour_poly
+    if area_def.proj_dict.get('proj') == 'geos':
+        adp = Boundary(
+            *get_geostationary_bounding_box(area_def,
+                                            nb_points=100)).contour_poly
+    else:
+        adp = AreaDefBoundary(area_def, frequency=100).contour_poly
     poly = get_twilight_poly(start_time)
     if overpass is not None:
         ovp = overpass.boundary.contour_poly
@@ -571,6 +593,29 @@ def _get_sunlight_coverage(area_def, start_time, overpass=None):
         daylight_area = daylight.area()
         total_area = adp.area()
         return daylight_area / total_area
+
+
+def _get_product_area_def(job, area, product):
+    """Get area definition for a product."""
+    try:
+        if 'resampled_scenes' in job:
+            scn = job['resampled_scenes'][area]
+        else:
+            scn = job['scene']
+
+        if isinstance(product, tuple):
+            prod = scn[product[0]]
+        else:
+            prod = scn[product]
+    except KeyError:
+        try:
+            prod = scn[list(scn.keys())[0]]
+        except IndexError:
+            LOG.warning("No dataset %s for this scene and area %s",
+                        product, area)
+            return None
+
+    return prod.attrs['area']
 
 
 def add_overviews(job):

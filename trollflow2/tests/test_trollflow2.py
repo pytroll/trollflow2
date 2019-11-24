@@ -753,14 +753,83 @@ class TestSunlightCovers(TestCase):
         """Test sunlight coverage."""
         from trollflow2.plugins import _get_sunlight_coverage
         import numpy as np
-        with mock.patch('trollflow2.plugins.AreaDefBoundary') as area_def_boundary,\
-                mock.patch('trollflow2.plugins.get_twilight_poly'):
+        with mock.patch('trollflow2.plugins.AreaDefBoundary') as area_def_boundary, \
+                mock.patch('trollflow2.plugins.Boundary') as boundary, \
+                mock.patch('trollflow2.plugins.get_twilight_poly'), \
+                mock.patch('trollflow2.plugins.get_area_def'), \
+                mock.patch('trollflow2.plugins.get_geostationary_bounding_box'):
 
             area_def_boundary.return_value.contour_poly.intersection.return_value.area.return_value = 0.02
+            boundary.return_value.contour_poly.intersection.return_value.area.return_value = 0.02
             area_def_boundary.return_value.contour_poly.area.return_value = 0.2
-            np.testing.assert_allclose(_get_sunlight_coverage('euron1',
-                                                              dt.datetime(2019, 4, 7, 20, 8)),
-                                       0.1)
+            start_time = dt.datetime(2019, 4, 7, 20, 8)
+            adef = mock.MagicMock(proj_dict={'proj': 'stere'})
+            res = _get_sunlight_coverage(adef, start_time)
+            np.testing.assert_allclose(res, 0.1)
+            boundary.assert_not_called()
+            adef = mock.MagicMock(proj_dict={'proj': 'geos'})
+            res = _get_sunlight_coverage(adef, start_time)
+            boundary.assert_called()
+
+
+class TestGetProductAreaDef(TestCase):
+    """Test case for finding area definition for a product."""
+
+    def test_get_product_area_def(self):
+        """Test _get_product_area_def()."""
+        from trollflow2.plugins import _get_product_area_def
+        # scn = mock.MagicMock()
+        # scn.__getitem__.side_effect = KeyError
+
+        # No area nor product
+        scn = dict([])
+        job = {'scene': scn}
+        area = 'area'
+        product = 'product'
+        res = _get_product_area_def(job, area, product)
+        self.assertIsNone(res)
+
+        # Area not in the scene, take area def from the available first dataset
+        adef = mock.MagicMock()
+        prod = mock.MagicMock()
+        prod.attrs.__getitem__.return_value = adef
+        scn['1'] = prod
+        job = {'scene': scn}
+        res = _get_product_area_def(job, area, product)
+        self.assertTrue(res is adef)
+        prod.attrs.__getitem__.assert_called_once()
+
+        # Area from the un-resampled scene
+        adef = mock.MagicMock()
+        prod = mock.MagicMock()
+        prod.attrs.__getitem__.return_value = adef
+        prod2 = mock.MagicMock()
+        prod2.attrs.__getitem__.return_value = None
+        scn = {area: prod, '1': prod2}
+        job = {'scene': scn}
+        res = _get_product_area_def(job, area, product)
+        self.assertTrue(res is adef)
+        prod.attrs.__getitem__.assert_called_once()
+        prod2.attrs.__getitem__.assert_not_called()
+        # Product is a tuple
+        res = _get_product_area_def(job, area, (product, 'foo'))
+        self.assertTrue(res is adef)
+
+        # Area from a resampled scene
+        adef = mock.MagicMock()
+        prod = mock.MagicMock()
+        prod.attrs.__getitem__.return_value = adef
+        prod2 = mock.MagicMock()
+        prod2.attrs.__getitem__.return_value = None
+        scn = {area: prod, '1': prod2}
+        job = {'resampled_scenes': {area: scn}}
+        res = _get_product_area_def(job, area, product)
+        self.assertTrue(res is adef)
+        prod.attrs.__getitem__.assert_called_once()
+        prod2.attrs.__getitem__.assert_not_called()
+        # Product is a tuple
+        res = _get_product_area_def(job, area, (product, 'foo'))
+        self.assertTrue(res is adef)
 
 
 class TestCheckSunlightCoverage(TestCase):
