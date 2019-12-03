@@ -39,7 +39,7 @@ from satpy import Scene
 from satpy.dataset import DatasetID
 from satpy.resample import get_area_def
 from satpy.writers import compute_writer_results
-from satpy.readers.utils import get_geostationary_bounding_box
+from pyresample.geometry import get_geostationary_bounding_box
 from trollflow2.dict_tools import get_config_value, plist_iter
 from trollsift import compose
 
