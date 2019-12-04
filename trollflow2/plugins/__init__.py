@@ -119,12 +119,15 @@ def resample(job):
             maxarea = get_config_value(product_list,
                                        '/product_list/areas/' + str(area),
                                        'use_max_area')
+            native = conf.get('resampler') == 'native'
             if minarea is True:
                 job['resampled_scenes'][area] = scn.resample(scn.min_area(),
                                                              **area_conf)
             elif maxarea is True:
                 job['resampled_scenes'][area] = scn.resample(scn.max_area(),
                                                              **area_conf)
+            elif native:
+                job['resampled_scenes'][area] = scn.resample(resampler='native')
             else:
                 # The composites need to be created for the saving to work
                 if not set(scn.datasets.keys()).issuperset(scn.wishlist):

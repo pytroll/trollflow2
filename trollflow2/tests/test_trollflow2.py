@@ -734,6 +734,20 @@ class TestResampleNullArea(TestCase):
         self.assertTrue(mock.call({'abc'}, generate=True) in
                         scn.load.mock_calls)
 
+    def test_resample_native_null_area(self):
+        """Test using `native` resampler with `None` area."""
+        from trollflow2.plugins import resample
+        scn = mock.MagicMock()
+        product_list = self.product_list.copy()
+        product_list["common"] = {"resampler": "native"}
+        job = {"scene": scn, "product_list": product_list.copy()}
+        # The composites have been generated
+        scn.datasets.keys.return_value = ['abc']
+        scn.wishlist = {'abc'}
+        resample(job)
+        self.assertTrue(mock.call(resampler='native') in
+                        scn.resample.mock_calls)
+
 
 class TestSunlightCovers(TestCase):
     """Test the sunlight coverage."""

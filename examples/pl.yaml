@@ -93,6 +93,8 @@ product_list: &product_list
               # To use add `add_overviews` to workers after `save_datasets`
               # overviews: [4, 8, 16, 32, 64, 128, 256]
     # null:  # satellite projection
+    #   # For satellite projection it is possible to define `resampler: native`
+    #   #   for satellites that have multiple resolutions for a channel
     #   areaname: satellite_projection
     #   # Use lowest listed priority for area in satellite projection.
     #   #   To be able to save the data the composites need to be
