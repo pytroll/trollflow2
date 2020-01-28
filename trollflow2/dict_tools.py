@@ -20,7 +20,7 @@
 # are not necessary
 """Tools for product list operations."""
 
-import dpath
+import dpath.util
 
 
 def plist_iter(product_list, base_mda=None, level=None):
