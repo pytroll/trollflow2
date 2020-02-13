@@ -1047,6 +1047,24 @@ class TestCheckPlatform(TestCase):
                 check_platform(job)
 
 
+class TestCheckSensor(TestCase):
+    """Test case for checking the sensor."""
+
+    def test_check_sensor(self):
+        """Test checking the platform."""
+        from trollflow2.plugins import check_sensor
+        from trollflow2.plugins import AbortProcessing
+        with mock.patch('trollflow2.plugins.get_config_value') as get_config_value:
+            get_config_value.return_value = None
+            job = {'product_list': None, 'input_mda': {'sensor': 'foo'}}
+            self.assertIsNone(check_sensor(job))
+            get_config_value.return_value = ['foo', 'bar']
+            self.assertIsNone(check_sensor(job))
+            get_config_value.return_value = ['bar']
+            with self.assertRaises(AbortProcessing):
+                check_sensor(job)
+
+
 class TestMetadataAlias(TestCase):
     """Test case for metadata alias."""
 

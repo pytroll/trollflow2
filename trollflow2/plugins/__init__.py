@@ -1,21 +1,21 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
+#
 # Copyright (c) 2019 Pytroll developers
-
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
-
+#
 # Workaround for unittests so that satpy and posttroll installations
 # are not necessary
 
@@ -419,6 +419,19 @@ def check_platform(job):
     if platform not in conf:
         raise AbortProcessing(
             "'%s' not in list of allowed platforms" % platform)
+
+
+def check_sensor(job):
+    """Check if the sensor is valid.  If not, discard the scene."""
+    mda = job['input_mda']
+    product_list = job['product_list']
+    conf = get_config_value(product_list, '/product_list', 'processed_platforms')
+    if conf is None:
+        return
+    sensor = mda['sensor']
+    if sensor not in conf:
+        raise AbortProcessing(
+            "'%s' not in list of allowed sensors" % str(sensor))
 
 
 def metadata_alias(job):
