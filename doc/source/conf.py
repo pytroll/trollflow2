@@ -26,7 +26,7 @@ from pkg_resources import get_distribution
 # |version| and |release|, also used in various other places throughout the
 # built documents.
 #
-release = get_distribution('satpy').version
+release = get_distribution('trollflow2').version
 # for example take major/minor
 version = '.'.join(release.split('.')[:2])
 
