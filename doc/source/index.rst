@@ -243,7 +243,10 @@ Example
     use_extern_calib: false
     fname_pattern: &fname
       "{platform_name}_{start_time:%Y%m%d_%H%M}_{areaname}_{productname}.{format}"
-    publish_topic: /raster/2A/avhrr
+    subscribe_topics:
+      - /incoming/topic1
+      - /incoming/topic2
+    publish_topic: /raster/2A/avhrr/{areaname}/{productname}
     reader: avhrr_l1b_aapp
     mask_area: True
     delay_composites: True
