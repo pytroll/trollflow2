@@ -425,7 +425,7 @@ def check_sensor(job):
     """Check if the sensor is valid.  If not, discard the scene."""
     mda = job['input_mda']
     product_list = job['product_list']
-    conf = get_config_value(product_list, '/product_list', 'processed_platforms')
+    conf = get_config_value(product_list, '/product_list', 'processed_sensors')
     if conf is None:
         return
     sensor = mda['sensor']
