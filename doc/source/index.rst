@@ -132,6 +132,9 @@ The available options, with the default values, are:
  - `nameservers: null` - a list of nameservers to connect to.  Default
    to the nameserver on localhost.
 
+These options are given in the list of workers as a dictionary
+argument to the `FilePublisher` class.
+
 Auxiliary plugins
 +++++++++++++++++
 
