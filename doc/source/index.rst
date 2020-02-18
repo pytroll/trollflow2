@@ -156,6 +156,17 @@ Options within a `sunlight_coverage` section:
  - `max: <float>` - Maximum allowed Sun-lit coverage in percentages for the product to be generated.
  - `check_pass: <bool>` - Use orbital parameters to compute the overpass coverage for a polar satellite.
 
+The check can be in three different places, depending on the areas
+being processed:
+
+ - after `create_scene` when area is defined in areas.yaml
+ - after `load_composites` when area is `null`
+   - dynamic area definition is used by `use_min_area: True` or
+     `use_max_area: True`
+   - the original data are to be saved without resampling
+   - `resampler: native` is used
+ - after `resampler` for backwards compatibility, although this wastes time
+
 Add overviews
 *************
 
