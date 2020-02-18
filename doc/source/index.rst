@@ -114,6 +114,7 @@ are several options:
    - `format: tif`
    - `writer: geotiff`
    - `fname_pattern: '{platform_name}_{start_time:%Y%m%d_%H%M}_{areaname}_{productname}.{format}'`
+ - `use_tmp_file: bool` - First save the data to a temporary filename and then rename to the final version.
 
 The `fname_pattern` can be a global setting at the top-level of the
 configuration, and overridden on area and product levels.
