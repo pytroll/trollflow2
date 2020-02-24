@@ -133,8 +133,9 @@ The available options, with the default values, are:
 
  - `port: 0` - publish messages in this port.  By default a random
    port is selected.
- - `nameservers: null` - a list of nameservers to connect to.  Default
-   to the nameserver on localhost.
+ - `nameservers: null` - a list of nameservers to connect to.
+   Defining any nameserver turns multicast messaging off.  Default to
+   the nameserver on localhost and use multicast
 
 These options are given in the list of workers as a dictionary
 argument to the `FilePublisher` class.
