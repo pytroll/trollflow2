@@ -164,11 +164,16 @@ being processed:
 
  - after `create_scene` when area is defined in areas.yaml
  - after `load_composites` when area is `null`
-   - dynamic area definition is used by `use_min_area: True` or
-     `use_max_area: True`
+   - using `use_min_area: True` or `use_max_area: True`
    - the original data are to be saved without resampling
    - `resampler: native` is used
  - after `resampler` for backwards compatibility, although this wastes time
+
+For explanation on the individual resampler options see the
+`Satpy<https://satpy.readthedocs.io/en/latest/resample.html>`_ and
+further
+`Pyresample<https://pyresample.readthedocs.io/en/latest/swath.html>`_
+documentation.
 
 Add overviews
 *************
