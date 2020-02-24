@@ -39,6 +39,9 @@ end of each run (one scene).
 An example of such a callable class used in trollflow2 is the
 `class:FilePublisher`.
 
+Most of the configuration are done within the product list.  The
+notable exception are the initialization options for the class-based
+plugins.
 
 Main plugins
 ++++++++++++
