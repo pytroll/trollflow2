@@ -17,8 +17,10 @@ product_list:
   metadata_aliases:
     sensor:
       avhrr/3: avhrr-3
-  # Process only these platforms
-  processed_platforms:
+  # Check that metadata matches
+  check_metadata:
+    # Only these platforms are processed
+    platform_name:
     - NOAA-19
     - Metop-A
     - Metop-B

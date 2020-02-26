@@ -408,30 +408,26 @@ def get_scene_coverage(platform_name, start_time, end_time, sensor, area_id):
     return 100 * overpass.area_coverage(area_def)
 
 
-def check_platform(job):
-    """Check if the platform is valid.  If not, discard the scene."""
+def check_metadata(job):
+    """Check the message metadata.
+
+    If the metadata does not match the configured values, the scene
+    will be discarded.
+
+    """
     mda = job['input_mda']
     product_list = job['product_list']
-    conf = get_config_value(product_list, '/product_list', 'processed_platforms')
+    conf = get_config_value(product_list, '/product_list', 'check_metadata')
     if conf is None:
         return
-    platform = mda['platform_name']
-    if platform not in conf:
-        raise AbortProcessing(
-            "'%s' not in list of allowed platforms" % platform)
-
-
-def check_sensor(job):
-    """Check if the sensor is valid.  If not, discard the scene."""
-    mda = job['input_mda']
-    product_list = job['product_list']
-    conf = get_config_value(product_list, '/product_list', 'processed_sensors')
-    if conf is None:
-        return
-    sensor = mda['sensor']
-    if sensor not in conf:
-        raise AbortProcessing(
-            "'%s' not in list of allowed sensors" % str(sensor))
+    for key, val in conf.items():
+        if key not in mda:
+            LOG.warning("Metadata item '%s' not in the input message.",
+                        key)
+            continue
+        if mda[key] not in val:
+            raise AbortProcessing("Metadata '%s' item '%s' not in '%s'" %
+                                  (key, mda[key], str(val)))
 
 
 def metadata_alias(job):
