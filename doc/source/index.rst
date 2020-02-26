@@ -225,15 +225,21 @@ The best place for this plugin is before any data handling is done.
 Options:
  - `processed_platforms: null` - A list of allowed platform names.  By default (`null`) all platforms are processed.
 
-Sensor name check
-*****************
+Metadata checks
+***************
 
-The `check_sensor` plugin can be used to check that the sensor name
-in the incoming message is in the configured list of sensors.  The
-best place for this plugin is before any data handling is done.
+The `check_metadata` plugin can be used to check that for example the
+sensor name, platform name, or any item in the incoming message
+matches with the configuration.  If the metadata item name is defined
+in the config, but the value is not listed, the whole scene is
+discarded.  If the configured item isn't in the input message
+metadata, a warning is printed and the processing continues.  The best
+place for this plugin is before any data handling is done.
 
 Options:
- - `processed_sensors: null` - A list of allowed sensor names.  By default (`null`) all sensors are processed.
+ - `check_metadata: null` - A dictionary of metadata names and list(s)
+   of values that need to match.  By default (`null`) all scenes are
+   processed.
 
 Metadata aliasing
 *****************
@@ -276,13 +282,15 @@ Example
       variant:
         EARS: regional
         DR: direct_readout
-    processed_platforms:
+    check_metadata:
+      platform_name:
       - NOAA-19
       - Metop-A
       - Metop-B
       - Metop-C
-    processed_sensors:
+      sensor:
       - avhrr-3
+
     min_coverage: 25
     areas:
       baws:
