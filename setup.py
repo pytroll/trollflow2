@@ -27,7 +27,7 @@ from setuptools import setup
 import versioneer
 import sys
 
-install_requires = ['pyyaml', 'dpath', 'trollsift']
+install_requires = ['pyyaml', 'dpath<1.5', 'trollsift']
 if "test" not in sys.argv:
     install_requires += ['posttroll', 'satpy', 'pyorbital']
 
