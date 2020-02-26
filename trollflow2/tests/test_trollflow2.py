@@ -1029,22 +1029,47 @@ class TestCovers(TestCase):
             covers(job)
 
 
-class TestCheckPlatform(TestCase):
-    """Test case for checking the platform."""
+class TestCheckMetadata(TestCase):
+    """Test case for checking the input metadata."""
 
-    def test_check_platform(self):
-        """Test checking the platform."""
-        from trollflow2.plugins import check_platform
+    def test_single_item(self):
+        """Test checking a single metadata item."""
+        from trollflow2.plugins import check_metadata
         from trollflow2.plugins import AbortProcessing
         with mock.patch('trollflow2.plugins.get_config_value') as get_config_value:
             get_config_value.return_value = None
-            job = {'product_list': None, 'input_mda': {'platform_name': 'foo'}}
-            self.assertIsNone(check_platform(job))
-            get_config_value.return_value = ['foo', 'bar']
-            self.assertIsNone(check_platform(job))
-            get_config_value.return_value = ['bar']
+            job = {'product_list': None, 'input_mda': {'sensor': 'foo'}}
+            self.assertIsNone(check_metadata(job))
+            get_config_value.return_value = {'sensor': ['foo', 'bar']}
+            self.assertIsNone(check_metadata(job))
+            get_config_value.return_value = {'sensor': ['bar']}
             with self.assertRaises(AbortProcessing):
-                check_platform(job)
+                check_metadata(job)
+
+    def test_multiple_items(self):
+        """Test checking a single metadata item."""
+        from trollflow2.plugins import check_metadata
+        from trollflow2.plugins import AbortProcessing
+        with mock.patch('trollflow2.plugins.get_config_value') as get_config_value:
+            # Nothing configured
+            get_config_value.return_value = None
+            job = {'product_list': None,
+                   'input_mda': {'sensor': 'foo',
+                                 'platform_name': 'bar'}}
+            self.assertIsNone(check_metadata(job))
+            # Both sensor and platform name match
+            get_config_value.return_value = {'sensor': ['foo', 'bar'],
+                                             'platform_name': ['bar']}
+            self.assertIsNone(check_metadata(job))
+            # Sensor matches, 'variant' not in the message
+            get_config_value.return_value = {'sensor': ['foo', 'bar'],
+                                             'variant': ['e ascari']}
+            self.assertIsNone(check_metadata(job))
+            # Platform doesn't match -> abort
+            get_config_value.return_value = {'sensor': ['foo'],
+                                             'platform_name': ['not-bar']}
+            with self.assertRaises(AbortProcessing):
+                check_metadata(job)
 
 
 class TestMetadataAlias(TestCase):
