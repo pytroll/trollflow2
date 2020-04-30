@@ -183,6 +183,8 @@ product_list:
               - format: jpg
                 writer: simple_image
                 fill_value: 0
+                info:
+                  client: [Important client, Newspaper]
             fname_pattern: "{platform_name:s}_{start_time:%Y%m%d_%H%M}_{areaname:s}_ctth_static.{format}"
           ("ct", "ctth"):
             productname: ct_and_ctth
@@ -433,7 +435,9 @@ class TestSaveDatasets(TestCase):
                                  'format':
                                  'jpg',
                                  'writer':
-                                 'simple_image'
+                                 'simple_image',
+                                 'info':
+                                    {'client': ['Important client', 'Newspaper']},
                              }],
                             'output_dir':
                             '/tmp/satdmz/pps/www/latest_2018/',

@@ -270,6 +270,10 @@ Product list
  - ``productname``, ``areaname`` are the names to use for product and area
    in the filename. If not provided, they default to the actual product
    and area names.
+ - Each ``format`` in the ``formats`` section can have an ``info`` item to store
+   information that will be strictly kept in the product list (ie not saved to
+   file, not published). This can be useful for example for storing information
+   about which customer is receiving this file in the end.
 
 Example
 *******
@@ -324,6 +328,8 @@ Example
               - format: nc
                 writer: cf
                 fname_pattern: "{start_time:%Y%m%d_%H%M}_{platform_name:s}_{productname:s}_{variant:s}.{format}"
+                info:
+                  clients: [The ice services]
           green_snow:
             sunlight_coverage:
               min: 10

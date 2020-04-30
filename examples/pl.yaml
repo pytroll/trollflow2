@@ -65,6 +65,10 @@ product_list: &product_list
           formats:
             - format: nc
               writer: cf
+              # you can have some info about this file here, that won't leave
+              # the product list.
+              info:
+                clients: [The IR Times, John Doe]
           # Remove product if SZA is more than this
           #sunzen_maximum_angle: 90.0
           # Remove product if sunligth coverage is less that this

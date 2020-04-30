@@ -193,6 +193,7 @@ def save_dataset(scns, fmat, fmat_config, renames):
             kwargs = fmat_config.copy()
             kwargs.pop('fname_pattern', None)
             kwargs.pop('dispatch', None)
+            kwargs.pop('info', None)
             if isinstance(fmat['product'], (tuple, list, set)):
                 kwargs.pop('format')
                 dsids = []
