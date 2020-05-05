@@ -22,6 +22,7 @@
 """Trollflow2 plugins."""
 
 import os
+from pathlib import Path
 from contextlib import contextmanager
 from logging import getLogger
 from tempfile import NamedTemporaryFile
