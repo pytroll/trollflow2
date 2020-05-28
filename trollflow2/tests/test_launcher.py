@@ -290,7 +290,9 @@ class TestProcess(TestCase):
             mock_config = mock.MagicMock()
             yaml_.load.return_value = mock_config
             yaml_.YAMLError = yaml.YAMLError
+            # Make a client that has no `.close()` method (for coverage)
             client = mock.MagicMock()
+            client.close.side_effect = AttributeError
             gdc.return_value = client
             fun1 = mock.MagicMock()
             # Return something resembling a config
