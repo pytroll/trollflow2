@@ -358,9 +358,9 @@ class TestDistributed(TestCase):
 
         # Config is valid, but no workers are available
         config = {"dask_distributed": {"class": client_class,
-                                    "settings": {"foo": 1, "bar": 2}
-                                    }
-                }
+                                       "settings": {"foo": 1, "bar": 2}
+                                       }
+                  }
         res = get_dask_client(config)
         assert res is None
         ncores.assert_called_once()
