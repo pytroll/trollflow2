@@ -338,7 +338,8 @@ class TestProcess(TestCase):
                 process("msg", "prod_list", the_queue)
 
 
-def test_get_dask_client():
+@mock.patch("trollflow2.plugins")
+def test_get_dask_client(plugins):
     """Test getting dask client."""
     from trollflow2.launcher import get_dask_client
 
