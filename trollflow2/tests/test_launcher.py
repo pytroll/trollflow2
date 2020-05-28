@@ -338,43 +338,45 @@ class TestProcess(TestCase):
                 process("msg", "prod_list", the_queue)
 
 
-@mock.patch("trollflow2.plugins")
-def test_get_dask_client(plugins):
-    """Test getting dask client."""
-    from trollflow2.launcher import get_dask_client
+class TestDistributed(TestCase):
+    """Test functions for distributed processing."""
 
-    ncores = mock.MagicMock()
-    ncores.return_value = {}
-    client = mock.MagicMock(ncores=ncores)
-    client_class = mock.MagicMock()
-    client_class.return_value = client
+    def test_get_dask_client(self):
+        """Test getting dask client."""
+        from trollflow2.launcher import get_dask_client
 
-    # No client configured
-    config = {}
-    res = get_dask_client(config)
-    assert res is None
+        ncores = mock.MagicMock()
+        ncores.return_value = {}
+        client = mock.MagicMock(ncores=ncores)
+        client_class = mock.MagicMock()
+        client_class.return_value = client
 
-    # Config is valid, but no workers are available
-    config = {"dask_distributed": {"class": client_class,
-                                   "settings": {"foo": 1, "bar": 2}
-                                   }
-              }
-    res = get_dask_client(config)
-    assert res is None
-    ncores.assert_called_once()
-    client.close.assert_called_once()
+        # No client configured
+        config = {}
+        res = get_dask_client(config)
+        assert res is None
 
-    # Config is valid, scheduler has workers
-    ncores.return_value = {'a': 1, 'b': 1}
-    res = get_dask_client(config)
-    assert res is client
-    assert ncores.call_count == 2
+        # Config is valid, but no workers are available
+        config = {"dask_distributed": {"class": client_class,
+                                    "settings": {"foo": 1, "bar": 2}
+                                    }
+                }
+        res = get_dask_client(config)
+        assert res is None
+        ncores.assert_called_once()
+        client.close.assert_called_once()
 
-    # Scheduler couldn't connect to workers
-    client_class.side_effect = OSError
-    res = get_dask_client(config)
-    assert res is None
-    assert ncores.call_count == 2
+        # Config is valid, scheduler has workers
+        ncores.return_value = {'a': 1, 'b': 1}
+        res = get_dask_client(config)
+        assert res is client
+        assert ncores.call_count == 2
+
+        # Scheduler couldn't connect to workers
+        client_class.side_effect = OSError
+        res = get_dask_client(config)
+        assert res is None
+        assert ncores.call_count == 2
 
 
 if __name__ == '__main__':
