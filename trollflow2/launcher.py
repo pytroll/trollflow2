@@ -230,7 +230,7 @@ def get_dask_client(config):
                 client.close()
                 client = None
         except AttributeError:
-            pass
+            client = None
     except OSError:
         LOG.error("Scheduler not found, reverting to default scheduler")
     except KeyError:

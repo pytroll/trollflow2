@@ -368,17 +368,22 @@ class TestDistributed(TestCase):
         ncores.assert_called_once()
         client.close.assert_called_once()
 
+        # The scheduler had no workers, the client doesn't have `.close()`
+        client.close.side_effect = AttributeError
+        res = get_dask_client(config)
+        assert res is None
+
         # Config is valid, scheduler has workers
         ncores.return_value = {'a': 1, 'b': 1}
         res = get_dask_client(config)
         assert res is client
-        assert ncores.call_count == 2
+        assert ncores.call_count == 3
 
         # Scheduler couldn't connect to workers
         client_class.side_effect = OSError
         res = get_dask_client(config)
         assert res is None
-        assert ncores.call_count == 2
+        assert ncores.call_count == 3
 
 
 if __name__ == '__main__':
