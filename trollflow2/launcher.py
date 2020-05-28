@@ -223,7 +223,8 @@ def get_dask_client(config):
 
     try:
         client_class = config["dask_distributed"]["class"]
-        client = client_class(**config["dask_distributed"]["settings"])
+        settings = config["dask_distributed"].get("settings", {})
+        client = client_class(**settings)
         try:
             if not client.ncores():
                 LOG.error("No workers available, reverting to default scheduler")
