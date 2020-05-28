@@ -1,3 +1,4 @@
+
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
@@ -280,7 +281,8 @@ class TestProcess(TestCase):
                 mock.patch('trollflow2.launcher.expand') as expand,\
                 mock.patch('trollflow2.launcher.yaml') as yaml_,\
                 mock.patch('trollflow2.launcher.message_to_jobs') as message_to_jobs,\
-                mock.patch('trollflow2.launcher.open') as open_:
+                mock.patch('trollflow2.launcher.open') as open_,\
+                mock.patch('trollflow2.launcher.get_dask_client') as gdc:
 
             fid = mock.MagicMock()
             fid.read.return_value = yaml_test1
@@ -288,6 +290,8 @@ class TestProcess(TestCase):
             mock_config = mock.MagicMock()
             yaml_.load.return_value = mock_config
             yaml_.YAMLError = yaml.YAMLError
+            client = mock.MagicMock()
+            gdc.return_value = client
             fun1 = mock.MagicMock()
             # Return something resembling a config
             expand.return_value = {"workers": [{"fun": fun1}]}
@@ -302,6 +306,8 @@ class TestProcess(TestCase):
             yaml_.load.assert_called_once()
             message_to_jobs.assert_called_with("msg", {"workers": [{"fun": fun1}]})
             fun1.assert_called_with({'job1': {}, 'processing_priority': 1, 'produced_files': the_queue})
+            gdc.assert_called_once()
+            client.close.assert_called_once()
 
             fun1.stop = mock.MagicMock(side_effect=AttributeError('boo'))
             process("msg", "prod_list", the_queue)
@@ -330,6 +336,44 @@ class TestProcess(TestCase):
             open_.side_effect = yaml.YAMLError
             with self.assertRaises(yaml.YAMLError):
                 process("msg", "prod_list", the_queue)
+
+
+def test_get_dask_client():
+    """Test getting dask client."""
+    from trollflow2.launcher import get_dask_client
+
+    ncores = mock.MagicMock()
+    ncores.return_value = {}
+    client = mock.MagicMock(ncores=ncores)
+    client_class = mock.MagicMock()
+    client_class.return_value = client
+
+    # No client configured
+    config = {}
+    res = get_dask_client(config)
+    assert res is None
+
+    # Config is valid, but no workers are available
+    config = {"dask_distributed": {"class": client_class,
+                                   "settings": {"foo": 1, "bar": 2}
+                                  }
+             }
+    res = get_dask_client(config)
+    assert res is None
+    ncores.assert_called_once()
+    client.close.assert_called_once()
+
+    # Config is valid, scheduler has workers
+    ncores.return_value = {'a': 1, 'b': 1}
+    res = get_dask_client(config)
+    assert res is client
+    assert ncores.call_count == 2
+
+    # Scheduler couldn't connect to workers
+    client_class.side_effect = OSError
+    res = get_dask_client(config)
+    assert res is None
+    assert ncores.call_count == 2
 
 
 if __name__ == '__main__':
