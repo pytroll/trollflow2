@@ -227,7 +227,7 @@ def get_dask_client(config):
         client = client_class(**settings)
         try:
             if not client.ncores():
-                LOG.error("No workers available, reverting to default scheduler")
+                LOG.warning("No workers available, reverting to default scheduler")
                 client.close()
                 client = None
         except AttributeError:
