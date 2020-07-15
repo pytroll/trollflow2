@@ -22,14 +22,14 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 """The satpy launcher."""
 
-from logging import getLogger
 import argparse
 
 from trollflow2.launcher import run
 import logging
 
-if __name__ == "__main__":
 
+def parse_args():
+    """Parse commandline arguments."""
     parser = argparse.ArgumentParser(
         description='Launch trollflow2 processing with Satpy listening on the specified Posttroll topic(s)')
     parser.add_argument("topic", nargs='*',
@@ -38,17 +38,30 @@ if __name__ == "__main__":
     parser.add_argument("product_list",
                         help="The yaml file with the product list",
                         type=str)
-    parser.add_argument("--test_message", '-m',
+    parser.add_argument("-m", "--test_message",
                         help="File path with the message used for testing offline",
                         type=str, required=False)
-    parser.add_argument("--log-config", '-c',
+    parser.add_argument("-c", "--log-config",
                         help="Log config file (yaml) to use",
                         type=str, required=False)
+    parser.add_argument('-n', "--nameserver", required=False, type=str,
+                        help="Nameserver to connect to", default='localhost')
+    parser.add_argument('-a', "--addresses", required=False, type=str,
+                        help=("Add direct TCP port connection.  Can be used several times: "
+                              "'-a tcp://127.0.0.1:12345 -a tcp://123.456.789.0:9013'"),
+                        action="append")
 
-    args = parser.parse_args()
+    return parser.parse_args()
+
+
+def main():
+    """Launch trollflow2."""
+    args = parse_args()
     prod_list = args.product_list
     test_message = args.test_message
     topics = args.topic
+    nameserver = args.nameserver
+    addresses = args.addresses
 
     if args.log_config is not None:
         with open(args.log_config) as fd:
@@ -59,6 +72,9 @@ if __name__ == "__main__":
         from satpy.utils import debug_on
         debug_on()
 
-    LOG = getLogger("satpy_launcher")
+    run(prod_list, topics=topics, test_message=test_message,
+        nameserver=nameserver, addresses=addresses)
 
-    run(prod_list, topics=topics, test_message=test_message)
+
+if __name__ == "__main__":
+    main()

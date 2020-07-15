@@ -5,8 +5,9 @@ RUN apt-get update && apt-get -y --no-install-recommends install \
     build-essential
 
 RUN conda config --add channels conda-forge && \
-    conda update conda && \
-    conda install satpy \
+    conda config --set channel_priority true && \
+    conda update --all && \
+    conda install -c conda-forge satpy \
     pyresample \
     pykdtree \
     trollsift \

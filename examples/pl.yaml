@@ -35,6 +35,17 @@ product_list: &product_list
   # Check area coverage by `collection_area_id` in the input metadata.
   #   Default: False
   # coverage_by_collection_area: True
+  # Add extra metadata to the published messages
+  # extra_metadata:
+  #   processing_center: SMHI
+  # Check fraction of sunlit area.  Remove affected products outside the
+  #   given limits.  For daytime products define only `min`, and for nighttime
+  #   products define only `max`.  To check sunlit fraction within a swath of
+  #   a polar-orbiting satellite, define `check_pass: True`.
+  # sunlight_coverage:
+  #   min: 20.0  # if lower than this, products are removed
+  #   max: 80.0  # if higher than this, products are removed
+  #   check_pass: True  # check coverage within the swath
 
   areas:
     omerc_bb:
@@ -82,7 +93,15 @@ product_list: &product_list
               # To use add `add_overviews` to workers after `save_datasets`
               # overviews: [4, 8, 16, 32, 64, 128, 256]
     # null:  # satellite projection
+    #   # For satellite projection it is possible to define `resampler: native`
+    #   #   for satellites that have multiple resolutions for a channel
     #   areaname: satellite_projection
+    #   # Use lowest listed priority for area in satellite projection.
+    #   #   To be able to save the data the composites need to be
+    #   #   created, and it will slow down processing for other areas.
+    #   #   The composites will be reloaded and created automatically
+    #   #   for this area.
+    #   priority: 3
     #   products:
     #     cloudtype:
     #       productname: cloudtype
@@ -135,6 +154,7 @@ product_list: &product_list
     #
     # germ:
     #   areaname: germ
+    #   priority: 2
     #   products:
     #     cloudtype:
     #       productname: cloudtype
@@ -146,10 +166,19 @@ product_list: &product_list
 
 workers:
   - fun: !!python/name:trollflow2.plugins.create_scene
+  # Check sunlight area coverage fraction.  See configuration above.
+  #   The worker can be in three different stages:
+  #   - after create_scene: when area is defined in areas.yaml
+  #   - after load_composites: when area is `null` (save full disk GEO data)
+  #   - after resampler: for backwards compatibility
+  # - fun: !!python/name:trollflow2.plugins.check_sunlight_coverage
   - fun: !!python/name:trollflow2.plugins.load_composites
   - fun: !!python/name:trollflow2.plugins.resample
   - fun: !!python/name:trollflow2.plugins.save_datasets
   - fun: !!python/object:trollflow2.plugins.FilePublisher {}
+  # Or add keyword arguments
+  # - fun: !!python/object:trollflow2.plugins.FilePublisher {port: 40002, nameservers: [localhost]}
+
 
 # Things to run in case of a crash
 #crash_handlers:

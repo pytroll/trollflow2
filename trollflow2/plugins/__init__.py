@@ -1,30 +1,30 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
+#
 # Copyright (c) 2019 Pytroll developers
-
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
-
+#
 # Workaround for unittests so that satpy and posttroll installations
 # are not necessary
 
 """Trollflow2 plugins."""
 
 import os
+from contextlib import contextmanager
 from logging import getLogger
 from tempfile import NamedTemporaryFile
-from contextlib import contextmanager
 from urllib.parse import urlunsplit
 
 import dpath
@@ -32,14 +32,17 @@ import rasterio
 from posttroll.message import Message
 from posttroll.publisher import NoisyPublisher
 from pyorbital.astronomy import sun_zenith_angle
-from pyresample.boundary import AreaDefBoundary
+from pyresample.boundary import AreaDefBoundary, Boundary
+from pyresample.area_config import AreaNotFound
 from rasterio.enums import Resampling
 from satpy import Scene
 from satpy.dataset import DatasetID
 from satpy.resample import get_area_def
 from satpy.writers import compute_writer_results
+from pyresample.geometry import get_geostationary_bounding_box
 from trollflow2.dict_tools import get_config_value, plist_iter
 from trollsift import compose
+
 
 # Allow trollsched to be missing
 try:
@@ -116,15 +119,23 @@ def resample(job):
             maxarea = get_config_value(product_list,
                                        '/product_list/areas/' + str(area),
                                        'use_max_area')
+            native = conf.get('resampler') == 'native'
             if minarea is True:
                 job['resampled_scenes'][area] = scn.resample(scn.min_area(),
                                                              **area_conf)
             elif maxarea is True:
                 job['resampled_scenes'][area] = scn.resample(scn.max_area(),
                                                              **area_conf)
+            elif native:
+                job['resampled_scenes'][area] = scn.resample(resampler='native')
             else:
+                # The composites need to be created for the saving to work
+                if not set(scn.datasets.keys()).issuperset(scn.wishlist):
+                    LOG.debug("Generating composites for 'null' area (satellite projection).")
+                    scn.load(scn.wishlist, generate=True)
                 job['resampled_scenes'][area] = scn
         else:
+            LOG.debug("area: %s, area_conf: %s", area, str(area_conf))
             job['resampled_scenes'][area] = scn.resample(area, **area_conf)
 
 
@@ -232,6 +243,7 @@ def save_datasets(job):
             obj = save_dataset(scns, fmat, fmat_config, renames)
             if obj is not None:
                 objs.append(obj)
+                job['produced_files'].put(fmat_config['filename'])
 
         compute_writer_results(objs)
 
@@ -239,20 +251,28 @@ def save_datasets(job):
 class FilePublisher(object):
     """Publisher for generated files."""
 
-    # todo add support for custom port and nameserver
-    def __new__(cls):
+    def __init__(self, port=0, nameservers=None):
         """Create new instance."""
-        self = super().__new__(cls)
+        self.pub = None
+        self.port = port
+        self.nameservers = nameservers
+        self.__setstate__({'port': port, 'nameservers': nameservers})
+
+    def __setstate__(self, kwargs):
+        """Set things running even when loading from YAML."""
         LOG.debug('Starting publisher')
-        self.pub = NoisyPublisher('l2processor')
+        self.port = kwargs.get('port', 0)
+        self.nameservers = kwargs.get('nameservers', None)
+        self.pub = NoisyPublisher('l2processor', port=self.port,
+                                  nameservers=self.nameservers)
         self.pub.start()
-        return self
 
     @staticmethod
     def create_message(fmat, mda):
         """Create a message topic and mda."""
         topic_pattern = fmat["publish_topic"]
         file_mda = mda.copy()
+        file_mda.update(fmat.get('extra_metadata', {}))
 
         file_mda['uri'] = os.path.abspath(fmat['filename'])
 
@@ -295,25 +315,28 @@ class FilePublisher(object):
 
     def __call__(self, job):
         """Call the publisher."""
-        try:
-            mda = job['input_mda'].copy()
-            mda.pop('dataset', None)
-            mda.pop('collection', None)
-            for fmat, fmat_config in plist_iter(job['product_list']['product_list'], mda):
-                try:
-                    topic, file_mda = self.create_message(fmat, mda)
-                except KeyError:
-                    continue
-                msg = Message(topic, 'file', file_mda)
-                LOG.debug('Publishing %s', str(msg))
-                self.pub.send(str(msg))
-                self.send_dispatch_messages(fmat, fmat_config, topic, file_mda)
-        finally:
+        mda = job['input_mda'].copy()
+        mda.pop('dataset', None)
+        mda.pop('collection', None)
+        for fmat, fmat_config in plist_iter(job['product_list']['product_list'], mda):
+            try:
+                topic, file_mda = self.create_message(fmat, mda)
+            except KeyError:
+                LOG.debug('Could not create a message for %s.', str(fmat))
+                continue
+            msg = Message(topic, 'file', file_mda)
+            LOG.debug('Publishing %s', str(msg))
+            self.pub.send(str(msg))
+            self.send_dispatch_messages(fmat, fmat_config, topic, file_mda)
+
+    def stop(self):
+        """Stop the publisher."""
+        if self.pub:
             self.pub.stop()
 
     def __del__(self):
         """Stop the publisher when last reference is deleted."""
-        self.pub.stop()
+        self.stop()
 
 
 def covers(job):
@@ -328,11 +351,12 @@ def covers(job):
 
     col_area = job['product_list']['product_list'].get('coverage_by_collection_area', False)
     if col_area and 'collection_area_id' in job['input_mda']:
-        if job['input_mda']['collection_area_id'] not in job['product_list']['product_list']:
+        if job['input_mda']['collection_area_id'] not in job['product_list']['product_list']['areas']:
             raise AbortProcessing(
                 "Area collection ID '%s' does not match "
-                "production area(s) %s" % (job['input_mda']['collection_area_id'],
-                                           str(list(job['product_list']['product_list']))))
+                "production area(s) %s" % (
+                    job['input_mda']['collection_area_id'],
+                    str(list(job['product_list']['product_list']['areas']))))
 
     product_list = job['product_list'].copy()
 
@@ -384,17 +408,26 @@ def get_scene_coverage(platform_name, start_time, end_time, sensor, area_id):
     return 100 * overpass.area_coverage(area_def)
 
 
-def check_platform(job):
-    """Check if the platform is valid.  If not, discard the scene."""
+def check_metadata(job):
+    """Check the message metadata.
+
+    If the metadata does not match the configured values, the scene
+    will be discarded.
+
+    """
     mda = job['input_mda']
     product_list = job['product_list']
-    conf = get_config_value(product_list, '/product_list', 'processed_platforms')
+    conf = get_config_value(product_list, '/product_list', 'check_metadata')
     if conf is None:
         return
-    platform = mda['platform_name']
-    if platform not in conf:
-        raise AbortProcessing(
-            "'%s' not in list of allowed platforms" % platform)
+    for key, val in conf.items():
+        if key not in mda:
+            LOG.warning("Metadata item '%s' not in the input message.",
+                        key)
+            continue
+        if mda[key] not in val:
+            raise AbortProcessing("Metadata '%s' item '%s' not in '%s'" %
+                                  (key, mda[key], str(val)))
 
 
 def metadata_alias(job):
@@ -462,11 +495,17 @@ def sza_check(job):
 
 
 def check_sunlight_coverage(job):
-    """Remove products with too low daytime coverage.
+    """Remove products with too low/high sunlight coverage.
 
-    This plugins looks for a parameter called `min_sunlight_coverage` in the
-    product list, expressed in % (so between 0 and 100). If the sunlit fraction
-    is less than configured, the affected products will be discarded.
+    This plugins looks for a dictionary called `sunlight_coverage` in
+    the product list, with members `min` and/or `max` that define the
+    minimum and/or maximum allowed sunlight coverage within the scene.
+    The limits are expressed in % (so between 0 and 100).  If the
+    sunlit fraction is outside the set limits, the affected products
+    will be discarded.  It is also possible to define `check_pass:
+    True` in this dictionary to check the sunlit fraction within the
+    overpass of an polar-orbiting satellite.
+
     """
     if get_twilight_poly is None:
         LOG.error("Trollsched import failed, sunlight coverage calculation not possible")
@@ -490,40 +529,58 @@ def check_sunlight_coverage(job):
 
     for area in areas:
         products = list(product_list['product_list']['areas'][area]['products'].keys())
+        try:
+            area_def = get_area_def(area)
+        except AreaNotFound:
+            area_def = None
+        coverage = {True: None, False: None}
+        overpass = None
         for product in products:
-            try:
-                if isinstance(product, tuple):
-                    prod = job['resampled_scenes'][area][product[0]]
-                else:
-                    prod = job['resampled_scenes'][area][product]
-            except KeyError:
-                LOG.warning("No dataset %s for this scene and area %s", product, area)
-                continue
-            else:
-                area_def = prod.attrs['area']
             prod_path = "/product_list/areas/%s/products/%s" % (area, product)
             config = get_config_value(product_list, prod_path, "sunlight_coverage")
             if config is None:
                 continue
             min_day = config.get('min')
+            max_day = config.get('max')
             use_pass = config.get('check_pass', False)
-            if use_pass:
-                overpass = Pass(platform_name, start_time, end_time, instrument=sensor)
-            else:
-                overpass = None
-            if min_day is None:
+
+            if min_day is None and max_day is None:
+                LOG.info("Sunlight coverage not configured for %s / %s",
+                         product, area)
                 continue
-            coverage = _get_sunlight_coverage(area_def, start_time, overpass)
-            product_list['product_list']['areas'][area]['area_sunlight_coverage_percent'] = coverage * 100
-            if coverage < (min_day / 100.0):
+
+            if area_def is None:
+                area_def = _get_product_area_def(job, area, product)
+                if area_def is None:
+                    continue
+
+            if use_pass and overpass is None:
+                overpass = Pass(platform_name, start_time, end_time, instrument=sensor)
+
+            if coverage[use_pass] is None:
+                coverage[use_pass] = _get_sunlight_coverage(area_def,
+                                                            start_time,
+                                                            overpass)
+            area_conf = product_list['product_list']['areas'][area]
+            area_conf['area_sunlight_coverage_percent'] = coverage[use_pass] * 100
+            if min_day is not None and coverage[use_pass] < (min_day / 100.0):
                 LOG.info("Not enough sunlight coverage in "
+                         "product '%s', removed.", product)
+                dpath.util.delete(product_list, prod_path)
+            if max_day is not None and coverage[use_pass] > (max_day / 100.0):
+                LOG.info("Too much sunlight coverage in "
                          "product '%s', removed.", product)
                 dpath.util.delete(product_list, prod_path)
 
 
 def _get_sunlight_coverage(area_def, start_time, overpass=None):
-    """Get the sunlight coverage of *area_def* at *start_time*."""
-    adp = AreaDefBoundary(area_def, frequency=100).contour_poly
+    """Get the sunlight coverage of *area_def* at *start_time* as a value between 0 and 1."""
+    if area_def.proj_dict.get('proj') == 'geos':
+        adp = Boundary(
+            *get_geostationary_bounding_box(area_def,
+                                            nb_points=100)).contour_poly
+    else:
+        adp = AreaDefBoundary(area_def, frequency=100).contour_poly
     poly = get_twilight_poly(start_time)
     if overpass is not None:
         ovp = overpass.boundary.contour_poly
@@ -548,6 +605,29 @@ def _get_sunlight_coverage(area_def, start_time, overpass=None):
         daylight_area = daylight.area()
         total_area = adp.area()
         return daylight_area / total_area
+
+
+def _get_product_area_def(job, area, product):
+    """Get area definition for a product."""
+    try:
+        if 'resampled_scenes' in job:
+            scn = job['resampled_scenes'][area]
+        else:
+            scn = job['scene']
+
+        if isinstance(product, tuple):
+            prod = scn[product[0]]
+        else:
+            prod = scn[product]
+    except KeyError:
+        try:
+            prod = scn[list(scn.keys())[0]]
+        except IndexError:
+            LOG.warning("No dataset %s for this scene and area %s",
+                        product, area)
+            return None
+
+    return prod.attrs['area']
 
 
 def add_overviews(job):

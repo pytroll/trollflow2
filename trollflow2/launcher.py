@@ -30,9 +30,11 @@ memory buildup.
 import ast
 import copy
 import gc
+import os
 import re
 import traceback
 from collections import OrderedDict
+from datetime import datetime
 from logging import getLogger
 
 import yaml
@@ -54,7 +56,7 @@ except ImportError:
     from yaml import BaseLoader
 
 
-LOG = getLogger("launcher")
+LOG = getLogger(__name__)
 DEFAULT_PRIORITY = 999
 
 
@@ -85,21 +87,52 @@ def get_test_message(test_message_file):
     return msg
 
 
-def run(prod_list, topics=None, test_message=None):
+def check_results(produced_files, start_time, exitcode):
+    """Make sure the composites have been saved."""
+    end_time = datetime.now()
+    error_detected = False
+    while True:
+        try:
+            saved_file = produced_files.get(block=False)
+            try:
+                if os.path.getsize(saved_file) == 0:
+                    LOG.error("Empty file detected: %s", saved_file)
+                    error_detected = True
+            except FileNotFoundError:
+                LOG.error("Missing file: %s", saved_file)
+                error_detected = True
+        except Empty:
+            break
+    if exitcode != 0:
+        error_detected = True
+        if exitcode < 0:
+            LOG.error('Process killed with signal %d', -exitcode)
+        else:
+            LOG.error('Process crashed with exit code %d', exitcode)
+    if not error_detected:
+        elapsed = end_time - start_time
+        LOG.info('All files produced nominally in %s.', str(elapsed), extra={'time': elapsed})
+
+
+def run(prod_list, topics=None, test_message=None, nameserver='localhost',
+        addresses=None):
     """Spawn one or multiple subprocesses to run the jobs from the product list."""
+    LOG.info("Launching trollflow2")
     tmessage = get_test_message(test_message)
     if tmessage:
         from threading import Thread as Process
+        from six.moves.queue import Queue
         from posttroll.message import Message
     else:
-        from multiprocessing import Process
+        from multiprocessing import Process, Queue
 
     with open(prod_list) as fid:
         config = yaml.load(fid.read(), Loader=BaseLoader)
     topics = topics or config['product_list'].pop('subscribe_topics', None)
 
     if not tmessage:
-        listener = ListenerContainer(topics=topics)
+        listener = ListenerContainer(topics=topics, nameserver=nameserver,
+                                     addresses=addresses)
 
     while True:
         try:
@@ -113,10 +146,16 @@ def run(prod_list, topics=None, test_message=None):
             return
         except Empty:
             continue
-
-        proc = Process(target=process, args=(msg, prod_list))
+        produced_files = Queue()
+        proc = Process(target=process, args=(msg, prod_list, produced_files))
+        start_time = datetime.now()
         proc.start()
         proc.join()
+        try:
+            exitcode = proc.exitcode
+        except AttributeError:
+            exitcode = 0
+        check_results(produced_files, start_time, exitcode)
         if tmessage:
             break
 
@@ -142,7 +181,7 @@ def message_to_jobs(msg, product_list):
     formats = product_list['product_list'].get('formats', None)
     for _product, pconfig in plist_iter(product_list['product_list'], level='product'):
         if 'formats' not in pconfig and formats is not None:
-            pconfig['formats'] = formats.copy()
+            pconfig['formats'] = copy.deepcopy(formats)
     jobs = OrderedDict()
     priorities = get_area_priorities(product_list)
     # TODO: check the uri is accessible from the current host.
@@ -162,7 +201,6 @@ def message_to_jobs(msg, product_list):
                     jobs[prio]['product_list'][section]['areas'][area] = product_list[section]['areas'][area]
             else:
                 jobs[prio]['product_list'][section] = product_list[section]
-
     return jobs
 
 
@@ -179,37 +217,48 @@ def expand(yml):
     return yml
 
 
-def process(msg, prod_list):
+def process(msg, prod_list, produced_files):
     """Process a message."""
+    config = {}
     try:
         with open(prod_list) as fid:
             config = yaml.load(fid.read(), Loader=UnsafeLoader)
+    except (IOError, yaml.YAMLError):
+        # Either open() or yaml.load() failed
+        LOG.exception("Process crashed, check YAML file.")
+        raise
+
+    try:
         config = expand(config)
         jobs = message_to_jobs(msg, config)
         for prio in sorted(jobs.keys()):
             job = jobs[prio]
             job['processing_priority'] = prio
+            job['produced_files'] = produced_files
             try:
                 for wrk in config['workers']:
                     cwrk = wrk.copy()
                     cwrk.pop('fun')(job, **cwrk)
             except AbortProcessing as err:
                 LOG.info(str(err))
-    except (IOError, yaml.YAMLError):
-        # Either open() or yaml.load() failed
-        LOG.exception("Process crashed, check YAML file.")
-        return
     except Exception:
         LOG.exception("Process crashed")
         if "crash_handlers" in config:
             trace = traceback.format_exc()
             for hand in config['crash_handlers']['handlers']:
                 hand['fun'](config['crash_handlers']['config'], trace)
-
-    # Remove config and run garbage collection so all remaining
-    # references e.g. to FilePublisher should be removed
-    del config
-    gc.collect()
+        raise
+    finally:
+        # Remove config and run garbage collection so all remaining
+        # references e.g. to FilePublisher should be removed
+        LOG.debug('Cleaning up')
+        for wrk in config.get("workers", []):
+            try:
+                wrk['fun'].stop()
+            except AttributeError:
+                continue
+        del config
+        gc.collect()
 
 
 def sendmail(config, trace):

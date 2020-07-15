@@ -82,6 +82,8 @@ product_list:
   something: foo
   min_coverage: 5.0
   publish_topic: /raster/
+  extra_metadata:
+    processing_center: SMHI
   areas:
       euron1:
         areaname: euron1_in_fname
@@ -217,6 +219,22 @@ product_list:
               - format: tif
                 writer: geotiff
 """
+
+yaml_test_null_area = """
+product_list:
+  areas:
+      null:
+        areaname: foo
+        products:
+          cloud_top_height:
+            productname: ctth
+            output_dir: /tmp/
+            formats:
+              - format: png
+                writer: simple_image
+            fname_pattern: "{platform_name:s}_{start_time:%Y%m%d_%H%M}_{areaname:s}_ctth_static.{format}"
+"""
+
 input_mda = {'orig_platform_name': 'noaa15', 'orbit_number': 7993,
              'start_time': dt.datetime(2019, 2, 17, 6, 0, 11, 100000), 'stfrac': 1,
              'end_time': dt.datetime(2019, 2, 17, 6, 15, 10, 400000), 'etfrac': 4, 'status': 'OK',
@@ -229,6 +247,10 @@ input_mda = {'orig_platform_name': 'noaa15', 'orbit_number': 7993,
                          {'uri': '/home/a001673/data/satellite/test_trollflow2/S_NWC_CT_noaa15_07993_20190217T0600111Z_20190217T0615104Z.nc',  # noqa
                           'uid': 'S_NWC_CT_noaa15_07993_20190217T0600111Z_20190217T0615104Z.nc'}],
              'sensor': ['avhrr']}
+
+YAML_FILE_PUBLISHER = """
+!!python/object:trollflow2.plugins.FilePublisher {port: 40002, nameservers: [localhost]}
+"""
 
 
 class TestSaveDatasets(TestCase):
@@ -326,6 +348,8 @@ class TestSaveDatasets(TestCase):
             'product_list': yaml.load(yaml_test_save, Loader=UnsafeLoader)['product_list'],
         }
         job['resampled_scenes'] = {}
+        the_queue = mock.MagicMock()
+        job['produced_files'] = the_queue
         for area in job['product_list']['product_list']['areas']:
             job['resampled_scenes'][area] = mock.Mock()
         with mock.patch('trollflow2.plugins.compute_writer_results'),\
@@ -487,6 +511,15 @@ class TestSaveDatasets(TestCase):
             }
         }
         self.assertDictEqual(dexpected, job['product_list']['product_list'])
+
+        filenames = ['/tmp/satdmz/pps/www/latest_2018/NOAA-15_20190217_0600_euron1_in_fname_ctth_static.png',
+                     '/tmp/satdmz/pps/www/latest_2018/NOAA-15_20190217_0600_euron1_in_fname_ctth_static.jpg',
+                     '/tmp/satdmz/pps/www/latest_2018/NOAA-15_20190217_0600_euron1_in_fname_ct_and_ctth.nc',
+                     '/tmp/satdmz/pps/www/latest_2018/noaa15/20190217_0600_germ_in_fname_cloudtype_in_fname.png',
+                     '/tmp/NOAA-15_20190217_0600_omerc_bb_ct.nc',
+                     '/tmp/NOAA-15_20190217_0600_omerc_bb_cloud_top_height.tif']
+        for fname, efname in zip(the_queue.put.mock_calls, filenames):
+            self.assertEqual(fname, mock.call(efname))
 
 
 class TestCreateScene(TestCase):
@@ -674,6 +707,48 @@ class TestResample(TestCase):
                         scn.resample.mock_calls)
 
 
+class TestResampleNullArea(TestCase):
+    """Test case for resampling."""
+
+    def setUp(self):
+        """Set up the test case."""
+        super().setUp()
+        from trollflow2.launcher import yaml, UnsafeLoader
+        self.product_list = yaml.load(yaml_test_null_area, Loader=UnsafeLoader)
+
+    def test_resample_null_area(self):
+        """Test handling a `None` area in resampling."""
+        from trollflow2.plugins import resample
+        scn = mock.MagicMock()
+        product_list = self.product_list.copy()
+        job = {"scene": scn, "product_list": product_list.copy()}
+        # The composites have been generated
+        scn.datasets.keys.return_value = ['abc']
+        scn.wishlist = {'abc'}
+        resample(job)
+        scn.load.assert_not_called()
+        # The composites have not been generated
+        scn.datasets.keys.return_value = ['a', 'b', 'c']
+        scn.wishlist = {'abc'}
+        resample(job)
+        self.assertTrue(mock.call({'abc'}, generate=True) in
+                        scn.load.mock_calls)
+
+    def test_resample_native_null_area(self):
+        """Test using `native` resampler with `None` area."""
+        from trollflow2.plugins import resample
+        scn = mock.MagicMock()
+        product_list = self.product_list.copy()
+        product_list["common"] = {"resampler": "native"}
+        job = {"scene": scn, "product_list": product_list.copy()}
+        # The composites have been generated
+        scn.datasets.keys.return_value = ['abc']
+        scn.wishlist = {'abc'}
+        resample(job)
+        self.assertTrue(mock.call(resampler='native') in
+                        scn.resample.mock_calls)
+
+
 class TestSunlightCovers(TestCase):
     """Test the sunlight coverage."""
 
@@ -692,14 +767,83 @@ class TestSunlightCovers(TestCase):
         """Test sunlight coverage."""
         from trollflow2.plugins import _get_sunlight_coverage
         import numpy as np
-        with mock.patch('trollflow2.plugins.AreaDefBoundary') as area_def_boundary,\
-                mock.patch('trollflow2.plugins.get_twilight_poly'):
+        with mock.patch('trollflow2.plugins.AreaDefBoundary') as area_def_boundary, \
+                mock.patch('trollflow2.plugins.Boundary') as boundary, \
+                mock.patch('trollflow2.plugins.get_twilight_poly'), \
+                mock.patch('trollflow2.plugins.get_area_def'), \
+                mock.patch('trollflow2.plugins.get_geostationary_bounding_box'):
 
             area_def_boundary.return_value.contour_poly.intersection.return_value.area.return_value = 0.02
+            boundary.return_value.contour_poly.intersection.return_value.area.return_value = 0.02
             area_def_boundary.return_value.contour_poly.area.return_value = 0.2
-            np.testing.assert_allclose(_get_sunlight_coverage('euron1',
-                                                              dt.datetime(2019, 4, 7, 20, 8)),
-                                       0.1)
+            start_time = dt.datetime(2019, 4, 7, 20, 8)
+            adef = mock.MagicMock(proj_dict={'proj': 'stere'})
+            res = _get_sunlight_coverage(adef, start_time)
+            np.testing.assert_allclose(res, 0.1)
+            boundary.assert_not_called()
+            adef = mock.MagicMock(proj_dict={'proj': 'geos'})
+            res = _get_sunlight_coverage(adef, start_time)
+            boundary.assert_called()
+
+
+class TestGetProductAreaDef(TestCase):
+    """Test case for finding area definition for a product."""
+
+    def test_get_product_area_def(self):
+        """Test _get_product_area_def()."""
+        from trollflow2.plugins import _get_product_area_def
+        # scn = mock.MagicMock()
+        # scn.__getitem__.side_effect = KeyError
+
+        # No area nor product
+        scn = dict([])
+        job = {'scene': scn}
+        area = 'area'
+        product = 'product'
+        res = _get_product_area_def(job, area, product)
+        self.assertIsNone(res)
+
+        # Area not in the scene, take area def from the available first dataset
+        adef = mock.MagicMock()
+        prod = mock.MagicMock()
+        prod.attrs.__getitem__.return_value = adef
+        scn['1'] = prod
+        job = {'scene': scn}
+        res = _get_product_area_def(job, area, product)
+        self.assertTrue(res is adef)
+        prod.attrs.__getitem__.assert_called_once()
+
+        # Area from the un-resampled scene
+        adef = mock.MagicMock()
+        prod = mock.MagicMock()
+        prod.attrs.__getitem__.return_value = adef
+        prod2 = mock.MagicMock()
+        prod2.attrs.__getitem__.return_value = None
+        scn = {area: prod, '1': prod2}
+        job = {'scene': scn}
+        res = _get_product_area_def(job, area, product)
+        self.assertTrue(res is adef)
+        prod.attrs.__getitem__.assert_called_once()
+        prod2.attrs.__getitem__.assert_not_called()
+        # Product is a tuple
+        res = _get_product_area_def(job, area, (product, 'foo'))
+        self.assertTrue(res is adef)
+
+        # Area from a resampled scene
+        adef = mock.MagicMock()
+        prod = mock.MagicMock()
+        prod.attrs.__getitem__.return_value = adef
+        prod2 = mock.MagicMock()
+        prod2.attrs.__getitem__.return_value = None
+        scn = {area: prod, '1': prod2}
+        job = {'resampled_scenes': {area: scn}}
+        res = _get_product_area_def(job, area, product)
+        self.assertTrue(res is adef)
+        prod.attrs.__getitem__.assert_called_once()
+        prod2.attrs.__getitem__.assert_not_called()
+        # Product is a tuple
+        res = _get_product_area_def(job, area, (product, 'foo'))
+        self.assertTrue(res is adef)
 
 
 class TestCheckSunlightCoverage(TestCase):
@@ -735,12 +879,52 @@ class TestCheckSunlightCoverage(TestCase):
             job['resampled_scenes'] = {}
             for area in job['product_list']['product_list']['areas']:
                 job['resampled_scenes'][area] = {}
-
             # Run without any settings
             check_sunlight_coverage(job)
 
             _get_sunlight_coverage.assert_not_called()
             ts_pass.assert_not_called()
+
+    def test_sunlight_filter(self):
+        """Test that product isn't loaded when sunlight coverage is to low."""
+        from trollflow2.plugins import check_sunlight_coverage
+        from trollflow2.plugins import metadata_alias
+        with mock.patch('trollflow2.plugins.Pass'),\
+                mock.patch('trollflow2.plugins.get_twilight_poly'),\
+                mock.patch("trollflow2.plugins._get_sunlight_coverage") as _get_sunlight_coverage:
+            job = {}
+            scene = mock.MagicMock()
+            scene.attrs = {'start_time': 42}
+            job['scene'] = scene
+            job['product_list'] = self.product_list.copy()
+            job['input_mda'] = self.input_mda.copy()
+            metadata_alias(job)
+
+            job['resampled_scenes'] = {}
+            for area in job['product_list']['product_list']['areas']:
+                job['resampled_scenes'][area] = {}
+            job['product_list']['product_list']['sunlight_coverage'] = {'min': 10, 'max': 40}
+            green_snow = mock.MagicMock()
+            green_snow.name = 'Green Snow Mock'
+            job['resampled_scenes']['euron1']['green_snow'] = green_snow
+            green_snow.attrs.__getitem__.return_value = 'euron1'
+            # Run without any settings
+            _get_sunlight_coverage.return_value = .3
+            check_sunlight_coverage(job)
+
+            pl_green = job['product_list']['product_list']['areas']['euron1']['products']['green_snow']
+
+            _get_sunlight_coverage.assert_called_once()
+            self.assertIn('green_snow', job['product_list']['product_list']['areas']['euron1']['products'])
+
+            _get_sunlight_coverage.return_value = 0
+            check_sunlight_coverage(job)
+            self.assertNotIn('green_snow', job['product_list']['product_list']['areas']['euron1']['products'])
+
+            job['product_list']['product_list']['areas']['euron1']['products']['green_snow'] = pl_green
+            _get_sunlight_coverage.return_value = 1
+            check_sunlight_coverage(job)
+            self.assertNotIn('green_snow', job['product_list']['product_list']['areas']['euron1']['products'])
 
 
 class TestCovers(TestCase):
@@ -834,29 +1018,58 @@ class TestCovers(TestCase):
             # By default collection_area_id isn't checked so nothing should happen
             job['input_mda']['collection_area_id'] = 'not_in_pl'
             covers(job)
-            # Turn coverage check on, so area not in the product list should raise
-            # AbortProcessing
+            # Turn coverage check on, so area not in the product list
+            # should raise AbortProcessing
             job['product_list']['product_list']['coverage_by_collection_area'] = True
             with self.assertRaises(AbortProcessing):
                 covers(job)
 
+            # And with existing area there shouldn't be an exception
+            job['input_mda']['collection_area_id'] = 'euron1'
+            covers(job)
 
-class TestCheckPlatform(TestCase):
-    """Test case for checking the platform."""
 
-    def test_check_platform(self):
-        """Test checking the platform."""
-        from trollflow2.plugins import check_platform
+class TestCheckMetadata(TestCase):
+    """Test case for checking the input metadata."""
+
+    def test_single_item(self):
+        """Test checking a single metadata item."""
+        from trollflow2.plugins import check_metadata
         from trollflow2.plugins import AbortProcessing
         with mock.patch('trollflow2.plugins.get_config_value') as get_config_value:
             get_config_value.return_value = None
-            job = {'product_list': None, 'input_mda': {'platform_name': 'foo'}}
-            self.assertIsNone(check_platform(job))
-            get_config_value.return_value = ['foo', 'bar']
-            self.assertIsNone(check_platform(job))
-            get_config_value.return_value = ['bar']
+            job = {'product_list': None, 'input_mda': {'sensor': 'foo'}}
+            self.assertIsNone(check_metadata(job))
+            get_config_value.return_value = {'sensor': ['foo', 'bar']}
+            self.assertIsNone(check_metadata(job))
+            get_config_value.return_value = {'sensor': ['bar']}
             with self.assertRaises(AbortProcessing):
-                check_platform(job)
+                check_metadata(job)
+
+    def test_multiple_items(self):
+        """Test checking a single metadata item."""
+        from trollflow2.plugins import check_metadata
+        from trollflow2.plugins import AbortProcessing
+        with mock.patch('trollflow2.plugins.get_config_value') as get_config_value:
+            # Nothing configured
+            get_config_value.return_value = None
+            job = {'product_list': None,
+                   'input_mda': {'sensor': 'foo',
+                                 'platform_name': 'bar'}}
+            self.assertIsNone(check_metadata(job))
+            # Both sensor and platform name match
+            get_config_value.return_value = {'sensor': ['foo', 'bar'],
+                                             'platform_name': ['bar']}
+            self.assertIsNone(check_metadata(job))
+            # Sensor matches, 'variant' not in the message
+            get_config_value.return_value = {'sensor': ['foo', 'bar'],
+                                             'variant': ['e ascari']}
+            self.assertIsNone(check_metadata(job))
+            # Platform doesn't match -> abort
+            get_config_value.return_value = {'sensor': ['foo'],
+                                             'platform_name': ['not-bar']}
+            with self.assertRaises(AbortProcessing):
+                check_metadata(job)
 
 
 class TestMetadataAlias(TestCase):
@@ -967,8 +1180,8 @@ class TestOverviews(TestCase):
     def setUp(self):
         """Set up the test case."""
         super().setUp()
-        from trollflow2.launcher import yaml
-        self.product_list = yaml.load(yaml_test1)
+        from trollflow2.launcher import yaml, BaseLoader
+        self.product_list = yaml.load(yaml_test1, Loader=BaseLoader)
 
     def test_add_overviews(self):
         """Test adding overviews."""
@@ -1040,6 +1253,7 @@ class TestFilePublisher(TestCase):
                     if 'call().__str__()' != str(message.mock_calls[i]):
                         self.assertTrue(topics[i] in str(message.mock_calls[i]))
                         i += 1
+            self.assertEqual(message.call_args[0][2]['processing_center'], 'SMHI')
 
     def test_filepublisher_without_compose(self):
         """Test filepublisher without compose."""
@@ -1079,6 +1293,35 @@ class TestFilePublisher(TestCase):
                         self.assertTrue(topics[i] in str(message.mock_calls[i]))
                         i += 1
 
+    def test_filepublisher_kwargs(self):
+        """Test filepublisher keyword argument usage."""
+        import yaml
+        from trollflow2.plugins import FilePublisher
+
+        # Direct instantiation
+        with mock.patch('trollflow2.plugins.Message'), mock.patch('trollflow2.plugins.NoisyPublisher') as nb_:
+            pub = FilePublisher()
+            pub.pub.start.assert_called_once()
+            assert mock.call('l2processor', port=0, nameservers=None) in nb_.mock_calls
+            assert pub.port == 0
+            assert pub.nameservers is None
+            pub = FilePublisher(port=40000, nameservers=['localhost'])
+            assert mock.call('l2processor', port=40000,
+                             nameservers=['localhost']) in nb_.mock_calls
+            assert pub.port == 40000
+            assert pub.nameservers == ['localhost']
+            assert len(pub.pub.start.mock_calls) == 2
+
+        # Instantiate via loading YAML
+        with mock.patch('trollflow2.plugins.Message'), mock.patch('trollflow2.plugins.NoisyPublisher') as nb_:
+
+            fpub = yaml.load(YAML_FILE_PUBLISHER, Loader=yaml.UnsafeLoader)
+            assert mock.call('l2processor', port=40002,
+                             nameservers=['localhost']) in nb_.mock_calls
+            fpub.pub.start.assert_called_once()
+            assert fpub.port == 40002
+            assert fpub.nameservers == ['localhost']
+
     def test_dispatch(self):
         """Test dispatch order messages."""
         from trollflow2.plugins import FilePublisher
@@ -1104,26 +1347,35 @@ class TestFilePublisher(TestCase):
                     dispatches += 1
             self.assertEqual(dispatches, 1)
 
+    def test_deleting(self):
+        """Test deleting the publisher."""
+        from trollflow2.plugins import FilePublisher
+        nb_ = mock.MagicMock()
+        with mock.patch('trollflow2.plugins.Message'), mock.patch('trollflow2.plugins.NoisyPublisher') as nb:
+            nb.return_value = nb_
+            pub = FilePublisher()
+            job = {'product_list': self.product_list,
+                   'input_mda': self.input_mda}
+            pub(job)
 
-def suite():
-    """Test suite for test_writers."""
-    loader = unittest.TestLoader()
-    my_suite = unittest.TestSuite()
-    my_suite.addTest(loader.loadTestsFromTestCase(TestSaveDatasets))
-    my_suite.addTest(loader.loadTestsFromTestCase(TestCreateScene))
-    my_suite.addTest(loader.loadTestsFromTestCase(TestLoadComposites))
-    my_suite.addTest(loader.loadTestsFromTestCase(TestResample))
-    my_suite.addTest(loader.loadTestsFromTestCase(TestCovers))
-    my_suite.addTest(loader.loadTestsFromTestCase(TestCheckPlatform))
-    my_suite.addTest(loader.loadTestsFromTestCase(TestMetadataAlias))
-    my_suite.addTest(loader.loadTestsFromTestCase(TestGetPluginConf))
-    my_suite.addTest(loader.loadTestsFromTestCase(TestSZACheck))
-    my_suite.addTest(loader.loadTestsFromTestCase(TestSunlightCovers))
-    my_suite.addTest(loader.loadTestsFromTestCase(TestCheckSunlightCoverage))
-    my_suite.addTest(loader.loadTestsFromTestCase(TestOverviews))
-    my_suite.addTest(loader.loadTestsFromTestCase(TestFilePublisher))
+        nb_.stop.assert_not_called()
+        del pub
+        nb_.stop.assert_called_once()
 
-    return my_suite
+    def test_stopping(self):
+        """Test stopping the publisher."""
+        from trollflow2.plugins import FilePublisher
+        nb_ = mock.MagicMock()
+        with mock.patch('trollflow2.plugins.Message'), mock.patch('trollflow2.plugins.NoisyPublisher') as nb:
+            nb.return_value = nb_
+            pub = FilePublisher()
+            job = {'product_list': self.product_list,
+                   'input_mda': self.input_mda}
+            pub(job)
+
+        nb_.stop.assert_not_called()
+        pub.stop()
+        nb_.stop.assert_called_once()
 
 
 if __name__ == '__main__':
