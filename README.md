@@ -1,4 +1,4 @@
 # trollflow2
-Next gen trollflow
+Next generation trollflow
 
 Trollflow2 supports only Python 3.4 and newer.
