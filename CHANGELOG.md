@@ -1,3 +1,19 @@
+## Version v0.7.1 (2020/07/16)
+
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR 85](https://github.com/pytroll/trollflow2/pull/85) - Fix broken scm versioning
+
+#### Features added
+
+* [PR 85](https://github.com/pytroll/trollflow2/pull/85) - Fix broken scm versioning
+
+In this release 2 pull requests were closed.
+
+
 ## Version v0.7.0 (2020/07/16)
 
 ### Issues Closed
