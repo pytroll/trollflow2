@@ -1,3 +1,37 @@
+## Version v0.7.0 (2020/07/16)
+
+### Issues Closed
+
+* [Issue 74](https://github.com/pytroll/trollflow2/issues/74) - Add documentation on configuration options ([PR 75](https://github.com/pytroll/trollflow2/pull/75))
+* [Issue 36](https://github.com/pytroll/trollflow2/issues/36) - Document Trollflow production chain - Meteosat
+* [Issue 21](https://github.com/pytroll/trollflow2/issues/21) - Don't create scene object for sensor data not asked for
+
+In this release 3 issues were closed.
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR 84](https://github.com/pytroll/trollflow2/pull/84) - Upgrade packages on travis installation
+* [PR 69](https://github.com/pytroll/trollflow2/pull/69) - Publish topic was wrong in config file
+* [PR 68](https://github.com/pytroll/trollflow2/pull/68) - Fix conda channel priority issue
+
+#### Features added
+
+* [PR 73](https://github.com/pytroll/trollflow2/pull/73) - Add a pluging to check message metadata
+* [PR 71](https://github.com/pytroll/trollflow2/pull/71) - Implement call to native resampler
+* [PR 70](https://github.com/pytroll/trollflow2/pull/70) - Use get_geostationary_bounding_box from pyresample instead of satpy
+* [PR 67](https://github.com/pytroll/trollflow2/pull/67) - Use area definition names to check sunlight coverage ([228](https://github.com/pytroll/pyresample/issues/228))
+* [PR 58](https://github.com/pytroll/trollflow2/pull/58) - Fix versioning using setuptools_scm and leave versioneer.py
+
+#### Documentation changes
+
+* [PR 76](https://github.com/pytroll/trollflow2/pull/76) - Fix RST formatting
+* [PR 75](https://github.com/pytroll/trollflow2/pull/75) - Document plugins ([74](https://github.com/pytroll/trollflow2/issues/74))
+
+In this release 10 pull requests were closed.
+
+
 ## Version 0.6.1 (2019/11/15)
 
 
