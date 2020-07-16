@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2013-2019 Pytroll developers
+# Copyright (c) 2013-2020 Pytroll developers
 
 # Author(s):
 
@@ -23,7 +23,7 @@
 
 """Setup for trollflow2."""
 
-from setuptools import setup
+from setuptools import setup, find_packages
 import sys
 
 try:
@@ -56,9 +56,10 @@ setup(name=NAME,
                    "Programming Language :: Python",
                    "Topic :: Scientific/Engineering"],
       url="https://github.com/pytroll/trollflow2",
-      packages=['trollflow2',
-                'trollflow2.plugins',
-                ],
+      packages=find_packages(),
+      # packages=['trollflow2',
+      #          'trollflow2.plugins',
+      #          ],
       scripts=['bin/satpy_launcher.py', ],
       data_files=[],
       zip_safe=False,
@@ -66,4 +67,5 @@ setup(name=NAME,
       tests_require=['mock'],
       python_requires='>=3.4',
       test_suite='trollflow2.tests.suite',
+      use_scm_version=True
       )
