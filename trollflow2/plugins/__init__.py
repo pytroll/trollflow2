@@ -62,8 +62,6 @@ LOG = getLogger(__name__)
 class AbortProcessing(Exception):
     """Exception when processing has to be aborted."""
 
-    pass
-
 
 def create_scene(job):
     """Create a satpy scene."""
