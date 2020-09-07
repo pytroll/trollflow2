@@ -35,7 +35,7 @@ except ImportError:
     pass
 
 
-install_requires = ['pyyaml', 'dpath<1.5', 'trollsift']
+install_requires = ['pyyaml', 'dpath<=1.5', 'trollsift']
 
 if "test" not in sys.argv:
     install_requires += ['posttroll', 'satpy', 'pyorbital']

@@ -36,13 +36,16 @@ from pyresample.boundary import AreaDefBoundary, Boundary
 from pyresample.area_config import AreaNotFound
 from rasterio.enums import Resampling
 from satpy import Scene
-from satpy.dataset import DatasetID
 from satpy.resample import get_area_def
 from satpy.writers import compute_writer_results
 from pyresample.geometry import get_geostationary_bounding_box
 from trollflow2.dict_tools import get_config_value, plist_iter
 from trollsift import compose
 
+try:
+    from satpy.dataset import DataQuery
+except ImportError:  # satpy <= 0.22.0
+    from satpy.dataset import DatasetID as DataQuery
 
 # Allow trollsched to be missing
 try:
@@ -197,12 +200,12 @@ def save_dataset(scns, fmat, fmat_config, renames):
                 kwargs.pop('format')
                 dsids = []
                 for prod in fmat['product']:
-                    dsids.append(DatasetID(name=prod, resolution=res, modifiers=None))
+                    dsids.append(DataQuery(name=prod, resolution=res, modifiers=None))
                 obj = scns[fmat['area']].save_datasets(datasets=dsids,
                                                        filename=filename,
                                                        compute=False, **kwargs)
             else:
-                dsid = DatasetID(name=fmat['product'], resolution=res, modifiers=None)
+                dsid = DataQuery(name=fmat['product'], resolution=res, modifiers=None)
                 obj = scns[fmat['area']].save_dataset(dsid,
                                                       filename=filename,
                                                       compute=False, **kwargs)
