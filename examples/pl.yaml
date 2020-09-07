@@ -1,3 +1,11 @@
+# Use external scheduler.  This example uses dask.distributed.Client,
+#   but any other class can be used as long as it returns a client and
+#   registers itself to dask.  The `settings` are passed as keyword
+#   arguments to the class when instantiated.
+# dask_distributed:
+#   class: !!python/name:dask.distributed.Client
+#   settings:
+#     address: localhost:8786
 
 product_list: &product_list
   output_dir: &output_dir

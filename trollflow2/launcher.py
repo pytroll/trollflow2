@@ -217,6 +217,30 @@ def expand(yml):
     return yml
 
 
+def get_dask_client(config):
+    """Create Dask client if configured."""
+    client = None
+
+    try:
+        client_class = config["dask_distributed"]["class"]
+        settings = config["dask_distributed"].get("settings", {})
+        client = client_class(**settings)
+        try:
+            if not client.ncores():
+                LOG.warning("No workers available, reverting to default scheduler")
+                client.close()
+                client = None
+        except AttributeError:
+            client = None
+    except OSError:
+        LOG.error("Scheduler not found, reverting to default scheduler")
+    except KeyError:
+        LOG.info("Distributed processing not configured, "
+                 "using default scheduler")
+
+    return client
+
+
 def process(msg, prod_list, produced_files):
     """Process a message."""
     config = {}
@@ -227,6 +251,9 @@ def process(msg, prod_list, produced_files):
         # Either open() or yaml.load() failed
         LOG.exception("Process crashed, check YAML file.")
         raise
+
+    # Get distributed client
+    client = get_dask_client(config)
 
     try:
         config = expand(config)
@@ -258,6 +285,10 @@ def process(msg, prod_list, produced_files):
             except AttributeError:
                 continue
         del config
+        try:
+            client.close()
+        except AttributeError:
+            pass
         gc.collect()
 
 
