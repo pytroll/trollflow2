@@ -44,8 +44,10 @@ from trollsift import compose
 
 try:
     from satpy.dataset import DataQuery
+    DEFAULT = '*'
 except ImportError:  # satpy <= 0.22.0
     from satpy.dataset import DatasetID as DataQuery
+    DEFAULT = None
 
 # Allow trollsched to be missing
 try:
@@ -190,7 +192,7 @@ def save_dataset(scns, fmat, fmat_config, renames):
     obj = None
     try:
         with prepared_filename(fmat, renames) as filename:
-            res = fmat.get('resolution', None)
+            res = fmat.get('resolution', DEFAULT)
             kwargs = fmat_config.copy()
             kwargs.pop('fname_pattern', None)
             kwargs.pop('dispatch', None)
@@ -198,12 +200,12 @@ def save_dataset(scns, fmat, fmat_config, renames):
                 kwargs.pop('format')
                 dsids = []
                 for prod in fmat['product']:
-                    dsids.append(DataQuery(name=prod, resolution=res, modifiers=None))
+                    dsids.append(_create_data_query(prod, res))
                 obj = scns[fmat['area']].save_datasets(datasets=dsids,
                                                        filename=filename,
                                                        compute=False, **kwargs)
             else:
-                dsid = DataQuery(name=fmat['product'], resolution=res, modifiers=None)
+                dsid = _create_data_query(fmat['product'], res)
                 obj = scns[fmat['area']].save_dataset(dsid,
                                                       filename=filename,
                                                       compute=False, **kwargs)
@@ -212,6 +214,10 @@ def save_dataset(scns, fmat, fmat_config, renames):
     else:
         fmat_config['filename'] = renames.get(filename, filename)
     return obj
+
+
+def _create_data_query(product, res):
+    return DataQuery(name=product, resolution=res, modifiers=DEFAULT)
 
 
 @contextmanager

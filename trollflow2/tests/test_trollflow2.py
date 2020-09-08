@@ -341,7 +341,7 @@ class TestSaveDatasets(TestCase):
         """Test saving datasets."""
         self.maxDiff = None
         from trollflow2.launcher import yaml, UnsafeLoader
-        from trollflow2.plugins import save_datasets
+        from trollflow2.plugins import save_datasets, DEFAULT
         job = {}
         job['input_mda'] = input_mda
         job['product_list'] = {
@@ -372,13 +372,13 @@ class TestSaveDatasets(TestCase):
             expected_sds = [mock.call(datasets=[dsid.return_value, dsid.return_value], compute=False,
                             filename='/tmp/satdmz/pps/www/latest_2018/NOAA-15_20190217_0600_euron1_in_fname_ct_and_ctth.nc',  # noqa
                             writer='cf')]
-            expected_dsid = [mock.call(name='cloud_top_height', resolution=None, modifiers=None),
-                             mock.call(name='cloud_top_height', resolution=None, modifiers=None),
-                             mock.call(name='ct', resolution=None, modifiers=None),
-                             mock.call(name='ctth', resolution=None, modifiers=None),
-                             mock.call(name='cloudtype', resolution=None, modifiers=None),
-                             mock.call(name='ct', resolution=None, modifiers=None),
-                             mock.call(name='cloud_top_height', resolution=500, modifiers=None)
+            expected_dsid = [mock.call(name='cloud_top_height', resolution=DEFAULT, modifiers=DEFAULT),
+                             mock.call(name='cloud_top_height', resolution=DEFAULT, modifiers=DEFAULT),
+                             mock.call(name='ct', resolution=DEFAULT, modifiers=DEFAULT),
+                             mock.call(name='ctth', resolution=DEFAULT, modifiers=DEFAULT),
+                             mock.call(name='cloudtype', resolution=DEFAULT, modifiers=DEFAULT),
+                             mock.call(name='ct', resolution=DEFAULT, modifiers=DEFAULT),
+                             mock.call(name='cloud_top_height', resolution=500, modifiers=DEFAULT)
                              ]
 
             sd_calls = (job['resampled_scenes']['euron1'].save_dataset.mock_calls
