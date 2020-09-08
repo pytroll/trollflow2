@@ -353,7 +353,7 @@ class TestSaveDatasets(TestCase):
         for area in job['product_list']['product_list']['areas']:
             job['resampled_scenes'][area] = mock.Mock()
         with mock.patch('trollflow2.plugins.compute_writer_results'),\
-                mock.patch('trollflow2.plugins.DatasetID') as dsid,\
+                mock.patch('trollflow2.plugins.DataQuery') as dsid,\
                 mock.patch('os.rename') as rename:
             save_datasets(job)
             expected_sd = [mock.call(dsid.return_value, compute=False,
