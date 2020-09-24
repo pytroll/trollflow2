@@ -723,12 +723,12 @@ class TestResampleNullArea(TestCase):
         product_list = self.product_list.copy()
         job = {"scene": scn, "product_list": product_list.copy()}
         # The composites have been generated
-        scn.datasets.keys.return_value = ['abc']
+        scn.keys.return_value = ['abc']
         scn.wishlist = {'abc'}
         resample(job)
         scn.load.assert_not_called()
         # The composites have not been generated
-        scn.datasets.keys.return_value = ['a', 'b', 'c']
+        scn.keys.return_value = ['a', 'b', 'c']
         scn.wishlist = {'abc'}
         resample(job)
         self.assertTrue(mock.call({'abc'}, generate=True) in
@@ -742,7 +742,7 @@ class TestResampleNullArea(TestCase):
         product_list["common"] = {"resampler": "native"}
         job = {"scene": scn, "product_list": product_list.copy()}
         # The composites have been generated
-        scn.datasets.keys.return_value = ['abc']
+        scn.keys.return_value = ['abc']
         scn.wishlist = {'abc'}
         resample(job)
         self.assertTrue(mock.call(resampler='native') in
