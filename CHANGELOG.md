@@ -1,3 +1,26 @@
+## Version 0.8.0 (2020/09/24)
+
+### Issues Closed
+
+* [Issue 88](https://github.com/pytroll/trollflow2/issues/88) - Failure when saving in satellite-native projection ([PR 89](https://github.com/pytroll/trollflow2/pull/89))
+* [Issue 82](https://github.com/pytroll/trollflow2/issues/82) - Add support for dask.distributed ([PR 83](https://github.com/pytroll/trollflow2/pull/83))
+
+In this release 2 issues were closed.
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR 89](https://github.com/pytroll/trollflow2/pull/89) - Fix null resampling with newer versions of satpy ([88](https://github.com/pytroll/trollflow2/issues/88))
+
+#### Features added
+
+* [PR 86](https://github.com/pytroll/trollflow2/pull/86) - Replace usage of DatasetID by DataQuery for newer satpy versions
+* [PR 83](https://github.com/pytroll/trollflow2/pull/83) - Add support to dask.distributed ([82](https://github.com/pytroll/trollflow2/issues/82))
+
+In this release 3 pull requests were closed.
+
+
 ## Version v0.7.1 (2020/07/16)
 
 
