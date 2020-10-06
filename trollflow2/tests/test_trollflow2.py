@@ -553,11 +553,11 @@ class TestLoadComposites(TestCase):
 
     def test_load_composites(self):
         """Test loading composites."""
-        from trollflow2.plugins import load_composites
+        from trollflow2.plugins import load_composites, DEFAULT
         scn = mock.MagicMock()
         job = {"product_list": self.product_list, "scene": scn}
         load_composites(job)
-        scn.load.assert_called_with({'ct', 'cloudtype', 'cloud_top_height'}, resolution='*', generate=False)
+        scn.load.assert_called_with({'ct', 'cloudtype', 'cloud_top_height'}, resolution=DEFAULT, generate=False)
 
     def test_load_composites_with_config(self):
         """Test loading composites with a config."""
