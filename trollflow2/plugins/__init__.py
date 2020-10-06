@@ -86,7 +86,7 @@ def load_composites(job):
     #                            for d in dpath.util.values(job['product_list'], '/product_list/areas/*/products')))
     composites_by_res = {}
     for flat_prod_cfg, _prod_cfg in plist_iter(job['product_list']['product_list'], level='product'):
-        res = flat_prod_cfg.get('resolution', None)
+        res = flat_prod_cfg.get('resolution', DEFAULT)
         if isinstance(flat_prod_cfg['product'], (tuple, list, set)):
             composites_by_res.setdefault(res, set()).update(flat_prod_cfg['product'])
         else:
