@@ -33,6 +33,9 @@ from trollflow2.tests.utils import TestCase
 yaml_test1 = """
 product_list:
   something: foo
+  aggregate:
+    x: 2
+    y: 2
   min_coverage: 5.0
   areas:
       euron1:
@@ -580,6 +583,44 @@ class TestLoadComposites(TestCase):
         load_composites(job)
         scn.load.assert_any_call({'cloudtype', 'ct', 'cloud_top_height'}, resolution=1000, generate=True)
         scn.load.assert_any_call({'cloud_top_height'}, resolution=500, generate=True)
+
+
+class TestAggregate(TestCase):
+    """Test case for aggregating."""
+
+    def setUp(self):
+        """Set up the test case."""
+        super().setUp()
+        from trollflow2.launcher import yaml, UnsafeLoader
+        self.product_list = yaml.load(yaml_test1, Loader=UnsafeLoader)
+
+    def test_aggregate_returns_aggregated_scene(self):
+        """Test aggregating."""
+        from trollflow2.plugins import aggregate
+        scn = mock.MagicMock()
+        assert 'aggregate' in self.product_list['product_list']
+        job = {"scene": scn, "product_list": self.product_list}
+        aggregate(job)
+        assert job['scene'] is scn.aggregate.return_value
+
+    def test_aggregate_is_called_with_right_params(self):
+        """Test aggregating."""
+        from trollflow2.plugins import aggregate
+        scn = mock.MagicMock()
+        assert 'aggregate' in self.product_list['product_list']
+        self.product_list['product_list']['aggregate'] = dict(x=4, y=4)
+        job = {"scene": scn, "product_list": self.product_list}
+        aggregate(job)
+        scn.aggregate.assert_called_once_with(x=4, y=4)
+
+    def test_aggregate_returns_original_scene_when_not_needed(self):
+        """Test aggregating."""
+        from trollflow2.plugins import aggregate
+        scn = mock.MagicMock()
+        del self.product_list['product_list']['aggregate']
+        job = {"scene": scn, "product_list": self.product_list}
+        aggregate(job)
+        assert job['scene'] is scn
 
 
 class TestResample(TestCase):
