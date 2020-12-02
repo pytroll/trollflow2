@@ -108,7 +108,7 @@ def check_results(produced_files, start_time, exitcode):
         if exitcode < 0:
             LOG.error('Process killed with signal %d', -exitcode)
         else:
-            LOG.error('Process crashed with exit code %d', exitcode)
+            LOG.critical('Process crashed with exit code %d', exitcode)
     if not error_detected:
         elapsed = end_time - start_time
         LOG.info('All files produced nominally in %s.', str(elapsed), extra={'time': elapsed})
@@ -235,8 +235,8 @@ def get_dask_client(config):
     except OSError:
         LOG.error("Scheduler not found, reverting to default scheduler")
     except KeyError:
-        LOG.info("Distributed processing not configured, "
-                 "using default scheduler")
+        LOG.debug("Distributed processing not configured, "
+                  "using default scheduler")
 
     return client
 
@@ -267,7 +267,7 @@ def process(msg, prod_list, produced_files):
                     cwrk = wrk.copy()
                     cwrk.pop('fun')(job, **cwrk)
             except AbortProcessing as err:
-                LOG.info(str(err))
+                LOG.warning(str(err))
     except Exception:
         LOG.exception("Process crashed")
         if "crash_handlers" in config:
