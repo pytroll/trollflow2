@@ -185,7 +185,7 @@ def message_to_jobs(msg, product_list):
     jobs = OrderedDict()
     priorities = get_area_priorities(product_list)
     # TODO: check the uri is accessible from the current host.
-    input_filenames = [urlparse(uri).path for uri in gen_dict_extract(msg.data, 'uri')]
+    input_filenames = _extract_filenames(msg)
     for prio, areas in priorities.items():
         jobs[prio] = OrderedDict()
         jobs[prio]['input_filenames'] = input_filenames.copy()
@@ -202,6 +202,22 @@ def message_to_jobs(msg, product_list):
             else:
                 jobs[prio]['product_list'][section] = product_list[section]
     return jobs
+
+
+def _extract_filenames(msg):
+    """Extract the filenames from *msg*.
+
+    If the message contains a `filesystem` item, use fsspec to decode it.
+    """
+    filenames = [urlparse(uri).path for uri in gen_dict_extract(msg.data, 'uri')]
+    filesystems = list(gen_dict_extract(msg.data, 'filesystem'))
+    if filesystems:
+        from satpy.readers import FSFile
+        from fsspec.spec import AbstractFileSystem
+        import json
+        filenames = [FSFile(filename, AbstractFileSystem.from_json(json.dumps(filesystem)))
+                     for filename, filesystem in zip(filenames, filesystems)]
+    return filenames
 
 
 def expand(yml):
