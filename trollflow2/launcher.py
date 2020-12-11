@@ -210,6 +210,12 @@ def _extract_filenames(msg):
     If the message contains a `filesystem` item, use fsspec to decode it.
     """
     filenames = [urlparse(uri).path for uri in gen_dict_extract(msg.data, 'uri')]
+    filenames = _create_fs_file_instances(filenames, msg)
+    return filenames
+
+
+def _create_fs_file_instances(filenames, msg):
+    """Create FSFile instances when filesystem is provided."""
     filesystems = list(gen_dict_extract(msg.data, 'filesystem'))
     if filesystems:
         from satpy.readers import FSFile
