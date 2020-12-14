@@ -79,6 +79,22 @@ special keyword arguments:
    resampling.  This can save a lot of time if the same channels are
    used in several composites.  Default: ``True``.
 
+Aggregate
+*********
+
+In some cases, large scenes need to be aggregated down to a lower resolution.
+
+To use this plugin, just add the `aggregate` keyword in the product list's top level
+and provide under it the dimension parameters to pass to the corresponding satpy function.
+For example::
+
+  product_list:
+    aggregate:
+      x: 2
+      y: 2
+
+will aggregate using 2x2 pixel blocks.
+
 Resampling
 **********
 

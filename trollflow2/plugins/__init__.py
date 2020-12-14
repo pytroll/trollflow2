@@ -99,6 +99,14 @@ def load_composites(job):
     job['scene'] = scn
 
 
+def aggregate(job):
+    """Aggregate the chosen composites."""
+    if 'aggregate' not in job['product_list']['product_list']:
+        return
+    kwargs = job['product_list']['product_list']['aggregate']
+    job['scene'] = job['scene'].aggregate(**kwargs)
+
+
 def resample(job):
     """Resample the scene to some areas."""
     defaults = {"radius_of_influence": None,
