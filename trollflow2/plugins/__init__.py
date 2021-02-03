@@ -68,8 +68,10 @@ class AbortProcessing(Exception):
 def create_scene(job):
     """Create a satpy scene."""
     defaults = {'reader': None,
-                'reader_kwargs': None,
-                'ppp_config_dir': None}
+                'reader_kwargs': None}
+    from satpy.version import version as satpy_version
+    if satpy_version <= "0.25.1":
+        defaults['ppp_config_dir'] = None
     product_list = job['product_list']
     conf = _get_plugin_conf(product_list, '/product_list', defaults)
 
