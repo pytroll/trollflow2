@@ -409,8 +409,8 @@ def covers(job):
             dpath.util.delete(product_list, area_path)
 
         else:
-            LOG.debug("Area coverage %.2f %% above threshold %.2f %% - Carry on",
-                      cov, min_coverage)
+            LOG.debug(f"Area coverage {cov:.2f}% above threshold "
+                      f"{min_coverage:.2f}% - Carry on with {area:s}")
 
     job['product_list'] = product_list
 
