@@ -360,20 +360,24 @@ class TestSaveDatasets(TestCase):
                 mock.patch('os.rename') as rename:
             save_datasets(job)
             expected_sd = [mock.call(dsid.return_value, compute=False,
-                                     filename='/tmp/satdmz/pps/www/latest_2018/NOAA-15_20190217_0600_euron1_in_fname_ctth_static.png',  # noqa
+                                     filename=os.path.join('/tmp', 'satdmz', 'pps', 'www', 'latest_2018',
+                                                           'NOAA-15_20190217_0600_euron1_in_fname_ctth_static.png'),
                                      format='png', writer='simple_image'),
                            mock.call(dsid.return_value, compute=False,
-                                     filename='/tmp/satdmz/pps/www/latest_2018/NOAA-15_20190217_0600_euron1_in_fname_ctth_static.jpg',  # noqa
+                                     filename=os.path.join('/tmp', 'satdmz', 'pps', 'www', 'latest_2018',
+                                                           'NOAA-15_20190217_0600_euron1_in_fname_ctth_static.jpg'),
                                      fill_value=0, format='jpg', writer='simple_image'),
                            mock.call(dsid.return_value, compute=False,
-                                     filename='/tmp/NOAA-15_20190217_0600_omerc_bb_ct.nc',
+                                     filename=os.path.join('/tmp', 'NOAA-15_20190217_0600_omerc_bb_ct.nc'),
                                      format='nc', writer='cf'),
                            mock.call(dsid.return_value, compute=False,
-                                     filename='/tmp/NOAA-15_20190217_0600_omerc_bb_cloud_top_height.tif',
+                                     filename=os.path.join('/tmp',
+                                                           'NOAA-15_20190217_0600_omerc_bb_cloud_top_height.tif'),
                                      format='tif', writer='geotiff')
                            ]
             expected_sds = [mock.call(datasets=[dsid.return_value, dsid.return_value], compute=False,
-                            filename='/tmp/satdmz/pps/www/latest_2018/NOAA-15_20190217_0600_euron1_in_fname_ct_and_ctth.nc',  # noqa
+                            filename=os.path.join('/tmp', 'satdmz', 'pps', 'www', 'latest_2018',
+                                                  'NOAA-15_20190217_0600_euron1_in_fname_ct_and_ctth.nc'),
                             writer='cf')]
             expected_dsid = [mock.call(name='cloud_top_height', resolution=DEFAULT, modifiers=DEFAULT),
                              mock.call(name='cloud_top_height', resolution=DEFAULT, modifiers=DEFAULT),
