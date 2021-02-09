@@ -376,9 +376,9 @@ class TestSaveDatasets(TestCase):
                                      format='tif', writer='geotiff')
                            ]
             expected_sds = [mock.call(datasets=[dsid.return_value, dsid.return_value], compute=False,
-                            filename=os.path.join('/tmp', 'satdmz', 'pps', 'www', 'latest_2018',
-                                                  'NOAA-15_20190217_0600_euron1_in_fname_ct_and_ctth.nc'),
-                            writer='cf')]
+                                      filename=os.path.join('/tmp', 'satdmz', 'pps', 'www', 'latest_2018',
+                                                            'NOAA-15_20190217_0600_euron1_in_fname_ct_and_ctth.nc'),
+                                      writer='cf')]
             expected_dsid = [mock.call(name='cloud_top_height', resolution=DEFAULT, modifiers=DEFAULT),
                              mock.call(name='cloud_top_height', resolution=DEFAULT, modifiers=DEFAULT),
                              mock.call(name='ct', resolution=DEFAULT, modifiers=DEFAULT),
