@@ -27,15 +27,6 @@ jobs:
       - name: Checkout source
         uses: actions/checkout@v2
 
-      - name: Setup Conda Environment
-        uses: conda-incubator/setup-miniconda@v2
-        with:
-          miniconda-version: "latest"
-          python-version: ${{ matrix.python-version }}
-          mamba-version: "*"
-          channels: conda-forge,defaults
-          environment-file: continuous_integration/environment.yaml
-          activate-environment: test-environment
       - name: Install trollflow2
         shell: bash -l {0}
         run: |
