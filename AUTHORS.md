@@ -7,5 +7,6 @@ The following people have made contributions to this project:
 <!--- The list should be alphabetical by last name if possible, with github usernames at the bottom --->
 
 - [Adam Dybbroe (adybbroe)](https://github.com/adybbroe)
+- [Gerrit Holl (gerritholl)](https://github.com/gerritholl)
 - [Panu Lahtinen (pnuu)](https://github.com/pnuu)
 - [Martin Raspaud (mraspaud)](https://github.com/mraspaud)

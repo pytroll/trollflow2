@@ -33,6 +33,7 @@ import gc
 import os
 import re
 import traceback
+import signal
 from collections import OrderedDict
 from datetime import datetime
 from logging import getLogger
@@ -241,6 +242,10 @@ def get_dask_client(config):
     return client
 
 
+def _timeout_handler(signum, frame):
+    raise TimeoutError("Timeout for job expired, giving up")
+
+
 def process(msg, prod_list, produced_files):
     """Process a message."""
     config = {}
@@ -265,7 +270,14 @@ def process(msg, prod_list, produced_files):
             try:
                 for wrk in config['workers']:
                     cwrk = wrk.copy()
+                    if "timeout" in cwrk:
+                        signal.signal(signal.SIGALRM, _timeout_handler)
+                        # using setitimer because it accepts floats
+                        signal.setitimer(signal.ITIMER_REAL,
+                                         cwrk.pop("timeout"))
                     cwrk.pop('fun')(job, **cwrk)
+                    if "timeout" in cwrk:
+                        signal.alarm(0)  # cancel the alarm
             except AbortProcessing as err:
                 LOG.info(str(err))
     except Exception:
