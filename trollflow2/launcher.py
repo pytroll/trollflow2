@@ -242,10 +242,6 @@ def get_dask_client(config):
     return client
 
 
-def _timeout_handler(signum, frame):
-    raise TimeoutError("Timeout for job expired, giving up")
-
-
 def process(msg, prod_list, produced_files):
     """Process a message."""
     config = {}
@@ -270,9 +266,17 @@ def process(msg, prod_list, produced_files):
             try:
                 for wrk in config['workers']:
                     cwrk = wrk.copy()
+                    cwrk2 = cwrk.copy()  # to keep timeout info
                     if "timeout" in cwrk:
+
+                        def _timeout_handler(signum, frame):
+                            raise TimeoutError(
+                                    f"Timeout for {cwrk2['fun']!s} expired "
+                                    f"after {cwrk2['timeout']:.1f} seconds, "
+                                    "giving up")
                         signal.signal(signal.SIGALRM, _timeout_handler)
-                        # using setitimer because it accepts floats
+                        # using setitimer because it accepts floats,
+                        # unlike signal.alarm
                         signal.setitimer(signal.ITIMER_REAL,
                                          cwrk.pop("timeout"))
                     cwrk.pop('fun')(job, **cwrk)
