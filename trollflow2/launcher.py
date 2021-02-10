@@ -271,9 +271,9 @@ def process(msg, prod_list, produced_files):
 
                         def _timeout_handler(signum, frame):
                             raise TimeoutError(
-                                    f"Timeout for {cwrk2['fun']!s} expired "
-                                    f"after {cwrk2['timeout']:.1f} seconds, "
-                                    "giving up")
+                                f"Timeout for {cwrk2['fun']!s} expired "
+                                f"after {cwrk2['timeout']:.1f} seconds, "
+                                "giving up")
                         signal.signal(signal.SIGALRM, _timeout_handler)
                         # using setitimer because it accepts floats,
                         # unlike signal.alarm
