@@ -266,13 +266,12 @@ def process(msg, prod_list, produced_files):
             try:
                 for wrk in config['workers']:
                     cwrk = wrk.copy()
-                    cwrk2 = cwrk.copy()  # to keep timeout info
                     if "timeout" in cwrk:
 
-                        def _timeout_handler(signum, frame):
+                        def _timeout_handler(signum, frame, wrk=wrk):
                             raise TimeoutError(
-                                f"Timeout for {cwrk2['fun']!s} expired "
-                                f"after {cwrk2['timeout']:.1f} seconds, "
+                                f"Timeout for {wrk['fun']!s} expired "
+                                f"after {wrk['timeout']:.1f} seconds, "
                                 "giving up")
                         signal.signal(signal.SIGALRM, _timeout_handler)
                         # using setitimer because it accepts floats,
