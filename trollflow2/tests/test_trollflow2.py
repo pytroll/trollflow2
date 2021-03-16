@@ -540,13 +540,11 @@ class TestCreateScene(TestCase):
             job = {"input_filenames": "bar", "product_list": {}}
             create_scene(job)
             self.assertEqual(job["scene"], "foo")
-            scene.assert_called_with(filenames='bar', reader=None,
-                                     reader_kwargs=None, ppp_config_dir=None)
+            scene.assert_called_with(filenames='bar', reader=None, reader_kwargs=None)
             job = {"input_filenames": "bar",
                    "product_list": {"product_list": {"reader": "baz"}}}
             create_scene(job)
-            scene.assert_called_with(filenames='bar', reader='baz',
-                                     reader_kwargs=None, ppp_config_dir=None)
+            scene.assert_called_with(filenames='bar', reader='baz', reader_kwargs=None)
 
 
 class TestLoadComposites(TestCase):
