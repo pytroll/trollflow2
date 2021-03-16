@@ -531,7 +531,10 @@ class TestCreateScene(TestCase):
     def test_create_scene(self):
         """Test making a scene."""
         from trollflow2.plugins import create_scene
-        from satpy.version import version as satpy_version
+        try:
+            from satpy.version import version as satpy_version
+        except ImportError:
+            satpy_version = "0.26.0"
         with mock.patch("trollflow2.plugins.Scene", autospec=True) as scene:
             scene.return_value = "foo"
             job = {"input_filenames": "bar", "product_list": {}}
