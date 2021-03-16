@@ -38,6 +38,7 @@ from rasterio.enums import Resampling
 from satpy import Scene
 from satpy.resample import get_area_def
 from satpy.writers import compute_writer_results
+from satpy.version import version as satpy_version
 from pyresample.geometry import get_geostationary_bounding_box
 from trollflow2.dict_tools import get_config_value, plist_iter
 from trollsift import compose
@@ -69,7 +70,6 @@ def create_scene(job):
     """Create a satpy scene."""
     defaults = {'reader': None,
                 'reader_kwargs': None}
-    from satpy.version import version as satpy_version
     if satpy_version <= "0.25.1":
         defaults['ppp_config_dir'] = None
     product_list = job['product_list']
