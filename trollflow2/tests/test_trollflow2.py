@@ -406,14 +406,15 @@ class TestSaveDatasets(TestCase):
             'publish_topic': '/NWC-CF/L3',
             'use_extern_calib': False,
             'fname_pattern': "{platform_name}_{start_time:%Y%m%d_%H%M}_{areaname}_{productname}.{format}",
-            'formats': [{
-                'format': 'tif',
-                'writer': 'geotiff'
-            },
-            {
-                'format': 'nc',
-                'writer': 'cf'
-            }],
+            'formats': [
+                {
+                    'format': 'tif',
+                    'writer': 'geotiff'
+                },
+                {
+                    'format': 'nc',
+                    'writer': 'cf'
+                }],
             'areas': {
                 'euron1': {
                     'areaname': 'euron1_in_fname',
@@ -432,7 +433,7 @@ class TestSaveDatasets(TestCase):
                                     'path': '/somewhere/{platform_name:s}_{start_time:%Y%m%d_%H%M}_{areaname:s}_ctth_static.{format}',  # noqa
                                  }],
                              },
-                              {
+                             {
                                  'filename':
                                  '/tmp/satdmz/pps/www/latest_2018/NOAA-15_20190217_0600_euron1_in_fname_ctth_static.jpg',  # noqa
                                  'fill_value':
