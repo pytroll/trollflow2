@@ -23,8 +23,8 @@
 """Test plugins."""
 
 import datetime as dt
-import os
 import logging
+import os
 import unittest
 from unittest import mock
 
