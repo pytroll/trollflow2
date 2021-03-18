@@ -23,6 +23,7 @@
 """Test plugins."""
 
 import datetime as dt
+import logging
 import os
 import unittest
 from unittest import mock
@@ -1007,7 +1008,10 @@ class TestCovers(TestCase):
             job = {"product_list": self.product_list,
                    "input_mda": self.input_mda,
                    "scene": scn}
-            covers(job)
+            with self.assertLogs("trollflow2.plugins", logging.DEBUG) as log:
+                covers(job)
+            assert ("DEBUG:trollflow2.plugins:Area coverage 10.00% "
+                    "above threshold 5.00% - Carry on with omerc_bb" in log.output)
             # Area "euron1" should be removed
             self.assertFalse("euron1" in job['product_list']['product_list']['areas'])
             # Other areas should stay in the list
