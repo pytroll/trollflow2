@@ -58,8 +58,11 @@ options are:
    given, Satpy will try to find the reader automatically.
  - ``reader_kwargs`` - A dictionary of special keyword arguments passed
    to the reader.
- - ``ppp_config_dir`` - Path to the Pytroll configuration directory.
-   If not given, environment variable ``$PPP_CONFIG_DIR`` is used.
+
+For old Satpy versions (before Satpy 0.26), there is additionally the
+``ppp_config_dir`` option, for the path to the Pytroll configuration directory.
+If not given, environment variable ``$PPP_CONFIG_DIR`` is used.  For newer
+Satpy versions, users must set the ``$SATPY_CONFIG_PATH`` environment variable.
 
 This plugin needs to be defined before data are accessed in any way.
 

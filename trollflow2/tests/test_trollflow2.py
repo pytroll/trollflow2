@@ -537,18 +537,31 @@ class TestCreateScene(TestCase):
     def test_create_scene(self):
         """Test making a scene."""
         from trollflow2.plugins import create_scene
-        with mock.patch("trollflow2.plugins.Scene") as scene:
+        from satpy.version import version as satpy_version
+        if not isinstance(satpy_version, str):
+            # trollflow2 mocks all missing imports
+            import trollflow2.plugins
+            trollflow2.plugins.satpy_version = satpy_version = "0.26.0"
+        with mock.patch("trollflow2.plugins.Scene", autospec=True) as scene:
             scene.return_value = "foo"
             job = {"input_filenames": "bar", "product_list": {}}
             create_scene(job)
             self.assertEqual(job["scene"], "foo")
-            scene.assert_called_with(filenames='bar', reader=None,
-                                     reader_kwargs=None, ppp_config_dir=None)
+            if satpy_version <= "0.25.1":
+                scene.assert_called_with(filenames='bar', reader=None,
+                                         reader_kwargs=None, ppp_config_dir=None)
+            else:
+                scene.assert_called_with(filenames='bar', reader=None,
+                                         reader_kwargs=None)
             job = {"input_filenames": "bar",
                    "product_list": {"product_list": {"reader": "baz"}}}
             create_scene(job)
-            scene.assert_called_with(filenames='bar', reader='baz',
-                                     reader_kwargs=None, ppp_config_dir=None)
+            if satpy_version <= "0.25.1":
+                scene.assert_called_with(filenames='bar', reader='baz',
+                                         reader_kwargs=None, ppp_config_dir=None)
+            else:
+                scene.assert_called_with(filenames='bar', reader='baz',
+                                         reader_kwargs=None)
 
 
 class TestLoadComposites(TestCase):
