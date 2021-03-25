@@ -23,6 +23,7 @@
 """Test plugins."""
 
 import datetime as dt
+import logging
 import os
 import unittest
 from unittest import mock
@@ -360,21 +361,25 @@ class TestSaveDatasets(TestCase):
                 mock.patch('os.rename') as rename:
             save_datasets(job)
             expected_sd = [mock.call(dsid.return_value, compute=False,
-                                     filename='/tmp/satdmz/pps/www/latest_2018/NOAA-15_20190217_0600_euron1_in_fname_ctth_static.png',  # noqa
+                                     filename=os.path.join('/tmp', 'satdmz', 'pps', 'www', 'latest_2018',
+                                                           'NOAA-15_20190217_0600_euron1_in_fname_ctth_static.png'),
                                      format='png', writer='simple_image'),
                            mock.call(dsid.return_value, compute=False,
-                                     filename='/tmp/satdmz/pps/www/latest_2018/NOAA-15_20190217_0600_euron1_in_fname_ctth_static.jpg',  # noqa
+                                     filename=os.path.join('/tmp', 'satdmz', 'pps', 'www', 'latest_2018',
+                                                           'NOAA-15_20190217_0600_euron1_in_fname_ctth_static.jpg'),
                                      fill_value=0, format='jpg', writer='simple_image'),
                            mock.call(dsid.return_value, compute=False,
-                                     filename='/tmp/NOAA-15_20190217_0600_omerc_bb_ct.nc',
+                                     filename=os.path.join('/tmp', 'NOAA-15_20190217_0600_omerc_bb_ct.nc'),
                                      format='nc', writer='cf'),
                            mock.call(dsid.return_value, compute=False,
-                                     filename='/tmp/NOAA-15_20190217_0600_omerc_bb_cloud_top_height.tif',
+                                     filename=os.path.join('/tmp',
+                                                           'NOAA-15_20190217_0600_omerc_bb_cloud_top_height.tif'),
                                      format='tif', writer='geotiff')
                            ]
             expected_sds = [mock.call(datasets=[dsid.return_value, dsid.return_value], compute=False,
-                            filename='/tmp/satdmz/pps/www/latest_2018/NOAA-15_20190217_0600_euron1_in_fname_ct_and_ctth.nc',  # noqa
-                            writer='cf')]
+                                      filename=os.path.join('/tmp', 'satdmz', 'pps', 'www', 'latest_2018',
+                                                            'NOAA-15_20190217_0600_euron1_in_fname_ct_and_ctth.nc'),
+                                      writer='cf')]
             expected_dsid = [mock.call(name='cloud_top_height', resolution=DEFAULT, modifiers=DEFAULT),
                              mock.call(name='cloud_top_height', resolution=DEFAULT, modifiers=DEFAULT),
                              mock.call(name='ct', resolution=DEFAULT, modifiers=DEFAULT),
@@ -402,14 +407,15 @@ class TestSaveDatasets(TestCase):
             'publish_topic': '/NWC-CF/L3',
             'use_extern_calib': False,
             'fname_pattern': "{platform_name}_{start_time:%Y%m%d_%H%M}_{areaname}_{productname}.{format}",
-            'formats': [{
-                'format': 'tif',
-                'writer': 'geotiff'
-            },
-            {
-                'format': 'nc',
-                'writer': 'cf'
-            }],
+            'formats': [
+                {
+                    'format': 'tif',
+                    'writer': 'geotiff'
+                },
+                {
+                    'format': 'nc',
+                    'writer': 'cf'
+                }],
             'areas': {
                 'euron1': {
                     'areaname': 'euron1_in_fname',
@@ -428,7 +434,7 @@ class TestSaveDatasets(TestCase):
                                     'path': '/somewhere/{platform_name:s}_{start_time:%Y%m%d_%H%M}_{areaname:s}_ctth_static.{format}',  # noqa
                                  }],
                              },
-                              {
+                             {
                                  'filename':
                                  '/tmp/satdmz/pps/www/latest_2018/NOAA-15_20190217_0600_euron1_in_fname_ctth_static.jpg',  # noqa
                                  'fill_value':
@@ -531,18 +537,31 @@ class TestCreateScene(TestCase):
     def test_create_scene(self):
         """Test making a scene."""
         from trollflow2.plugins import create_scene
-        with mock.patch("trollflow2.plugins.Scene") as scene:
+        from satpy.version import version as satpy_version
+        if not isinstance(satpy_version, str):
+            # trollflow2 mocks all missing imports
+            import trollflow2.plugins
+            trollflow2.plugins.satpy_version = satpy_version = "0.26.0"
+        with mock.patch("trollflow2.plugins.Scene", autospec=True) as scene:
             scene.return_value = "foo"
             job = {"input_filenames": "bar", "product_list": {}}
             create_scene(job)
             self.assertEqual(job["scene"], "foo")
-            scene.assert_called_with(filenames='bar', reader=None,
-                                     reader_kwargs=None, ppp_config_dir=None)
+            if satpy_version <= "0.25.1":
+                scene.assert_called_with(filenames='bar', reader=None,
+                                         reader_kwargs=None, ppp_config_dir=None)
+            else:
+                scene.assert_called_with(filenames='bar', reader=None,
+                                         reader_kwargs=None)
             job = {"input_filenames": "bar",
                    "product_list": {"product_list": {"reader": "baz"}}}
             create_scene(job)
-            scene.assert_called_with(filenames='bar', reader='baz',
-                                     reader_kwargs=None, ppp_config_dir=None)
+            if satpy_version <= "0.25.1":
+                scene.assert_called_with(filenames='bar', reader='baz',
+                                         reader_kwargs=None, ppp_config_dir=None)
+            else:
+                scene.assert_called_with(filenames='bar', reader='baz',
+                                         reader_kwargs=None)
 
 
 class TestLoadComposites(TestCase):
@@ -1002,7 +1021,10 @@ class TestCovers(TestCase):
             job = {"product_list": self.product_list,
                    "input_mda": self.input_mda,
                    "scene": scn}
-            covers(job)
+            with self.assertLogs("trollflow2.plugins", logging.DEBUG) as log:
+                covers(job)
+            assert ("DEBUG:trollflow2.plugins:Area coverage 10.00% "
+                    "above threshold 5.00% - Carry on with omerc_bb" in log.output)
             # Area "euron1" should be removed
             self.assertFalse("euron1" in job['product_list']['product_list']['areas'])
             # Other areas should stay in the list

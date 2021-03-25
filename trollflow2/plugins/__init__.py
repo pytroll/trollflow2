@@ -38,6 +38,7 @@ from rasterio.enums import Resampling
 from satpy import Scene
 from satpy.resample import get_area_def
 from satpy.writers import compute_writer_results
+from satpy.version import version as satpy_version
 from pyresample.geometry import get_geostationary_bounding_box
 from trollflow2.dict_tools import get_config_value, plist_iter
 from trollsift import compose
@@ -68,8 +69,9 @@ class AbortProcessing(Exception):
 def create_scene(job):
     """Create a satpy scene."""
     defaults = {'reader': None,
-                'reader_kwargs': None,
-                'ppp_config_dir': None}
+                'reader_kwargs': None}
+    if satpy_version <= "0.25.1":
+        defaults['ppp_config_dir'] = None
     product_list = job['product_list']
     conf = _get_plugin_conf(product_list, '/product_list', defaults)
 
@@ -122,7 +124,7 @@ def resample(job):
     for area in product_list['product_list']['areas']:
         area_conf = _get_plugin_conf(product_list, '/product_list/areas/' + str(area),
                                      conf)
-        LOG.info('Resampling to %s', str(area))
+        LOG.debug('Resampling to %s', str(area))
         if area is None:
             minarea = get_config_value(product_list,
                                        '/product_list/areas/' + str(area),
@@ -218,7 +220,7 @@ def save_dataset(scns, fmat, fmat_config, renames):
                                                       filename=filename,
                                                       compute=False, **kwargs)
     except KeyError as err:
-        LOG.info('Skipping %s: %s', fmat['product'], str(err))
+        LOG.warning('Skipping %s: %s', fmat['product'], str(err))
     else:
         fmat_config['filename'] = renames.get(filename, filename)
     return obj
@@ -340,7 +342,7 @@ class FilePublisher(object):
                 LOG.debug('Could not create a message for %s.', str(fmat))
                 continue
             msg = Message(topic, 'file', file_mda)
-            LOG.debug('Publishing %s', str(msg))
+            LOG.info('Publishing %s', str(msg))
             self.pub.send(str(msg))
             self.send_dispatch_messages(fmat, fmat_config, topic, file_mda)
 
@@ -409,8 +411,8 @@ def covers(job):
             dpath.util.delete(product_list, area_path)
 
         else:
-            LOG.debug("Area coverage %.2f %% above threshold %.2f %% - Carry on",
-                      cov, min_coverage)
+            LOG.debug(f"Area coverage {cov:.2f}% above threshold "
+                      f"{min_coverage:.2f}% - Carry on with {area:s}")
 
     job['product_list'] = product_list
 
@@ -499,7 +501,7 @@ def sza_check(job):
                                      "sunzen_maximum_angle")
             if limit is not None:
                 if sunzen > limit:
-                    LOG.info("Sun zenith angle to large for daytime "
+                    LOG.info("Sun zenith angle too large for daytime "
                              "product '%s', product removed.", product)
                     dpath.util.delete(product_list, prod_path)
                 continue
@@ -535,9 +537,11 @@ def check_sunlight_coverage(job):
     sensor = scn_mda['sensor']
 
     if isinstance(sensor, (list, tuple, set)):
-        sensor = list(sensor)[0]
-        LOG.warning("Possibly many sensors given, taking only one for "
-                    "coverage calculations: %s", sensor)
+        sensor = list(sensor)
+        if len(sensor) > 1:
+            LOG.warning("Multiple sensors given, taking only one for "
+                        "coverage calculations: %s", sensor[0])
+        sensor = sensor[0]
 
     product_list = job['product_list']
     areas = list(product_list['product_list']['areas'].keys())
@@ -560,8 +564,8 @@ def check_sunlight_coverage(job):
             use_pass = config.get('check_pass', False)
 
             if min_day is None and max_day is None:
-                LOG.info("Sunlight coverage not configured for %s / %s",
-                         product, area)
+                LOG.debug("Sunlight coverage not configured for %s / %s",
+                          product, area)
                 continue
 
             if area_def is None:
@@ -579,11 +583,11 @@ def check_sunlight_coverage(job):
             area_conf = product_list['product_list']['areas'][area]
             area_conf['area_sunlight_coverage_percent'] = coverage[use_pass] * 100
             if min_day is not None and coverage[use_pass] < (min_day / 100.0):
-                LOG.info("Not enough sunlight coverage in "
+                LOG.info("Not enough sunlight coverage for "
                          "product '%s', removed.", product)
                 dpath.util.delete(product_list, prod_path)
             if max_day is not None and coverage[use_pass] > (max_day / 100.0):
-                LOG.info("Too much sunlight coverage in "
+                LOG.info("Too much sunlight coverage for "
                          "product '%s', removed.", product)
                 dpath.util.delete(product_list, prod_path)
 

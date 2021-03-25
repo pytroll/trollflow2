@@ -109,7 +109,7 @@ def check_results(produced_files, start_time, exitcode):
         if exitcode < 0:
             LOG.error('Process killed with signal %d', -exitcode)
         else:
-            LOG.error('Process crashed with exit code %d', exitcode)
+            LOG.critical('Process crashed with exit code %d', exitcode)
     if not error_detected:
         elapsed = end_time - start_time
         LOG.info('All files produced nominally in %s.', str(elapsed), extra={'time': elapsed})
@@ -186,7 +186,7 @@ def message_to_jobs(msg, product_list):
     jobs = OrderedDict()
     priorities = get_area_priorities(product_list)
     # TODO: check the uri is accessible from the current host.
-    input_filenames = [urlparse(uri).path for uri in gen_dict_extract(msg.data, 'uri')]
+    input_filenames = _extract_filenames(msg)
     for prio, areas in priorities.items():
         jobs[prio] = OrderedDict()
         jobs[prio]['input_filenames'] = input_filenames.copy()
@@ -203,6 +203,28 @@ def message_to_jobs(msg, product_list):
             else:
                 jobs[prio]['product_list'][section] = product_list[section]
     return jobs
+
+
+def _extract_filenames(msg):
+    """Extract the filenames from *msg*.
+
+    If the message contains a `filesystem` item, use fsspec to decode it.
+    """
+    filenames = [urlparse(uri).path for uri in gen_dict_extract(msg.data, 'uri')]
+    filenames = _create_fs_file_instances(filenames, msg)
+    return filenames
+
+
+def _create_fs_file_instances(filenames, msg):
+    """Create FSFile instances when filesystem is provided."""
+    filesystems = list(gen_dict_extract(msg.data, 'filesystem'))
+    if filesystems:
+        from satpy.readers import FSFile
+        from fsspec.spec import AbstractFileSystem
+        import json
+        filenames = [FSFile(filename, AbstractFileSystem.from_json(json.dumps(filesystem)))
+                     for filename, filesystem in zip(filenames, filesystems)]
+    return filenames
 
 
 def expand(yml):
@@ -236,8 +258,8 @@ def get_dask_client(config):
     except OSError:
         LOG.error("Scheduler not found, reverting to default scheduler")
     except KeyError:
-        LOG.info("Distributed processing not configured, "
-                 "using default scheduler")
+        LOG.debug("Distributed processing not configured, "
+                  "using default scheduler")
 
     return client
 
@@ -282,7 +304,7 @@ def process(msg, prod_list, produced_files):
                     if "timeout" in cwrk:
                         signal.alarm(0)  # cancel the alarm
             except AbortProcessing as err:
-                LOG.info(str(err))
+                LOG.warning(str(err))
     except Exception:
         LOG.exception("Process crashed")
         if "crash_handlers" in config:
