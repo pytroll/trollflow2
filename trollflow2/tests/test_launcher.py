@@ -22,6 +22,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 """Test the launcher module."""
 
+import sys
 import time
 import pytest
 import unittest
@@ -381,6 +382,8 @@ class TestProcess(TestCase):
                 process("msg", "prod_list", the_queue)
 
             # Test timeout in running job
+            @pytest.mark.skipIf(sys.platform != "linux",
+                                "Timeout only supported on Linux")
             def wait(job):
                 time.sleep(0.1)
             fun1.reset_mock(return_value=True, side_effect=True)
