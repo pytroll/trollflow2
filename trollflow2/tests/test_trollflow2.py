@@ -952,6 +952,7 @@ class TestCheckSunlightCoverage(TestCase):
         from trollflow2.plugins import metadata_alias
         with mock.patch('trollflow2.plugins.Pass'),\
                 mock.patch('trollflow2.plugins.get_twilight_poly'),\
+                mock.patch('trollflow2.plugins.get_area_def'),\
                 mock.patch("trollflow2.plugins._get_sunlight_coverage") as _get_sunlight_coverage:
             job = {}
             scene = mock.MagicMock()
