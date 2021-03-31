@@ -202,7 +202,8 @@ class TestMessageToJobs(TestCase):
                                              'satpy.readers': mock.MagicMock(),
                                              'satpy.resample': mock.MagicMock(),
                                              'satpy.writers': mock.MagicMock(),
-                                             'satpy.dataset': mock.MagicMock()}):
+                                             'satpy.dataset': mock.MagicMock(),
+                                             'satpy.version': mock.MagicMock()}):
             from fsspec.spec import AbstractFileSystem as abs_fs
             from satpy.readers import FSFile as fsfile
             from trollflow2.launcher import message_to_jobs
