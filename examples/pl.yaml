@@ -183,7 +183,7 @@ workers:
   - fun: !!python/name:trollflow2.plugins.load_composites
   - fun: !!python/name:trollflow2.plugins.resample
   # if, for whatever reason, save_datasets does not finish within 300 seconds,
-  # interrupt and give up
+  # interrupt and give up (only supported on Linux, may work on other systems)
   - fun: !!python/name:trollflow2.plugins.save_datasets
     timeout: 300
   - fun: !!python/object:trollflow2.plugins.FilePublisher {}

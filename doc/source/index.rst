@@ -36,10 +36,13 @@ arguments are to be passed for the initialization of the class.
 If the callable has a ``stop`` method, it will be called without arguments at the
 end of each run (one scene).
 
-If the configuration has a ``timeout``, that will be used as the maximum time
-in seconds the plugin will be allowed to run.  If it has not completed within
-this number of seconds, the job will be considered to have failed.  This feature
-is only supported on Linux, but may work on other platforms.
+If the configuration has a ``timeout``, that will be used as the
+maximum time in seconds the plugin will be allowed to run.  If it has
+not completed within this number of seconds, the job will be considered
+to have failed.  This feature is only supported on Linux, but may work
+on other platforms.  The ``timeout`` property is configured in the list
+of workers alongside the ``fun`` property; see the example configuration
+file ``examples/pl.yaml`` in the trollflow2 source tree.
 
 An example of such a callable class used in trollflow2 is the
 ``FilePublisher`` plugin.
