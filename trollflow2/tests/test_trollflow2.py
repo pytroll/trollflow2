@@ -927,6 +927,7 @@ class TestCheckSunlightCoverage(TestCase):
         from trollflow2.plugins import metadata_alias
         with mock.patch('trollflow2.plugins.Pass') as ts_pass,\
                 mock.patch('trollflow2.plugins.get_twilight_poly'),\
+                mock.patch('trollflow2.plugins.get_area_def'),\
                 mock.patch("trollflow2.plugins._get_sunlight_coverage") as _get_sunlight_coverage:
             job = {}
             scene = mock.MagicMock()
@@ -951,6 +952,7 @@ class TestCheckSunlightCoverage(TestCase):
         from trollflow2.plugins import metadata_alias
         with mock.patch('trollflow2.plugins.Pass'),\
                 mock.patch('trollflow2.plugins.get_twilight_poly'),\
+                mock.patch('trollflow2.plugins.get_area_def'),\
                 mock.patch("trollflow2.plugins._get_sunlight_coverage") as _get_sunlight_coverage:
             job = {}
             scene = mock.MagicMock()
@@ -1279,19 +1281,42 @@ class TestFilePublisher(TestCase):
         self.input_mda = input_mda.copy()
         self.input_mda['uri'] = 'foo.nc'
 
+    def test_filepublisher_is_started(self):
+        """Test that the filepublisher is started."""
+        from trollflow2.plugins import FilePublisher
+        with mock.patch('trollflow2.plugins.NoisyPublisher'):
+            pub = FilePublisher()
+            pub.pub.start.assert_called_once()
+
+    def test_filepublisher_is_stopped_on_exit(self):
+        """Test that the filepublisher is stopped on exit."""
+        from trollflow2.plugins import FilePublisher
+        with mock.patch('trollflow2.plugins.NoisyPublisher'):
+            pub = FilePublisher()
+            pub.__del__()
+            pub.pub.stop.assert_called()
+
     def test_filepublisher_with_compose(self):
         """Test filepublisher with compose."""
         from trollflow2.plugins import FilePublisher
         from trollflow2.dict_tools import plist_iter
         from trollsift import compose
         import os.path
+
+        from satpy import Scene
+        from satpy.tests.utils import make_dataid
+
+        scn_euron1 = Scene()
+        dataid = make_dataid(name='cloud_top_height', resolution=1000)
+        scn_euron1[dataid] = mock.MagicMock()
+        job = {'product_list': self.product_list,
+               'input_mda': self.input_mda,
+               'resampled_scenes': dict(euron1=scn_euron1)}
+
         with mock.patch('trollflow2.plugins.Message') as message, mock.patch('trollflow2.plugins.NoisyPublisher'):
             pub = FilePublisher()
-            pub.pub.start.assert_called_once()
             product_list = self.product_list.copy()
             product_list['product_list']['publish_topic'] = '/{areaname}/{productname}'
-            job = {'product_list': product_list,
-                   'input_mda': self.input_mda}
             topic_pattern = job['product_list']['product_list']['publish_topic']
             topics = []
             # Create filenames and topics
@@ -1307,15 +1332,15 @@ class TestFilePublisher(TestCase):
             pub(job)
             message.assert_called()
             pub.pub.send.assert_called()
-            pub.__del__()
-            pub.pub.stop.assert_called()
-            i = 0
+
+            call_count = 0
             for area in job['product_list']['product_list']['areas']:
                 for _prod in job['product_list']['product_list']['areas'][area]:
                     # Skip calls to __str__
-                    if 'call().__str__()' != str(message.mock_calls[i]):
-                        self.assertTrue(topics[i] in str(message.mock_calls[i]))
-                        i += 1
+                    if 'call().__str__()' != str(message.mock_calls[call_count]):
+                        self.assertTrue(topics[call_count] in str(message.mock_calls[call_count]))
+                        call_count += 1
+            self.assertEqual(call_count, 1)
             self.assertEqual(message.call_args[0][2]['processing_center'], 'SMHI')
 
     def test_filepublisher_without_compose(self):
@@ -1324,13 +1349,21 @@ class TestFilePublisher(TestCase):
         from trollflow2.dict_tools import plist_iter
         from trollsift import compose
         import os.path
+
+        from satpy import Scene
+        from satpy.tests.utils import make_dataid
+
+        scn_euron1 = Scene()
+        dataid = make_dataid(name='cloud_top_height', resolution=1000)
+        scn_euron1[dataid] = mock.MagicMock()
+        job = {'product_list': self.product_list,
+               'input_mda': self.input_mda,
+               'resampled_scenes': dict(euron1=scn_euron1)}
+
         with mock.patch('trollflow2.plugins.Message') as message, mock.patch('trollflow2.plugins.NoisyPublisher'):
             pub = FilePublisher()
-            pub.pub.start.assert_called_once()
             product_list = self.product_list.copy()
             product_list['product_list']['publish_topic'] = '/static_topic'
-            job = {'product_list': product_list,
-                   'input_mda': self.input_mda}
             topic_pattern = job['product_list']['product_list']['publish_topic']
             topics = []
             # Create filenames and topics
@@ -1346,15 +1379,48 @@ class TestFilePublisher(TestCase):
             pub(job)
             message.assert_called()
             pub.pub.send.assert_called()
-            pub.__del__()
-            pub.pub.stop.assert_called()
-            i = 0
+
+            call_count = 0
             for area in job['product_list']['product_list']['areas']:
                 for _prod in job['product_list']['product_list']['areas'][area]:
                     # Skip calls to __str__
-                    if 'call().__str__()' != str(message.mock_calls[i]):
-                        self.assertTrue(topics[i] in str(message.mock_calls[i]))
-                        i += 1
+                    if 'call().__str__()' != str(message.mock_calls[call_count]):
+                        self.assertTrue(topics[call_count] in str(message.mock_calls[call_count]))
+                        call_count += 1
+            self.assertEqual(call_count, 1)
+
+    def test_non_existing_products_are_not_published(self):
+        """Test that non existing products are not published."""
+        from trollflow2.plugins import FilePublisher
+        from trollflow2.dict_tools import plist_iter
+        from trollsift import compose
+        import os.path
+        from satpy import Scene
+
+        scn = mock.MagicMock()
+        scn.resample.return_value = Scene()
+        job = {"scene": scn, "product_list": self.product_list, 'input_mda': self.input_mda,
+               'resampled_scenes': dict(euron1=Scene(), germ=Scene())}
+
+        with mock.patch('trollflow2.plugins.Message') as message, mock.patch('trollflow2.plugins.NoisyPublisher'):
+            pub = FilePublisher()
+            product_list = self.product_list.copy()
+            product_list['product_list']['publish_topic'] = '/static_topic'
+
+            topic_pattern = job['product_list']['product_list']['publish_topic']
+            topics = []
+            # Create filenames and topics
+            for fmat, fmat_config in plist_iter(job['product_list']['product_list'],
+                                                job['input_mda'].copy()):
+                fname_pattern = fmat['fname_pattern']
+                filename = compose(os.path.join(fmat['output_dir'],
+                                                fname_pattern), fmat)
+                fmat.pop('format', None)
+                fmat_config['filename'] = filename
+                topics.append(compose(topic_pattern, fmat))
+
+            pub(job)
+            message.assert_not_called()
 
     def test_filepublisher_kwargs(self):
         """Test filepublisher keyword argument usage."""
@@ -1364,7 +1430,6 @@ class TestFilePublisher(TestCase):
         # Direct instantiation
         with mock.patch('trollflow2.plugins.Message'), mock.patch('trollflow2.plugins.NoisyPublisher') as nb_:
             pub = FilePublisher()
-            pub.pub.start.assert_called_once()
             assert mock.call('l2processor', port=0, nameservers=None) in nb_.mock_calls
             assert pub.port == 0
             assert pub.nameservers is None
@@ -1388,10 +1453,18 @@ class TestFilePublisher(TestCase):
     def test_dispatch(self):
         """Test dispatch order messages."""
         from trollflow2.plugins import FilePublisher
+        from satpy import Scene
+        from satpy.tests.utils import make_dataid
+
+        scn = Scene()
+        dataid = make_dataid(name='cloud_top_height', resolution=1000)
+        scn[dataid] = mock.MagicMock()
+        job = {'product_list': self.product_list,
+               'input_mda': self.input_mda,
+               'resampled_scenes': dict(euron1=scn)}
+
         with mock.patch('trollflow2.plugins.Message') as message, mock.patch('trollflow2.plugins.NoisyPublisher'):
             pub = FilePublisher()
-            job = {'product_list': self.product_list,
-                   'input_mda': self.input_mda}
             pub(job)
             dispatches = 0
             for args, _kwargs in message.call_args_list:
@@ -1418,7 +1491,8 @@ class TestFilePublisher(TestCase):
             nb.return_value = nb_
             pub = FilePublisher()
             job = {'product_list': self.product_list,
-                   'input_mda': self.input_mda}
+                   'input_mda': self.input_mda,
+                   'resampled_scenes': {}}
             pub(job)
 
         nb_.stop.assert_not_called()
@@ -1433,7 +1507,8 @@ class TestFilePublisher(TestCase):
             nb.return_value = nb_
             pub = FilePublisher()
             job = {'product_list': self.product_list,
-                   'input_mda': self.input_mda}
+                   'input_mda': self.input_mda,
+                   'resampled_scenes': {}}
             pub(job)
 
         nb_.stop.assert_not_called()
