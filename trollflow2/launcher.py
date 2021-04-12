@@ -33,6 +33,7 @@ import gc
 import os
 import re
 import traceback
+import signal
 from collections import OrderedDict
 from datetime import datetime
 from logging import getLogger
@@ -287,7 +288,21 @@ def process(msg, prod_list, produced_files):
             try:
                 for wrk in config['workers']:
                     cwrk = wrk.copy()
+                    if "timeout" in cwrk:
+
+                        def _timeout_handler(signum, frame, wrk=wrk):
+                            raise TimeoutError(
+                                f"Timeout for {wrk['fun']!s} expired "
+                                f"after {wrk['timeout']:.1f} seconds, "
+                                "giving up")
+                        signal.signal(signal.SIGALRM, _timeout_handler)
+                        # using setitimer because it accepts floats,
+                        # unlike signal.alarm
+                        signal.setitimer(signal.ITIMER_REAL,
+                                         cwrk.pop("timeout"))
                     cwrk.pop('fun')(job, **cwrk)
+                    if "timeout" in cwrk:
+                        signal.alarm(0)  # cancel the alarm
             except AbortProcessing as err:
                 LOG.warning(str(err))
     except Exception:
