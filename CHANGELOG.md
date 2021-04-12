@@ -1,3 +1,24 @@
+## Version 0.10.0 (2021/04/12)
+
+### Issues Closed
+
+* [Issue 100](https://github.com/pytroll/trollflow2/issues/100) - Trollflow2 stops processing if plugin gets stuck (messages go unprocessed, no error message in log) ([PR 104](https://github.com/pytroll/trollflow2/pull/104))
+
+In this release 1 issue was closed.
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR 110](https://github.com/pytroll/trollflow2/pull/110) - For unstable build, also install pyresample.
+
+#### Features added
+
+* [PR 104](https://github.com/pytroll/trollflow2/pull/104) - Add an option to configure a timeout for plugins ([100](https://github.com/pytroll/trollflow2/issues/100))
+
+In this release 2 pull requests were closed.
+
+
 ## Version 0.9.0 (2021/03/31)
 
 ### Issues Closed
