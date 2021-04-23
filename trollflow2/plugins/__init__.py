@@ -675,3 +675,7 @@ def _get_plugin_conf(product_list, path, defaults):
         conf[key] = get_config_value(product_list, path, key,
                                      default=defaults.get(key))
     return conf
+
+
+def check_valid(job):
+    raise NotImplementedError()

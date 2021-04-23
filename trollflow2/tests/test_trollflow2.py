@@ -1516,5 +1516,28 @@ class TestFilePublisher(TestCase):
         nb_.stop.assert_called_once()
 
 
+def test_valid_filter():
+    """Test filter for minimum fraction of valid data."""
+    from trollflow2.launcher import yaml, UnsafeLoader
+    from trollflow2.plugins import check_valid
+    product_list = yaml.load(yaml_test3, Loader=UnsafeLoader)
+    scene = mock.MagicMock()
+    resampled_scene = mock.MagicMock()
+    job = {}
+    job['scene'] = scene
+    job['product_list'] = product_list.copy()
+    job['input_mda'] = input_mda.copy()
+    job['resampled_scenes'] = {"euron1": resampled_scene}
+    prods = job['product_list']['product_list']['areas']['euron1']['products']
+    prods['green_snow']["min_valid"] = 10
+    for p in ("IR016", "IR037", "overview"):
+        prods[p] = {"min_valid": 10}
+    check_valid(job)
+    assert "green_snow" not in resampled_scene
+    assert "IR016" not in resampled_scene
+    assert "IR037" in resampled_scene
+    assert "overview" in resampled_scene
+
+
 if __name__ == '__main__':
     unittest.main()
