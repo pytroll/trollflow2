@@ -678,4 +678,26 @@ def _get_plugin_conf(product_list, path, defaults):
 
 
 def check_valid(job):
-    raise NotImplementedError()
+    """Remove products that have too much invalid data."""
+    scn_mda = job['scene'].attrs
+    platform_name = scn_mda['platform_name']
+    start_time = scn_mda['start_time']
+    end_time = scn_mda['end_time']
+    sensor = scn_mda['sensor']
+    for (area_name, area_props) in job["product_list"]["product_list"]["areas"].items():
+        cov = get_scene_coverage(platform_name, start_time, end_time,
+                                 sensor, area_name)
+        to_remove = set()
+        for (prod_name, prod_props) in area_props["products"].items():
+            if "min_valid" in prod_props:
+                LOG.debug(f"Checking validity for {area_name:s}/{prod_name:s}")
+                valid = job["resampled_scenes"][area_name][prod_name].notnull()
+                rel_valid = valid/cov
+                if not 0 <= rel_valid < 1:
+                    LOG.error(f"Found {rel_valid:%} valid data, impossible!")
+                    return
+                if rel_valid < prod_props["min_valid"]:
+                    LOG.warning(f"Found {rel_valid:%}<{prod_props['min_valid']:%}, removing")
+                    to_remove.add(prod_name)
+        for rem in to_remove:
+            del area_props["products"][prod_name]

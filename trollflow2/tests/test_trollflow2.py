@@ -1520,23 +1520,29 @@ def test_valid_filter():
     """Test filter for minimum fraction of valid data."""
     from trollflow2.launcher import yaml, UnsafeLoader
     from trollflow2.plugins import check_valid
+    from xarray import DataArray
+    from numpy import array, nan
     product_list = yaml.load(yaml_test3, Loader=UnsafeLoader)
-    scene = mock.MagicMock()
-    resampled_scene = mock.MagicMock()
+    scene = {
+            "NIR016": DataArray(
+                array([[nan, nan, nan], [nan, nan, nan], [0.5, 0.5, 0.5]]),
+                dims=("y", "x")),
+            "IR037": DataArray(
+                array([[200, 230, 240], [250, 260, 220], [nan, nan, nan]]),
+                dims=("y", "x"))}
     job = {}
     job['scene'] = scene
     job['product_list'] = product_list.copy()
     job['input_mda'] = input_mda.copy()
-    job['resampled_scenes'] = {"euron1": resampled_scene}
+    job['resampled_scenes'] = {"euron1": scene}
     prods = job['product_list']['product_list']['areas']['euron1']['products']
-    prods['green_snow']["min_valid"] = 10
-    for p in ("IR016", "IR037", "overview"):
-        prods[p] = {"min_valid": 10}
+    for p in ("IR016", "IR037"):
+        prods[p] = {"min_valid": 40}
     check_valid(job)
-    assert "green_snow" not in resampled_scene
-    assert "IR016" not in resampled_scene
-    assert "IR037" in resampled_scene
-    assert "overview" in resampled_scene
+#    assert "green_snow" not in prods
+    assert "IR016" not in prods
+    assert "IR037" in prods
+#    assert "overview" in prods
 
 
 if __name__ == '__main__':
