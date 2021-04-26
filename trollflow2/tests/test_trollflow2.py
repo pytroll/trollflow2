@@ -1524,12 +1524,12 @@ def test_valid_filter():
     from numpy import array, nan
     product_list = yaml.load(yaml_test3, Loader=UnsafeLoader)
     scene = {
-            "NIR016": DataArray(
-                array([[nan, nan, nan], [nan, nan, nan], [0.5, 0.5, 0.5]]),
-                dims=("y", "x")),
-            "IR037": DataArray(
-                array([[200, 230, 240], [250, 260, 220], [nan, nan, nan]]),
-                dims=("y", "x"))}
+        "NIR016": DataArray(
+            array([[nan, nan, nan], [nan, nan, nan], [0.5, 0.5, 0.5]]),
+            dims=("y", "x")),
+        "IR037": DataArray(
+            array([[200, 230, 240], [250, 260, 220], [nan, nan, nan]]),
+            dims=("y", "x"))}
     job = {}
     job['scene'] = scene
     job['product_list'] = product_list.copy()
