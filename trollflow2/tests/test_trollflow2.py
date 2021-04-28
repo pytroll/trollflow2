@@ -1518,16 +1518,15 @@ class TestFilePublisher(TestCase):
 
 def test_valid_filter():
     """Test filter for minimum fraction of valid data."""
-    from trollflow2.launcher import yaml, UnsafeLoader
+    from trollflow2.launcher import yaml
     from trollflow2.plugins import check_valid
     from xarray import DataArray
     from numpy import array, nan
-    product_list = yaml.load(yaml_test3, Loader=UnsafeLoader)
+    product_list = yaml.safe_load(yaml_test3)
 
     class FakeScene(dict):
         """Dict with attributes to use as a scene mock."""
 
-        pass
     scene = FakeScene()
     scene["NIR016"] = DataArray(
         array([[nan, nan, nan], [nan, nan, nan], [0.5, 0.5, 0.5]]),
