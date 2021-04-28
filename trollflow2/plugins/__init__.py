@@ -732,7 +732,7 @@ def check_valid(job):
                 LOG.debug(f"Actual validity (coverage): {actual_valid:%}")
                 LOG.debug(f"Relative validity: {rel_valid:%}")
                 min_frac = prod_props["min_valid"]/100
-                if not 0 <= rel_valid < 1:
+                if not 0 <= rel_valid < 1.05:
                     LOG.warning(f"Found {rel_valid:%} valid data, impossible... "
                                 "inaccurate coverage estimate suspected!")
                 elif rel_valid < min_frac:
