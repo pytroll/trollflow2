@@ -383,7 +383,7 @@ class TestProcess(TestCase):
                 process("msg", "prod_list", the_queue)
 
             # Test timeout in running job
-            @pytest.mark.skipIf(sys.platform != "linux",
+            @pytest.mark.skipif(sys.platform != "linux",
                                 "Timeout only supported on Linux")
             def wait(job):
                 time.sleep(0.1)
