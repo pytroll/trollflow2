@@ -1548,7 +1548,7 @@ def test_valid_filter(caplog):
     for p in ("NIR016", "IR037"):
         prods[p] = {"min_valid": 40}
     with mock.patch("trollflow2.plugins.get_scene_coverage") as tpg, \
-         caplog.at_level(logging.DEBUG):
+            caplog.at_level(logging.DEBUG):
         tpg.return_value = 1.0
         check_valid(job)
     assert "NIR016" not in prods
