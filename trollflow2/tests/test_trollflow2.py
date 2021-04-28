@@ -1552,7 +1552,7 @@ def test_valid_filter(caplog):
     job2 = copy.deepcopy(job)
     with mock.patch("trollflow2.plugins.get_scene_coverage") as tpg, \
             caplog.at_level(logging.DEBUG):
-        tpg.return_value = 1.0
+        tpg.return_value = 100
         check_valid(job)
         assert "NIR016" not in prods
         assert "IR037" in prods
@@ -1560,9 +1560,10 @@ def test_valid_filter(caplog):
         assert "keeping IR037 for area euron1" in caplog.text
         assert "product absent not found, already removed" in caplog.text
         tpg.reset_mock()
-        tpg.return_value = 0.01
+        tpg.return_value = 1
         check_valid(job2)
         assert "impossible!" in caplog.text
+
 
 if __name__ == '__main__':
     unittest.main()

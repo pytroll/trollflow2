@@ -721,11 +721,16 @@ def check_valid(job):
                 end_time = prod.attrs["end_time"]
                 sensor = prod.attrs["sensor"]
                 if area_name not in exp_cov:
+                    # get_scene_coverage uses %, convert to fraction
                     exp_cov[area_name] = get_scene_coverage(
-                        platform_name, start_time, end_time, sensor, area_name)
+                        platform_name, start_time, end_time, sensor, area_name)/100
                 valid = job["resampled_scenes"][area_name][prod_name].notnull()
-                LOG.debug(f"Expected validity (coverage): {exp_cov[area_name]:%}")
-                rel_valid = float((valid.sum()/(exp_cov[area_name]*valid.size)))
+                exp_valid = exp_cov[area_name]
+                actual_valid = float(valid.sum()/valid.size)
+                rel_valid = float(actual_valid / exp_valid)
+                LOG.debug(f"Expected maximum validity: {exp_valid:%}")
+                LOG.debug(f"Actual validity (coverage): {actual_valid:%}")
+                LOG.debug(f"Relative validity: {rel_valid:%}")
                 min_frac = prod_props["min_valid"]/100
                 if not 0 <= rel_valid < 1:
                     LOG.error(f"Found {rel_valid:%} valid data, impossible!")
