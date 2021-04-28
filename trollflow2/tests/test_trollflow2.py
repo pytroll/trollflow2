@@ -1516,7 +1516,7 @@ class TestFilePublisher(TestCase):
         nb_.stop.assert_called_once()
 
 
-def test_valid_filter():
+def test_valid_filter(caplog):
     """Test filter for minimum fraction of valid data."""
     from trollflow2.launcher import yaml
     from trollflow2.plugins import check_valid
@@ -1524,21 +1524,20 @@ def test_valid_filter():
     from numpy import array, nan
     product_list = yaml.safe_load(yaml_test3)
 
-    class FakeScene(dict):
-        """Dict with attributes to use as a scene mock."""
-
-    scene = FakeScene()
-    scene["NIR016"] = DataArray(
-        array([[nan, nan, nan], [nan, nan, nan], [0.5, 0.5, 0.5]]),
-        dims=("y", "x"))
-    scene["IR037"] = DataArray(
-        array([[200, 230, 240], [250, 260, 220], [nan, nan, nan]]),
-        dims=("y", "x"))
-    scene.attrs = {
+    prod_attrs = {
         "platform_name": "noaa-18",
         "sensor": "avhrr-3",
         "start_time": dt.datetime(2019, 1, 19, 11),
         "end_time": dt.datetime(2019, 1, 19, 12)}
+    scene = {}
+    scene["NIR016"] = DataArray(
+        array([[nan, nan, nan], [nan, nan, nan], [0.5, 0.5, 0.5]]),
+        dims=("y", "x"),
+        attrs=prod_attrs)
+    scene["IR037"] = DataArray(
+        array([[200, 230, 240], [250, 260, 220], [nan, nan, nan]]),
+        dims=("y", "x"),
+        attrs=prod_attrs)
 
     job = {}
     job['scene'] = scene
@@ -1548,11 +1547,14 @@ def test_valid_filter():
     prods = job['product_list']['product_list']['areas']['euron1']['products']
     for p in ("NIR016", "IR037"):
         prods[p] = {"min_valid": 40}
-    with mock.patch("trollflow2.plugins.get_scene_coverage") as tpg:
+    with mock.patch("trollflow2.plugins.get_scene_coverage") as tpg, \
+         caplog.at_level(logging.DEBUG):
         tpg.return_value = 1.0
         check_valid(job)
     assert "NIR016" not in prods
     assert "IR037" in prods
+    assert "removing NIR016 for area euron1" in caplog.text
+    assert "keeping IR037 for area euron1" in caplog.text
 
 
 if __name__ == '__main__':

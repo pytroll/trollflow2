@@ -706,17 +706,20 @@ def check_valid(job):
           - fun: !!python/name:trollflow2.plugins.save_datasets
 
     """
-    scn_mda = job['scene'].attrs
-    platform_name = scn_mda['platform_name']
-    start_time = scn_mda['start_time']
-    end_time = scn_mda['end_time']
-    sensor = scn_mda['sensor']
     exp_cov = {}
     for (area_name, area_props) in job["product_list"]["product_list"]["areas"].items():
         to_remove = set()
         for (prod_name, prod_props) in area_props["products"].items():
             if "min_valid" in prod_props:
                 LOG.debug(f"Checking validity for {area_name:s}/{prod_name:s}")
+                if prod_name not in job["resampled_scenes"][area_name]:
+                    LOG.debug(f"product {prod_name!s} not found, already removed or loading failed?")
+                    continue
+                prod = job["resampled_scenes"][area_name][prod_name]
+                platform_name = prod.attrs["platform_name"]
+                start_time = prod.attrs["start_time"]
+                end_time = prod.attrs["end_time"]
+                sensor = prod.attrs["sensor"]
                 if area_name not in exp_cov:
                     exp_cov[area_name] = get_scene_coverage(
                         platform_name, start_time, end_time, sensor, area_name)
@@ -727,7 +730,11 @@ def check_valid(job):
                     LOG.error(f"Found {rel_valid:%} valid data, impossible!")
                     return
                 if rel_valid < min_frac:
-                    LOG.warning(f"Found {rel_valid:%}<{min_frac:%}, removing")
+                    LOG.debug(f"Found {rel_valid:%}<{min_frac:%}, removing "
+                              f"{prod_name:s} for area {area_name:s}")
                     to_remove.add(prod_name)
+                else:
+                    LOG.debug(f"Found {rel_valid:%}>{min_frac:%}, keeping "
+                              f"{prod_name:s} for area {area_name:s}")
         for rem in to_remove:
             del area_props["products"][rem]
