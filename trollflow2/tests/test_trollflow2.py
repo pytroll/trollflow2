@@ -1530,16 +1530,16 @@ def test_valid_filter():
         pass
     scene = FakeScene()
     scene["NIR016"] = DataArray(
-                array([[nan, nan, nan], [nan, nan, nan], [0.5, 0.5, 0.5]]),
-                dims=("y", "x"))
+        array([[nan, nan, nan], [nan, nan, nan], [0.5, 0.5, 0.5]]),
+        dims=("y", "x"))
     scene["IR037"] = DataArray(
-                array([[200, 230, 240], [250, 260, 220], [nan, nan, nan]]),
-                dims=("y", "x"))
+        array([[200, 230, 240], [250, 260, 220], [nan, nan, nan]]),
+        dims=("y", "x"))
     scene.attrs = {
-            "platform_name": "noaa-18",
-            "sensor": "avhrr-3",
-            "start_time": dt.datetime(2019, 1, 19, 11),
-            "end_time": dt.datetime(2019, 1, 19, 12)}
+        "platform_name": "noaa-18",
+        "sensor": "avhrr-3",
+        "start_time": dt.datetime(2019, 1, 19, 11),
+        "end_time": dt.datetime(2019, 1, 19, 12)}
 
     job = {}
     job['scene'] = scene
