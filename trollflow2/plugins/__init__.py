@@ -678,7 +678,34 @@ def _get_plugin_conf(product_list, path, defaults):
 
 
 def check_valid(job):
-    """Remove products that have too much invalid data."""
+    """Remove products that have too much invalid data.
+
+    Remove any products where the fraction valid_data/expected_valid_data is
+    less than a configured threshold in %.  Expected valid data is calculated
+    by the scene coverage for each resampled scene.  This plugin was designed
+    for use with AVHRR, which may alternate between channels 3A and 3B.
+    Since this is different between resampled scenes, this plugin must be
+    applied after scene resampling.
+
+    This will trigger a calculation for the data to be checked.
+
+    To be configured with the ``rel_valid`` key indicating validity in %.
+    For example:
+
+        product_list:
+          areas:
+            fribbulus_xax:
+              red:
+                min_valid: 40
+
+        workers:
+          - fun: !!python/name:trollflow2.plugins.create_scene
+          - fun: !!python/name:trollflow2.plugins.load_composites
+          - fun: !!python/name:trollflow2.plugins.resample
+          - fun: !!python/name:trollflow2.plugins.check_valid
+          - fun: !!python/name:trollflow2.plugins.save_datasets
+
+    """
     scn_mda = job['scene'].attrs
     platform_name = scn_mda['platform_name']
     start_time = scn_mda['start_time']
@@ -692,12 +719,13 @@ def check_valid(job):
             if "min_valid" in prod_props:
                 LOG.debug(f"Checking validity for {area_name:s}/{prod_name:s}")
                 valid = job["resampled_scenes"][area_name][prod_name].notnull()
-                rel_valid = valid/cov
+                rel_valid = (valid.sum()/(cov*valid.size)).item()
+                min_frac = prod_props["min_valid"]/100
                 if not 0 <= rel_valid < 1:
                     LOG.error(f"Found {rel_valid:%} valid data, impossible!")
                     return
-                if rel_valid < prod_props["min_valid"]:
-                    LOG.warning(f"Found {rel_valid:%}<{prod_props['min_valid']:%}, removing")
+                if rel_valid < min_frac:
+                    LOG.warning(f"Found {rel_valid:%}<{min_frac:%}, removing")
                     to_remove.add(prod_name)
         for rem in to_remove:
-            del area_props["products"][prod_name]
+            del area_props["products"][rem]

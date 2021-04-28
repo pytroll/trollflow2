@@ -290,6 +290,23 @@ Options:
  - ``metadata_aliases: null`` - A nested dictionary with a structure
    ``{'metadata_item_name': {'original_value': 'replacement_value'}}``.
 
+Validity check
+**************
+
+The ``check_valid`` plugin can be used to filter out any channels that,
+after resampling, have less valid data than expected.  For example,
+AVHRR may switch between channels 3A and 3B in the middle of a swath.
+After resampling, in a resampled scene created from a data file that
+originally had both 3A and 3B, one of them may be not available at all.
+Expected valid data is calculated with expected scene coverage.
+Valid data is any data that is not fill value (NaN).
+
+This plugin triggers a calculation of the data to be checked.
+
+Options:
+  - ``min_valid: 10`` - only generate products if at least 10% of covered
+  part of scene contains valid data.
+
 Product list
 ------------
 

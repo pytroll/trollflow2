@@ -1523,26 +1523,37 @@ def test_valid_filter():
     from xarray import DataArray
     from numpy import array, nan
     product_list = yaml.load(yaml_test3, Loader=UnsafeLoader)
-    scene = {
-            "NIR016": DataArray(
+
+    class FakeScene(dict):
+        """Dict with attributes to use as a scene mock."""
+
+        pass
+    scene = FakeScene()
+    scene["NIR016"] = DataArray(
                 array([[nan, nan, nan], [nan, nan, nan], [0.5, 0.5, 0.5]]),
-                dims=("y", "x")),
-            "IR037": DataArray(
+                dims=("y", "x"))
+    scene["IR037"] = DataArray(
                 array([[200, 230, 240], [250, 260, 220], [nan, nan, nan]]),
-                dims=("y", "x"))}
+                dims=("y", "x"))
+    scene.attrs = {
+            "platform_name": "noaa-18",
+            "sensor": "avhrr-3",
+            "start_time": dt.datetime(2019, 1, 19, 11),
+            "end_time": dt.datetime(2019, 1, 19, 12)}
+
     job = {}
     job['scene'] = scene
     job['product_list'] = product_list.copy()
     job['input_mda'] = input_mda.copy()
     job['resampled_scenes'] = {"euron1": scene}
     prods = job['product_list']['product_list']['areas']['euron1']['products']
-    for p in ("IR016", "IR037"):
+    for p in ("NIR016", "IR037"):
         prods[p] = {"min_valid": 40}
-    check_valid(job)
-#    assert "green_snow" not in prods
-    assert "IR016" not in prods
+    with mock.patch("trollflow2.plugins.get_scene_coverage") as tpg:
+        tpg.return_value = 1.0
+        check_valid(job)
+    assert "NIR016" not in prods
     assert "IR037" in prods
-#    assert "overview" in prods
 
 
 if __name__ == '__main__':
