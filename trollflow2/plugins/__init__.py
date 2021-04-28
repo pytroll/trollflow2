@@ -719,7 +719,7 @@ def check_valid(job):
                 LOG.debug(f"Checking validity for {area_name:s}/{prod_name:s}")
                 if not area_name in exp_cov:
                     exp_cov[area_name] = get_scene_coverage(
-                            platform_name, start_time, end_time, sensor, area_name)
+                        platform_name, start_time, end_time, sensor, area_name)
                 valid = job["resampled_scenes"][area_name][prod_name].notnull()
                 rel_valid = (valid.sum()/(exp_cov[area_name]*valid.size)).item()
                 min_frac = prod_props["min_valid"]/100
