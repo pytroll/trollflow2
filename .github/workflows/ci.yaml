@@ -34,7 +34,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install -U codecov pytest pytest-cov pyyaml "dpath<1.5" trollsift six numpy satpy
+          pip install -U codecov pytest pytest-cov pyyaml "dpath<1.5" trollsift six numpy satpy rasterio
 
       - name: Install unstable dependencies
         if: matrix.experimental == true

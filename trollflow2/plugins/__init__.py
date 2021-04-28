@@ -717,7 +717,7 @@ def check_valid(job):
         for (prod_name, prod_props) in area_props["products"].items():
             if "min_valid" in prod_props:
                 LOG.debug(f"Checking validity for {area_name:s}/{prod_name:s}")
-                if not area_name in exp_cov:
+                if area_name not in exp_cov:
                     exp_cov[area_name] = get_scene_coverage(
                         platform_name, start_time, end_time, sensor, area_name)
                 valid = job["resampled_scenes"][area_name][prod_name].notnull()
