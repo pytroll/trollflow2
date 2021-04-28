@@ -1521,7 +1521,8 @@ def test_valid_filter(caplog):
     from trollflow2.launcher import yaml
     from trollflow2.plugins import check_valid
     from xarray import DataArray
-    from numpy import array, nan
+    import numpy as np
+    import dask.array as da
     product_list = yaml.safe_load(yaml_test3)
 
     prod_attrs = {
@@ -1531,11 +1532,11 @@ def test_valid_filter(caplog):
         "end_time": dt.datetime(2019, 1, 19, 12)}
     scene = {}
     scene["NIR016"] = DataArray(
-        array([[nan, nan, nan], [nan, nan, nan], [0.5, 0.5, 0.5]]),
+        da.array([[np.nan, np.nan, np.nan], [np.nan, np.nan, np.nan], [0.5, 0.5, 0.5]]),
         dims=("y", "x"),
         attrs=prod_attrs)
     scene["IR037"] = DataArray(
-        array([[200, 230, 240], [250, 260, 220], [nan, nan, nan]]),
+        np.array([[200, 230, 240], [250, 260, 220], [np.nan, np.nan, np.nan]]),
         dims=("y", "x"),
         attrs=prod_attrs)
 
