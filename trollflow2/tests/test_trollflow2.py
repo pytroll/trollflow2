@@ -1562,7 +1562,7 @@ def test_valid_filter(caplog):
         tpg.reset_mock()
         tpg.return_value = 1
         check_valid(job2)
-        assert "impossible!" in caplog.text
+        assert "inaccurate coverage estimate suspected!" in caplog.text
 
 
 if __name__ == '__main__':

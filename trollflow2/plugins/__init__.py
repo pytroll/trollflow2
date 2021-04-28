@@ -733,9 +733,9 @@ def check_valid(job):
                 LOG.debug(f"Relative validity: {rel_valid:%}")
                 min_frac = prod_props["min_valid"]/100
                 if not 0 <= rel_valid < 1:
-                    LOG.error(f"Found {rel_valid:%} valid data, impossible!")
-                    return
-                if rel_valid < min_frac:
+                    LOG.warning(f"Found {rel_valid:%} valid data, impossible... "
+                                "inaccurate coverage estimate suspected!")
+                elif rel_valid < min_frac:
                     LOG.debug(f"Found {rel_valid:%}<{min_frac:%} valid data, removing "
                               f"{prod_name:s} for area {area_name:s} from the worklist")
                     to_remove.add(prod_name)
