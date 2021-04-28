@@ -26,6 +26,7 @@ import datetime as dt
 import logging
 import os
 import unittest
+import copy
 from unittest import mock
 
 from trollflow2.tests.utils import TestCase
@@ -1546,17 +1547,22 @@ def test_valid_filter(caplog):
     job['input_mda'] = input_mda.copy()
     job['resampled_scenes'] = {"euron1": scene}
     prods = job['product_list']['product_list']['areas']['euron1']['products']
-    for p in ("NIR016", "IR037"):
+    for p in ("NIR016", "IR037", "absent"):
         prods[p] = {"min_valid": 40}
+    job2 = copy.deepcopy(job)
     with mock.patch("trollflow2.plugins.get_scene_coverage") as tpg, \
             caplog.at_level(logging.DEBUG):
         tpg.return_value = 1.0
         check_valid(job)
-    assert "NIR016" not in prods
-    assert "IR037" in prods
-    assert "removing NIR016 for area euron1" in caplog.text
-    assert "keeping IR037 for area euron1" in caplog.text
-
+        assert "NIR016" not in prods
+        assert "IR037" in prods
+        assert "removing NIR016 for area euron1" in caplog.text
+        assert "keeping IR037 for area euron1" in caplog.text
+        assert "product absent not found, already removed" in caplog.text
+        tpg.reset_mock()
+        tpg.return_value = 0.01
+        check_valid(job2)
+        assert "impossible!" in caplog.text
 
 if __name__ == '__main__':
     unittest.main()

@@ -724,17 +724,18 @@ def check_valid(job):
                     exp_cov[area_name] = get_scene_coverage(
                         platform_name, start_time, end_time, sensor, area_name)
                 valid = job["resampled_scenes"][area_name][prod_name].notnull()
+                LOG.debug(f"Expected validity (coverage): {exp_cov[area_name]:%}")
                 rel_valid = float((valid.sum()/(exp_cov[area_name]*valid.size)))
                 min_frac = prod_props["min_valid"]/100
                 if not 0 <= rel_valid < 1:
                     LOG.error(f"Found {rel_valid:%} valid data, impossible!")
                     return
                 if rel_valid < min_frac:
-                    LOG.debug(f"Found {rel_valid:%}<{min_frac:%}, removing "
-                              f"{prod_name:s} for area {area_name:s}")
+                    LOG.debug(f"Found {rel_valid:%}<{min_frac:%} valid data, removing "
+                              f"{prod_name:s} for area {area_name:s} from the worklist")
                     to_remove.add(prod_name)
                 else:
                     LOG.debug(f"Found {rel_valid:%}>{min_frac:%}, keeping "
-                              f"{prod_name:s} for area {area_name:s}")
+                              f"{prod_name:s} for area {area_name:s} in the worklist")
         for rem in to_remove:
             del area_props["products"][rem]
