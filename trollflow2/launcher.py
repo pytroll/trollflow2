@@ -114,7 +114,7 @@ def check_results(produced_files, start_time, exitcode):
     if not error_detected:
         elapsed = end_time - start_time
         LOG.info(f'All {qsize:d} files produced nominally in '
-                 f"{elapsed!s}")
+                 f"{elapsed!s}", extra={"time": elapsed})
 
 
 def run(prod_list, topics=None, test_message=None, nameserver='localhost',

@@ -486,9 +486,11 @@ def test_check_results(tmp_path, caplog):
     assert "files produced nominally" not in caplog.text
 
     produced_files = FakeQueue(10, 13)
-    with caplog.at_level(logging.DEBUG):
+    with caplog.at_level(logging.DEBUG), \
+            mock.patch("trollflow2.launcher.datetime") as dd:
+        dd.now.return_value = datetime.datetime(1927, 5, 20, 0, 0)
         check_results(produced_files, start_time, exitcode)
-    assert "All 3 files produced nominally in 44312 days" in caplog.text  # never mind tomorrow
+    assert "All 3 files produced nominally in 10000 days" in caplog.text
 
     with caplog.at_level(logging.DEBUG):
         check_results(produced_files, start_time, 1)
