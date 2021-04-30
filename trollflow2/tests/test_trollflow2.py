@@ -1591,7 +1591,7 @@ def test_coverage_per_product(sc_3a_3b):
            "scene": sc_3a_3b}
     prods = job['product_list']['product_list']['areas']['euron1']['products']
     with mock.patch('trollflow2.plugins.get_scene_coverage'), \
-         mock.patch("trollflow2.plugins.Pass"):
+            mock.patch("trollflow2.plugins.Pass"):
         covers(job)
         assert "NIR016" not in prods
         assert "IR037" in prods
