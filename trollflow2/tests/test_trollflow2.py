@@ -29,6 +29,8 @@ import unittest
 import copy
 from unittest import mock
 
+import pytest
+
 from trollflow2.tests.utils import TestCase
 
 
@@ -1517,21 +1519,20 @@ class TestFilePublisher(TestCase):
         nb_.stop.assert_called_once()
 
 
-def test_valid_filter(caplog):
-    """Test filter for minimum fraction of valid data."""
-    from trollflow2.launcher import yaml
-    from trollflow2.plugins import check_valid
-    from xarray import DataArray
-    import numpy as np
-    import dask.array as da
-    product_list = yaml.safe_load(yaml_test3)
+class FakeScene(dict):
+    """Scene drop-in replacement, just a dict that can have attributes."""
 
+
+@pytest.fixture
+def sc_3a_3b():
+    """Fixture to prepare a scene with channels 3A and 3B."""
+    from xarray import DataArray
+    import dask.array as da
+    import numpy as np
     prod_attrs = {
         "platform_name": "noaa-18",
-        "sensor": "avhrr-3",
-        "start_time": dt.datetime(2019, 1, 19, 11),
-        "end_time": dt.datetime(2019, 1, 19, 12)}
-    scene = {}
+        "sensor": "avhrr-3"}
+    scene = FakeScene()
     scene["NIR016"] = DataArray(
         da.array([[np.nan, np.nan, np.nan], [np.nan, np.nan, np.nan], [0.5, 0.5, 0.5]]),
         dims=("y", "x"),
@@ -1540,12 +1541,27 @@ def test_valid_filter(caplog):
         np.array([[200, 230, 240], [250, 260, 220], [np.nan, np.nan, np.nan]]),
         dims=("y", "x"),
         attrs=prod_attrs)
+    scene["NIR016"].attrs.update(
+        start_time=dt.datetime(2019, 1, 19, 13),
+        end_time=dt.datetime(2019, 1, 19, 13))
+    scene["IR037"].attrs.update(
+        start_time=dt.datetime(2019, 1, 19, 11),
+        end_time=dt.datetime(2019, 1, 19, 12))
+    scene.attrs = {}
+    return scene
+
+
+def test_valid_filter(caplog, sc_3a_3b):
+    """Test filter for minimum fraction of valid data."""
+    from trollflow2.launcher import yaml
+    from trollflow2.plugins import check_valid
+    product_list = yaml.safe_load(yaml_test3)
 
     job = {}
-    job['scene'] = scene
+    job['scene'] = sc_3a_3b
     job['product_list'] = product_list.copy()
     job['input_mda'] = input_mda.copy()
-    job['resampled_scenes'] = {"euron1": scene}
+    job['resampled_scenes'] = {"euron1": sc_3a_3b}
     prods = job['product_list']['product_list']['areas']['euron1']['products']
     for p in ("NIR016", "IR037", "absent"):
         prods[p] = {"min_valid": 40}
@@ -1563,6 +1579,22 @@ def test_valid_filter(caplog):
         tpg.return_value = 1
         check_valid(job2)
         assert "inaccurate coverage estimate suspected!" in caplog.text
+
+
+def test_coverage_per_product(sc_3a_3b):
+    """Test product-specific coverage testing."""
+    from trollflow2.launcher import yaml
+    from trollflow2.plugins import covers
+    product_list = yaml.safe_load(yaml_test3)
+    job = {"product_list": product_list.copy(),
+           "input_mda": input_mda.copy(),
+           "scene": sc_3a_3b}
+    prods = job['product_list']['product_list']['areas']['euron1']['products']
+    with mock.patch('trollflow2.plugins.get_scene_coverage'), \
+         mock.patch("trollflow2.plugins.Pass"):
+        covers(job)
+        assert "NIR016" not in prods
+        assert "IR037" in prods
 
 
 if __name__ == '__main__':
