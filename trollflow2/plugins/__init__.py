@@ -477,6 +477,7 @@ def _check_per_product_coverage_for_area(
                     platform_name, *times, sensor, area)
                 prod_groups[times] = set()
             prod_groups[times].add(prod)
+    LOG.debug(f"Found {len(prod_groups}:d} unique start/end time pair(s) in scene")
     for (times, prods_in_group) in prod_groups.items():
         cov = prod_covs[times]
         if cov < min_coverage:
