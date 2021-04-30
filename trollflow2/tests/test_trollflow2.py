@@ -1586,13 +1586,27 @@ def test_coverage_per_product(sc_3a_3b):
     from trollflow2.launcher import yaml
     from trollflow2.plugins import covers
     product_list = yaml.safe_load(yaml_test3)
+    product_list["product_list"]["coverage_per_product"] = True
     job = {"product_list": product_list.copy(),
            "input_mda": input_mda.copy(),
            "scene": sc_3a_3b}
     prods = job['product_list']['product_list']['areas']['euron1']['products']
-    with mock.patch('trollflow2.plugins.get_scene_coverage'), \
+    for p in ("NIR016", "IR037", "absent"):
+        prods[p] = {"min_valid": 40}
+
+    def fake_scene_cov(platform_name, start_time, end_time, sensor, area):
+        if start_time == dt.datetime(2019, 1, 19, 11):
+            return 100
+        elif start_time == dt.datetime(2019, 11, 19, 13):
+            return 0
+        else:
+            raise ValueError("fake_scene_cov called with unexpected arguments")
+
+    with mock.patch('trollflow2.plugins.get_scene_coverage') as gsc, \
          mock.patch("trollflow2.plugins.Pass"):
+        gsc.side_effect = fake_scene_cov
         covers(job)
+        assert gsc.call_count == 3  # once per product
         assert "NIR016" not in prods
         assert "IR037" in prods
 
