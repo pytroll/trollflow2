@@ -405,13 +405,14 @@ def covers(job):
     areas = list(product_list['product_list']['areas'].keys())
     for area in areas:
         _check_coverage_for_area(
-                area, product_list, platform_name, start_time, end_time, sensor)
+                area, product_list, platform_name, start_time, end_time,
+                sensor, job["scene"])
 
     job['product_list'] = product_list
 
 
 def _check_coverage_for_area(
-        area, product_list, platform_name, start_time, end_time, sensor):
+        area, product_list, platform_name, start_time, end_time, sensor, scene):
     """Check area coverage for single area.
 
     Helper for covers().  Changes product_list in-place.
@@ -428,7 +429,7 @@ def _check_coverage_for_area(
 
     if per_product:
         _check_per_product_coverage_for_area(
-                area, product_list, platform_name, sensor, min_coverage)
+                area, product_list, platform_name, sensor, min_coverage, scene)
     else:
         _check_overall_coverage_for_area(
                 area, product_list, platform_name, start_time, end_time,
@@ -460,12 +461,37 @@ def _check_overall_coverage_for_area(
 
 
 def _check_per_product_coverage_for_area(
-        area, product_list, platform_name, sensor, min_coverage):
+        area, product_list, platform_name, sensor, min_coverage, scene):
     """Check coverage per product for single area.
 
     Helper for covers().
     """
-    raise NotImplementedError()
+    prods = product_list["product_list"]["areas"][area]["products"]
+    prod_groups = {}
+    prod_covs = {}
+    for prod in prods:
+        if prod in scene.keys():
+            times = (scene[prod].attrs["start_time"], scene[prod].attrs["end_time"])
+            if times not in prod_groups:
+                prod_covs[times] = get_scene_coverage(
+                        platform_name, *times, sensor, area)
+                prod_groups[times] = set()
+            prod_groups[times].add(prod)
+    for (times, prods_in_group) in prod_groups.items():
+        if (cov := prod_covs[times]) < min_coverage:
+            LOG.debug(f"Area coverage {cov:.2f}% below threshold "
+                      f"{min_coverage:.2f}%, removing from area {area:s} "
+                      "products: " + " ".join(prods_in_group))
+            for prod in prods_in_group:
+                del prods[prod]
+        else:
+            LOG.debug(f"Area coverage {cov:.2f}% above threshold "
+                      f"{min_coverage:.2f}%, retaining in area {area:s} "
+                      "products: " + " ".join(prods_in_group))
+    if not prods:
+        # all were removed
+        LOG.debug(f"No products left for {area:s}, removing")
+        del product_list["product_list"]["areas"][area]
 
 
 def get_scene_coverage(platform_name, start_time, end_time, sensor, area_id):

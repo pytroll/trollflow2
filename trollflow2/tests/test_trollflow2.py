@@ -1597,7 +1597,7 @@ def test_coverage_per_product(sc_3a_3b):
     def fake_scene_cov(platform_name, start_time, end_time, sensor, area):
         if start_time == dt.datetime(2019, 1, 19, 11):
             return 100
-        elif start_time == dt.datetime(2019, 11, 19, 13):
+        elif start_time == dt.datetime(2019, 1, 19, 13):
             return 0
         else:
             raise ValueError("fake_scene_cov called with unexpected arguments")
@@ -1606,7 +1606,7 @@ def test_coverage_per_product(sc_3a_3b):
             mock.patch("trollflow2.plugins.Pass"):
         gsc.side_effect = fake_scene_cov
         covers(job)
-        assert gsc.call_count == 3  # once per product
+        assert gsc.call_count == 2  # once per product existing in scene
         assert "NIR016" not in prods
         assert "IR037" in prods
 
