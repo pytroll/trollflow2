@@ -1597,10 +1597,9 @@ def test_coverage_per_product(sc_3a_3b):
     def fake_scene_cov(platform_name, start_time, end_time, sensor, area):
         if start_time == dt.datetime(2019, 1, 19, 11):
             return 100
-        elif start_time == dt.datetime(2019, 1, 19, 13):
+        if start_time == dt.datetime(2019, 1, 19, 13):
             return 0
-        else:
-            raise ValueError("fake_scene_cov called with unexpected arguments")
+        raise ValueError("fake_scene_cov called with unexpected arguments")
 
     with mock.patch('trollflow2.plugins.get_scene_coverage') as gsc, \
             mock.patch("trollflow2.plugins.Pass"):
