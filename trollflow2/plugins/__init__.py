@@ -478,7 +478,8 @@ def _check_per_product_coverage_for_area(
                 prod_groups[times] = set()
             prod_groups[times].add(prod)
     for (times, prods_in_group) in prod_groups.items():
-        if (cov := prod_covs[times]) < min_coverage:
+        cov = prod_covs[times]
+        if cov < min_coverage:
             LOG.debug(f"Area coverage {cov:.2f}% below threshold "
                       f"{min_coverage:.2f}%, removing from area {area:s} "
                       "products: " + " ".join(prods_in_group))
