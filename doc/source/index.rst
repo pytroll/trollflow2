@@ -246,10 +246,16 @@ plugin needs ``pytroll-schedule`` to be installed.
 Options:
  - ``coverage_by_collection_area: False`` - If ``True``, the
    ``'collection_area_id'`` in the incoming message needs to match the
-   name of the target area.
+   name of the target area.  This setting might come from the geographic
+   gatherer in pytroll-collectors.
  - ``min_coverage: 0`` - Minimum required coverage.  If coverage is less
    than defined, the data are not processed for this area.  By default
    process all areas.
+ - ``coverage_per_product: False`` - If ``True``, coverage is checked
+   separately for each product, using the ``start_time`` and ``end_time``
+   set as dataset attributes.  This can be useful if different products
+   have different coverages and this information is reflected by the
+   start and end times.
 
 Platform name check
 *******************
