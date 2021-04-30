@@ -405,8 +405,8 @@ def covers(job):
     areas = list(product_list['product_list']['areas'].keys())
     for area in areas:
         _check_coverage_for_area(
-                area, product_list, platform_name, start_time, end_time,
-                sensor, job["scene"])
+            area, product_list, platform_name, start_time, end_time,
+            sensor, job["scene"])
 
     job['product_list'] = product_list
 
@@ -429,11 +429,11 @@ def _check_coverage_for_area(
 
     if per_product:
         _check_per_product_coverage_for_area(
-                area, product_list, platform_name, sensor, min_coverage, scene)
+            area, product_list, platform_name, sensor, min_coverage, scene)
     else:
         _check_overall_coverage_for_area(
-                area, product_list, platform_name, start_time, end_time,
-                sensor, min_coverage)
+            area, product_list, platform_name, start_time, end_time,
+            sensor, min_coverage)
 
 
 def _check_overall_coverage_for_area(
@@ -474,7 +474,7 @@ def _check_per_product_coverage_for_area(
             times = (scene[prod].attrs["start_time"], scene[prod].attrs["end_time"])
             if times not in prod_groups:
                 prod_covs[times] = get_scene_coverage(
-                        platform_name, *times, sensor, area)
+                    platform_name, *times, sensor, area)
                 prod_groups[times] = set()
             prod_groups[times].add(prod)
     for (times, prods_in_group) in prod_groups.items():
