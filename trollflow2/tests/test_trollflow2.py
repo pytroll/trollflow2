@@ -1603,7 +1603,7 @@ def test_coverage_per_product(sc_3a_3b):
             raise ValueError("fake_scene_cov called with unexpected arguments")
 
     with mock.patch('trollflow2.plugins.get_scene_coverage') as gsc, \
-         mock.patch("trollflow2.plugins.Pass"):
+            mock.patch("trollflow2.plugins.Pass"):
         gsc.side_effect = fake_scene_cov
         covers(job)
         assert gsc.call_count == 3  # once per product
