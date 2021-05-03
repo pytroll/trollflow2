@@ -1566,6 +1566,7 @@ def test_valid_filter(caplog, sc_3a_3b):
     for p in ("NIR016", "IR037", "absent"):
         prods[p] = {"min_valid": 40}
     job2 = copy.deepcopy(job)
+
     with mock.patch("trollflow2.plugins.get_scene_coverage") as tpg, \
             caplog.at_level(logging.DEBUG):
         tpg.return_value = 100
@@ -1579,6 +1580,9 @@ def test_valid_filter(caplog, sc_3a_3b):
         tpg.return_value = 1
         check_valid(job2)
         assert "inaccurate coverage estimate suspected!" in caplog.text
+        tpg.reset_mock()
+        tpg.return_value = 0
+        check_valid(job2)
 
 
 def test_coverage_per_product(caplog, sc_3a_3b):
