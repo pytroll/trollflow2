@@ -1527,12 +1527,16 @@ class FakeScene(dict):
 def sc_3a_3b():
     """Fixture to prepare a scene with channels 3A and 3B."""
     from xarray import DataArray
+    from satpy import Scene
     import dask.array as da
     import numpy as np
     prod_attrs = {
         "platform_name": "noaa-18",
         "sensor": "avhrr-3"}
-    scene = FakeScene()
+    scene = Scene()
+    # NB: Scene.__setattr__ will turn this into a DataID.  This means that
+    # after ``scene["NIR016"] = x``, we still have "NIR016" not in
+    # scene.keys() (but "NIR016" in scene).
     scene["NIR016"] = DataArray(
         da.array([[np.nan, np.nan, np.nan], [np.nan, np.nan, np.nan], [0.5, 0.5, 0.5]]),
         dims=("y", "x"),
