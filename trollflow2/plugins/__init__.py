@@ -753,11 +753,13 @@ def check_valid(job):
                     # get_scene_coverage uses %, convert to fraction
                     exp_cov[area_name] = get_scene_coverage(
                         platform_name, start_time, end_time, sensor, area_name)/100
-                valid = job["resampled_scenes"][area_name][prod_name].notnull()
                 exp_valid = exp_cov[area_name]
                 if exp_valid == 0:
                     LOG.debug(f"product {prod_name!s} no expected coverage at all, skipping")
                     continue
+                # I need to calculate this one!
+                job["resampled_scenes"][area_name][prod_name] = job["resampled_scenes"][area_name][prod_name].persist()
+                valid = job["resampled_scenes"][area_name][prod_name].notnull()
                 actual_valid = float(valid.sum()/valid.size)
                 rel_valid = float(actual_valid / exp_valid)
                 LOG.debug(f"Expected maximum validity: {exp_valid:%}")
