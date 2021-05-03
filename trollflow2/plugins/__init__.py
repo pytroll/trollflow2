@@ -470,6 +470,8 @@ def _check_per_product_coverage_for_area(
     prod_groups = {}
     prod_covs = {}
     LOG.debug(f"Filtering {len(prods):d} products for {area:s}")
+    LOG.debug(f"Desired products: {prods!s}")
+    LOG.debug(f"Scene products: {scene.keys()!s}")
     for prod in prods:
         if prod in scene:
             times = (scene[prod].attrs["start_time"], scene[prod].attrs["end_time"])
