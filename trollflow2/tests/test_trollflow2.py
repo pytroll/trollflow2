@@ -1581,7 +1581,7 @@ def test_valid_filter(caplog, sc_3a_3b):
         assert "inaccurate coverage estimate suspected!" in caplog.text
 
 
-def test_coverage_per_product(sc_3a_3b):
+def test_coverage_per_product(caplog, sc_3a_3b):
     """Test product-specific coverage testing."""
     from trollflow2.launcher import yaml
     from trollflow2.plugins import covers
@@ -1602,12 +1602,15 @@ def test_coverage_per_product(sc_3a_3b):
         raise ValueError("fake_scene_cov called with unexpected arguments")
 
     with mock.patch('trollflow2.plugins.get_scene_coverage') as gsc, \
-            mock.patch("trollflow2.plugins.Pass"):
+            mock.patch("trollflow2.plugins.Pass"), \
+            caplog.at_level(logging.DEBUG):
         gsc.side_effect = fake_scene_cov
         covers(job)
         assert gsc.call_count == 2  # once per product existing in scene
         assert "NIR016" not in prods
         assert "IR037" in prods
+        assert "Filtering 4 products for euron1" in caplog.text
+        assert "Found 2 unique start/end time pair(s) in scene" in caplog.text
 
 
 if __name__ == '__main__':

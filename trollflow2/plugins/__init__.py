@@ -469,6 +469,7 @@ def _check_per_product_coverage_for_area(
     prods = product_list["product_list"]["areas"][area]["products"]
     prod_groups = {}
     prod_covs = {}
+    LOG.debug(f"Filtering {len(prods):d} products for {area:s}")
     for prod in prods:
         if prod in scene.keys():
             times = (scene[prod].attrs["start_time"], scene[prod].attrs["end_time"])
@@ -477,6 +478,8 @@ def _check_per_product_coverage_for_area(
                     platform_name, *times, sensor, area)
                 prod_groups[times] = set()
             prod_groups[times].add(prod)
+        else:
+            LOG.debug(f"Not filtering {prod:s}: not found in scene")
     LOG.debug(f"Found {len(prod_groups):d} unique start/end time pair(s) in scene")
     for (times, prods_in_group) in prod_groups.items():
         cov = prod_covs[times]
