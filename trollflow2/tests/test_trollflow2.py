@@ -1589,37 +1589,5 @@ def test_valid_filter(caplog, sc_3a_3b):
         check_valid(job2)
 
 
-def test_coverage_per_product(caplog, sc_3a_3b):
-    """Test product-specific coverage testing."""
-    from trollflow2.launcher import yaml
-    from trollflow2.plugins import covers
-    product_list = yaml.safe_load(yaml_test3)
-    product_list["product_list"]["coverage_per_product"] = True
-    job = {"product_list": product_list.copy(),
-           "input_mda": input_mda.copy(),
-           "scene": sc_3a_3b}
-    prods = job['product_list']['product_list']['areas']['euron1']['products']
-    for p in ("NIR016", "IR037", "absent"):
-        prods[p] = {"min_valid": 40}
-
-    def fake_scene_cov(platform_name, start_time, end_time, sensor, area):
-        if start_time == dt.datetime(2019, 1, 19, 11):
-            return 100
-        if start_time == dt.datetime(2019, 1, 19, 13):
-            return 0
-        raise ValueError("fake_scene_cov called with unexpected arguments")
-
-    with mock.patch('trollflow2.plugins.get_scene_coverage') as gsc, \
-            mock.patch("trollflow2.plugins.Pass"), \
-            caplog.at_level(logging.DEBUG):
-        gsc.side_effect = fake_scene_cov
-        covers(job)
-        assert gsc.call_count == 2  # once per product existing in scene
-        assert "NIR016" not in prods
-        assert "IR037" in prods
-        assert "Filtering 4 products for euron1" in caplog.text
-        assert "Found 2 unique start/end time pair(s) in scene" in caplog.text
-
-
 if __name__ == '__main__':
     unittest.main()

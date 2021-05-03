@@ -360,19 +360,13 @@ class FilePublisher(object):
 
 
 def covers(job):
-    """Check area coverage (overall or per product).
+    """Check overall area coverage.
 
-    Remove areas or products with too low coverage from the worklist.
+    Remove areas with too low coverage from the worklist.
 
-    If a setting "coverage_per_product" is set in the product list and
-    evaluates as true, the coverage checks uses the times indicated in
-    the attributes for each product, if available.  This can be useful
-    in case some products may be switched on or off along the swath.
-    There is still a single global minimum coverage definition, but it's
-    applied for each group of products sharing a common start/end time.
-    NB: including per-product coverage in a extra metadata in a posttroll
-    message is not supported, so if this option is used, no coverage
-    metadata will be included there.
+    There is also a plugin for removing products with insufifcient coverage,
+    see `covers_product`.  Note that whereas `covers` is usually run before
+    loading any products, `covers_product` must be run after `load_composites`.
     """
     if Pass is None:
         LOG.error("Trollsched import failed, coverage calculation not possible")
@@ -417,7 +411,6 @@ def _check_coverage_for_area(
 
     Helper for covers().  Changes product_list in-place.
     """
-    per_product = product_list["product_list"].get("coverage_per_product", False)
     area_path = "/product_list/areas/%s" % area
     min_coverage = get_config_value(product_list,
                                     area_path,
@@ -427,13 +420,9 @@ def _check_coverage_for_area(
                   "for area %s", area)
         return
 
-    if per_product:
-        _check_per_product_coverage_for_area(
-            area, product_list, platform_name, sensor, min_coverage, scene)
-    else:
-        _check_overall_coverage_for_area(
-            area, product_list, platform_name, start_time, end_time,
-            sensor, min_coverage)
+    _check_overall_coverage_for_area(
+        area, product_list, platform_name, start_time, end_time,
+        sensor, min_coverage)
 
 
 def _check_overall_coverage_for_area(
@@ -458,47 +447,6 @@ def _check_overall_coverage_for_area(
         LOG.debug(f"Area coverage {cov:.2f}% above threshold "
                   f"{min_coverage:.2f}% - Carry on with {area:s}")
     return min_coverage
-
-
-def _check_per_product_coverage_for_area(
-        area, product_list, platform_name, sensor, min_coverage, scene):
-    """Check coverage per product for single area.
-
-    Helper for covers().
-    """
-    prods = product_list["product_list"]["areas"][area]["products"]
-    prod_groups = {}
-    prod_covs = {}
-    LOG.debug(f"Filtering {len(prods):d} products for {area:s}")
-    LOG.debug(f"Desired products: {prods!s}")
-    LOG.debug(f"Scene products: {scene.keys()!s}")
-    for prod in prods:
-        if prod in scene:
-            times = (scene[prod].attrs["start_time"], scene[prod].attrs["end_time"])
-            if times not in prod_groups:
-                prod_covs[times] = get_scene_coverage(
-                    platform_name, *times, sensor, area)
-                prod_groups[times] = set()
-            prod_groups[times].add(prod)
-        else:
-            LOG.debug(f"Not filtering {prod:s}: not found in scene")
-    LOG.debug(f"Found {len(prod_groups):d} unique start/end time pair(s) in scene")
-    for (times, prods_in_group) in prod_groups.items():
-        cov = prod_covs[times]
-        if cov < min_coverage:
-            LOG.debug(f"Area coverage {cov:.2f}% below threshold "
-                      f"{min_coverage:.2f}%, removing from area {area:s} "
-                      "products: " + " ".join(prods_in_group))
-            for prod in prods_in_group:
-                del prods[prod]
-        else:
-            LOG.debug(f"Area coverage {cov:.2f}% above threshold "
-                      f"{min_coverage:.2f}%, retaining in area {area:s} "
-                      "products: " + " ".join(prods_in_group))
-    if not prods:
-        # all were removed
-        LOG.debug(f"No products left for {area:s}, removing")
-        del product_list["product_list"]["areas"][area]
 
 
 def get_scene_coverage(platform_name, start_time, end_time, sensor, area_id):

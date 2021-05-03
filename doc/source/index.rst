@@ -239,9 +239,11 @@ Area coverage
 *************
 
 The ``covers`` plugin can be used to check that the received data covers
-the target areas.  If the area coverage is too low (see options
-below), the area is discarded from the processing of this scene.  This
-plugin needs ``pytroll-schedule`` to be installed.
+the target areas.  If the area coverage is too low (see options below),
+the area is discarded from the processing of this scene.  This plugin
+needs ``pytroll-schedule`` to be installed.  This plugin should be called
+after the scene is created, but can be called before any composites
+are loaded.
 
 Options:
  - ``coverage_by_collection_area: False`` - If ``True``, the
@@ -251,11 +253,6 @@ Options:
  - ``min_coverage: 0`` - Minimum required coverage.  If coverage is less
    than defined, the data are not processed for this area.  By default
    process all areas.
- - ``coverage_per_product: False`` - If ``True``, coverage is checked
-   separately for each product, using the ``start_time`` and ``end_time``
-   set as dataset attributes.  This can be useful if different products
-   have different coverages and this information is reflected by the
-   start and end times.
 
 Platform name check
 *******************
