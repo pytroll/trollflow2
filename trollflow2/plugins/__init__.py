@@ -29,6 +29,7 @@ from urllib.parse import urlunsplit
 
 import dpath
 import rasterio
+import dask
 from posttroll.message import Message
 from posttroll.publisher import NoisyPublisher
 from pyorbital.astronomy import sun_zenith_angle
@@ -736,6 +737,10 @@ def check_valid(job):
 
     """
     exp_cov = {}
+    # As stated, this will trigger a computation.  To prevent computing
+    # multiple times, we should persist everything that needs to be persisted,
+    # all together.
+    _persist_what_we_must(job)
     for (area_name, area_props) in job["product_list"]["product_list"]["areas"].items():
         to_remove = set()
         for (prod_name, prod_props) in area_props["products"].items():
@@ -757,8 +762,6 @@ def check_valid(job):
                 if exp_valid == 0:
                     LOG.debug(f"product {prod_name!s} no expected coverage at all, skipping")
                     continue
-                # I need to calculate this one!
-                job["resampled_scenes"][area_name][prod_name] = job["resampled_scenes"][area_name][prod_name].persist()
                 valid = job["resampled_scenes"][area_name][prod_name].notnull()
                 actual_valid = float(valid.sum()/valid.size)
                 rel_valid = float(actual_valid / exp_valid)
@@ -778,3 +781,24 @@ def check_valid(job):
                               f"{prod_name:s} for area {area_name:s} in the worklist")
         for rem in to_remove:
             del area_props["products"][rem]
+
+
+def _persist_what_we_must(job):
+    """Persist anything that has a min_valid key.
+
+    The `check_valid` plugin needs to calculate the products, but those should
+    be calculated all at once.  This function looks for all products that have
+    a `"min_valid"` in the product properties, persists (calculates) them all
+    at once and replaces the corresponding datasets with their persisted
+    versions.
+    """
+    to_persist = []
+    for (area_name, area_props) in job["product_list"]["product_list"]["areas"].items():
+        scn = job["resampled_scenes"][area_name]
+        for (prod_name, prod_props) in area_props["products"].items():
+            if "min_valid" in prod_props and prod_name in scn:
+                to_persist.append((scn, prod_name, scn[prod_name]))
+    LOG.debug("Persisting early due to content checks")
+    persisted = dask.persist(*[p[2] for p in to_persist])
+    for ((sc, prod_name, old), new) in zip(to_persist, persisted):
+        sc[prod_name] = new

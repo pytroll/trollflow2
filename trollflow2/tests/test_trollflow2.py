@@ -1545,6 +1545,10 @@ def sc_3a_3b():
         np.array([[200, 230, 240], [250, 260, 220], [np.nan, np.nan, np.nan]]),
         dims=("y", "x"),
         attrs=prod_attrs)
+    scene["another"] = DataArray(
+        da.array([[200, 230, 240], [250, 260, 220], [1, 2, 3]]),
+        dims=("y", "x"),
+        attrs=prod_attrs)
     scene["NIR016"].attrs.update(
         start_time=dt.datetime(2019, 1, 19, 13),
         end_time=dt.datetime(2019, 1, 19, 13))
@@ -1587,6 +1591,32 @@ def test_valid_filter(caplog, sc_3a_3b):
         tpg.reset_mock()
         tpg.return_value = 0
         check_valid(job2)
+
+
+def test_persisted(sc_3a_3b):
+    """Test that early persisting does what we want."""
+    from trollflow2.launcher import yaml
+    from trollflow2.plugins import _persist_what_we_must
+    job = {}
+    product_list = yaml.safe_load(yaml_test3)
+    job['product_list'] = product_list.copy()
+    job['input_mda'] = input_mda.copy()
+    job['resampled_scenes'] = {"euron1": sc_3a_3b}
+    prods = job['product_list']['product_list']['areas']['euron1']['products']
+    for p in ("NIR016", "IR037", "absent"):
+        prods[p] = {"min_valid": 40}
+
+    def fake_persist(*args):
+        for da in args:
+            da.attrs["persisted"] = True
+        return args
+
+    with mock.patch("dask.persist", new=fake_persist):
+        _persist_what_we_must(job)
+
+    # confirm that sc_3a_3b dataset NIR016 is persisted
+    assert sc_3a_3b["NIR016"].attrs.get("persisted")
+    assert not sc_3a_3b["another"].attrs.get("persisted")
 
 
 if __name__ == '__main__':
