@@ -364,10 +364,6 @@ def covers(job):
     """Check overall area coverage.
 
     Remove areas with too low coverage from the worklist.
-
-    There is also a plugin for removing products with insufifcient coverage,
-    see `covers_product`.  Note that whereas `covers` is usually run before
-    loading any products, `covers_product` must be run after `load_composites`.
     """
     if Pass is None:
         LOG.error("Trollsched import failed, coverage calculation not possible")
@@ -719,6 +715,10 @@ def check_valid(job):
 
     This will trigger a calculation for the data to be checked.
 
+    In theory, this selection should be possible based on metadata, which
+    should contain information about channels 3A and 3B.  Unfortunately,
+    experience has shown these metadata are not always reliable.
+
     To be configured with the ``rel_valid`` key indicating validity in %.
     For example:
 
@@ -760,7 +760,8 @@ def check_valid(job):
                         platform_name, start_time, end_time, sensor, area_name)/100
                 exp_valid = exp_cov[area_name]
                 if exp_valid == 0:
-                    LOG.debug(f"product {prod_name!s} no expected coverage at all, skipping")
+                    LOG.debug(f"product {prod_name!s} no expected coverage at all, removing")
+                    to_remove.add(prod_name)
                     continue
                 valid = job["resampled_scenes"][area_name][prod_name].notnull()
                 actual_valid = float(valid.sum()/valid.size)

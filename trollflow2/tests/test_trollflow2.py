@@ -1026,6 +1026,7 @@ class TestCovers(TestCase):
             job = {"product_list": self.product_list,
                    "input_mda": self.input_mda,
                    "scene": scn}
+            job2 = copy.deepcopy(job)
             with self.assertLogs("trollflow2.plugins", logging.DEBUG) as log:
                 covers(job)
             assert ("DEBUG:trollflow2.plugins:Area coverage 10.00% "
@@ -1048,6 +1049,12 @@ class TestCovers(TestCase):
                                                   input_mda['start_time'],
                                                   input_mda['end_time'],
                                                   'avhrr-4', 'omerc_bb')
+
+            del job2["product_list"]["product_list"]["areas"]["euron1"]["min_coverage"]
+            del job2["product_list"]["product_list"]["min_coverage"]
+            with self.assertLogs(level="DEBUG") as log:
+                covers(job2)
+                assert "Minimum area coverage not given" in log.output[0]
 
     def test_scene_coverage(self):
         """Test scene coverage."""
@@ -1574,6 +1581,7 @@ def test_valid_filter(caplog, sc_3a_3b):
     for p in ("NIR016", "IR037", "absent"):
         prods[p] = {"min_valid": 40}
     job2 = copy.deepcopy(job)
+    prods2 = job2['product_list']['product_list']['areas']['euron1']['products']
 
     with mock.patch("trollflow2.plugins.get_scene_coverage") as tpg, \
             caplog.at_level(logging.DEBUG):
@@ -1588,9 +1596,14 @@ def test_valid_filter(caplog, sc_3a_3b):
         tpg.return_value = 1
         check_valid(job2)
         assert "inaccurate coverage estimate suspected!" in caplog.text
+        assert "NIR016" in prods2
+        assert "IR037" in prods2
         tpg.reset_mock()
         tpg.return_value = 0
         check_valid(job2)
+        assert "no expected coverage at all, removing" in caplog.text
+        assert "NIR016" not in prods2
+        assert "IR037" not in prods2
 
 
 def test_persisted(sc_3a_3b):
