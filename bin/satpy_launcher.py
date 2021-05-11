@@ -58,7 +58,6 @@ def main():
     """Launch trollflow2."""
     args = vars(parse_args())
 
-
     log_config = args.pop("log_config", None)
     if log_config is not None:
         with open(log_config) as fd:
