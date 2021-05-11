@@ -30,21 +30,19 @@ memory buildup.
 import ast
 import copy
 import gc
-import logging.handlers
 import os
 import re
-import traceback
 import signal
+import traceback
 from collections import OrderedDict
 from datetime import datetime
-from logging import getLogger, handlers
 from functools import partial
+from logging import getLogger, handlers
 from multiprocessing import Queue
+from queue import Empty
 
 import yaml
-from queue import Empty
 from six.moves.urllib.parse import urlparse
-
 from trollflow2.dict_tools import gen_dict_extract, plist_iter
 from trollflow2.plugins import AbortProcessing
 
@@ -171,7 +169,7 @@ def _run_subprocess(product_list, connection_parameters=None):
 
     messages = generate_messages(connection_parameters)
 
-    qlog_listener = logging.handlers.QueueListener(log_queue, *LOG.handlers)
+    qlog_listener = handlers.QueueListener(log_queue, *LOG.handlers)
     qlog_listener.start()
     try:
         _run_product_list_on_messages(messages, target_fun, Process)
