@@ -56,15 +56,18 @@ def parse_args():
 
 def main():
     """Launch trollflow2."""
-    args = parse_args()
-    prod_list = args.product_list
-    test_message = args.test_message
-    topics = args.topic
-    nameserver = args.nameserver
-    addresses = args.addresses
+    args = vars(parse_args())
+    print(args)
 
-    if args.log_config is not None:
-        with open(args.log_config) as fd:
+    # prod_list = args.product_list
+    # test_message = args.test_message
+    # topics = args.topic
+    # nameserver = args.nameserver
+    # addresses = args.addresses
+
+    log_config = args.pop("log_config", None)
+    if log_config is not None:
+        with open(log_config) as fd:
             import yaml
             log_dict = yaml.load(fd.read())
             logging.config.dictConfig(log_dict)
@@ -72,8 +75,11 @@ def main():
         from satpy.utils import debug_on
         debug_on()
 
-    run(prod_list, topics=topics, test_message=test_message,
-        nameserver=nameserver, addresses=addresses)
+    product_list = args.pop("product_list")
+    test_message = args.pop("test_message")
+    connection_parameters = args
+
+    run(product_list, connection_parameters, test_message)
 
 
 if __name__ == "__main__":
