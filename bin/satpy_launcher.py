@@ -58,11 +58,6 @@ def main():
     """Launch trollflow2."""
     args = vars(parse_args())
 
-    # prod_list = args.product_list
-    # test_message = args.test_message
-    # topics = args.topic
-    # nameserver = args.nameserver
-    # addresses = args.addresses
 
     log_config = args.pop("log_config", None)
     if log_config is not None:
