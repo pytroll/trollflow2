@@ -252,6 +252,7 @@ class TestRun(TestCase):
                 mock.patch('trollflow2.launcher.open'),\
                 mock.patch('trollflow2.launcher.generate_messages') as generate_messages,\
                 mock.patch('trollflow2.launcher.process') as process,\
+                mock.patch('trollflow2.launcher.check_results'),\
                 mock.patch('multiprocessing.Process'):
             generate_messages.side_effect = ['foo', KeyboardInterrupt]
             prod_list = 'bar'
