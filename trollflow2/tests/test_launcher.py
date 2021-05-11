@@ -26,6 +26,9 @@ import sys
 import time
 import pytest
 import unittest
+import datetime
+import logging
+import queue
 
 import yaml
 
@@ -443,6 +446,59 @@ class TestDistributed(TestCase):
         res = get_dask_client(config)
         assert res is None
         assert ncores.call_count == 3
+
+
+def test_check_results(tmp_path, caplog):
+    """Test functionality for check_results."""
+    from trollflow2.launcher import check_results
+
+    class FakeQueue:
+        def __init__(self, lo, hi, skip=[]):
+            self._files = set()
+            for i in range(lo, hi):
+                f = (tmp_path / f"file{i:d}")
+                self._files.add(str(f))
+                if i not in skip:
+                    with f.open(mode="wt") as fp:
+                        fp.write("zucchini" * i)
+
+        def get(self, block=None):
+            try:
+                return self._files.pop()
+            except KeyError:
+                raise queue.Empty
+
+        def qsize(self):
+            return len(self._files)
+
+    produced_files = FakeQueue(0, 3)
+    start_time = datetime.datetime(1900, 1, 1)
+    exitcode = 0
+    with caplog.at_level(logging.DEBUG):
+        check_results(produced_files, start_time, exitcode)
+    assert "Empty file detected" in caplog.text
+    assert "files produced nominally" not in caplog.text
+
+    produced_files = FakeQueue(5, 8, skip=[6])
+    with caplog.at_level(logging.DEBUG):
+        check_results(produced_files, start_time, exitcode)
+    assert "Missing file" in caplog.text
+    assert "files produced nominally" not in caplog.text
+
+    produced_files = FakeQueue(10, 13)
+    with caplog.at_level(logging.DEBUG), \
+            mock.patch("trollflow2.launcher.datetime") as dd:
+        dd.now.return_value = datetime.datetime(1927, 5, 20, 0, 0)
+        check_results(produced_files, start_time, exitcode)
+    assert "All 3 files produced nominally in 10000 days" in caplog.text
+
+    with caplog.at_level(logging.DEBUG):
+        check_results(produced_files, start_time, 1)
+    assert "Process crashed with exit code 1" in caplog.text
+
+    with caplog.at_level(logging.DEBUG):
+        check_results(produced_files, start_time, -1)
+    assert "Process killed with signal 1" in caplog.text
 
 
 if __name__ == '__main__':
