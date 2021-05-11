@@ -57,7 +57,6 @@ def parse_args():
 def main():
     """Launch trollflow2."""
     args = vars(parse_args())
-    print(args)
 
     # prod_list = args.product_list
     # test_message = args.test_message
