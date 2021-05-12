@@ -306,7 +306,7 @@ def get_dask_client(config):
     return client
 
 
-def qlogged_process(msg, prod_list, produced_files, log_queue):
+def queue_logged_process(msg, prod_list, produced_files, log_queue):
     """Run `process` with a queued log."""
     _reset_log_handlers()
     handler = handlers.QueueHandler(log_queue)
