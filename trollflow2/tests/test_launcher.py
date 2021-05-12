@@ -260,7 +260,7 @@ class TestRun(TestCase):
                 run(prod_list)
             except KeyboardInterrupt:
                 pass
-            assert process.call_count == 0
+            process.assert_not_called()
 
     def test_run_uses_process_via_multiprocessing(self):
         """Test that process is called through Process."""
