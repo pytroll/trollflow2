@@ -1285,40 +1285,41 @@ class TestFilePublisher(TestCase):
         from trollflow2.dict_tools import plist_iter
         from trollsift import compose
         import os.path
-        with mock.patch('trollflow2.plugins.Message') as message:
-            with mock.patch('trollflow2.plugins.NoisyPublisher'):
-                with mock.patch('trollflow2.plugins.Publisher'):
-                    pub = FilePublisher()
-                    pub.pub.start.assert_called_once()
-                    product_list = self.product_list.copy()
-                    product_list['product_list']['publish_topic'] = '/{areaname}/{productname}'
-                    job = {'product_list': product_list,
-                           'input_mda': self.input_mda}
-                    topic_pattern = job['product_list']['product_list']['publish_topic']
-                    topics = []
-                    # Create filenames and topics
-                    for fmat, fmat_config in plist_iter(job['product_list']['product_list'],
-                                                        job['input_mda'].copy()):
-                        fname_pattern = fmat['fname_pattern']
-                        filename = compose(os.path.join(fmat['output_dir'],
-                                                        fname_pattern), fmat)
-                        fmat.pop('format', None)
-                        fmat_config['filename'] = filename
-                        topics.append(compose(topic_pattern, fmat))
+        with mock.patch.multiple('trollflow2.plugins', Message=mock.DEFAULT,
+                                 NoisyPublisher=mock.DEFAULT, Publisher=mock.DEFAULT) as mocks:
+            message = mocks['Message']
 
-                    pub(job)
-                    message.assert_called()
-                    pub.pub.send.assert_called()
-                    pub.__del__()
-                    pub.pub.stop.assert_called()
-                    i = 0
-                    for area in job['product_list']['product_list']['areas']:
-                        for _prod in job['product_list']['product_list']['areas'][area]:
-                            # Skip calls to __str__
-                            if 'call().__str__()' != str(message.mock_calls[i]):
-                                self.assertTrue(topics[i] in str(message.mock_calls[i]))
-                                i += 1
-                    self.assertEqual(message.call_args[0][2]['processing_center'], 'SMHI')
+            pub = FilePublisher()
+            pub.pub.start.assert_called_once()
+            product_list = self.product_list.copy()
+            product_list['product_list']['publish_topic'] = '/{areaname}/{productname}'
+            job = {'product_list': product_list,
+                   'input_mda': self.input_mda}
+            topic_pattern = job['product_list']['product_list']['publish_topic']
+            topics = []
+            # Create filenames and topics
+            for fmat, fmat_config in plist_iter(job['product_list']['product_list'],
+                                                job['input_mda'].copy()):
+                fname_pattern = fmat['fname_pattern']
+                filename = compose(os.path.join(fmat['output_dir'],
+                                                fname_pattern), fmat)
+                fmat.pop('format', None)
+                fmat_config['filename'] = filename
+                topics.append(compose(topic_pattern, fmat))
+
+            pub(job)
+            message.assert_called()
+            pub.pub.send.assert_called()
+            pub.__del__()
+            pub.pub.stop.assert_called()
+            i = 0
+            for area in job['product_list']['product_list']['areas']:
+                for _prod in job['product_list']['product_list']['areas'][area]:
+                    # Skip calls to __str__
+                    if 'call().__str__()' != str(message.mock_calls[i]):
+                        self.assertTrue(topics[i] in str(message.mock_calls[i]))
+                        i += 1
+            self.assertEqual(message.call_args[0][2]['processing_center'], 'SMHI')
 
     def test_filepublisher_without_compose(self):
         """Test filepublisher without compose."""
@@ -1326,26 +1327,27 @@ class TestFilePublisher(TestCase):
         from trollflow2.dict_tools import plist_iter
         from trollsift import compose
         import os.path
-        with mock.patch('trollflow2.plugins.Message') as message:
-            with mock.patch('trollflow2.plugins.NoisyPublisher'):
-                with mock.patch('trollflow2.plugins.Publisher'):
-                    pub = FilePublisher()
-                    pub.pub.start.assert_called_once()
-                    product_list = self.product_list.copy()
-                    product_list['product_list']['publish_topic'] = '/static_topic'
-                    job = {'product_list': product_list,
-                           'input_mda': self.input_mda}
-                    topic_pattern = job['product_list']['product_list']['publish_topic']
-                    topics = []
-                    # Create filenames and topics
-                    for fmat, fmat_config in plist_iter(job['product_list']['product_list'],
-                                                        job['input_mda'].copy()):
-                        fname_pattern = fmat['fname_pattern']
-                        filename = compose(os.path.join(fmat['output_dir'],
-                                                        fname_pattern), fmat)
-                        fmat.pop('format', None)
-                        fmat_config['filename'] = filename
-                        topics.append(compose(topic_pattern, fmat))
+        with mock.patch.multiple('trollflow2.plugins', Message=mock.DEFAULT,
+                                 NoisyPublisher=mock.DEFAULT, Publisher=mock.DEFAULT) as mocks:
+            message = mocks['Message']
+
+            pub = FilePublisher()
+            pub.pub.start.assert_called_once()
+            product_list = self.product_list.copy()
+            product_list['product_list']['publish_topic'] = '/static_topic'
+            job = {'product_list': product_list,
+                   'input_mda': self.input_mda}
+            topic_pattern = job['product_list']['product_list']['publish_topic']
+            topics = []
+            # Create filenames and topics
+            for fmat, fmat_config in plist_iter(job['product_list']['product_list'],
+                                                job['input_mda'].copy()):
+                fname_pattern = fmat['fname_pattern']
+                filename = compose(os.path.join(fmat['output_dir'],
+                                                fname_pattern), fmat)
+                fmat.pop('format', None)
+                fmat_config['filename'] = filename
+                topics.append(compose(topic_pattern, fmat))
 
             pub(job)
             message.assert_called()
@@ -1366,81 +1368,89 @@ class TestFilePublisher(TestCase):
         from trollflow2.plugins import FilePublisher
 
         # Direct instantiation
-        with mock.patch('trollflow2.plugins.Message'):
-            with mock.patch('trollflow2.plugins.NoisyPublisher') as NoisyPublisher:
-                with mock.patch('trollflow2.plugins.Publisher') as Publisher:
-                    pub = FilePublisher()
-                    pub.pub.start.assert_called_once()
-                    assert mock.call('l2processor', port=0, nameservers="") in NoisyPublisher.mock_calls
-                    Publisher.assert_not_called()
-                    assert pub.port == 0
-                    assert pub.nameservers == ""
-                    pub = FilePublisher(port=40000, nameservers=['localhost'])
-                    assert mock.call('l2processor', port=40000,
-                                     nameservers=['localhost']) in NoisyPublisher.mock_calls
-                    assert pub.port == 40000
-                    assert pub.nameservers == ['localhost']
-                    assert len(pub.pub.start.mock_calls) == 2
+        with mock.patch.multiple('trollflow2.plugins', Message=mock.DEFAULT,
+                                 NoisyPublisher=mock.DEFAULT, Publisher=mock.DEFAULT) as mocks:
+            NoisyPublisher = mocks['NoisyPublisher']
+            Publisher = mocks['Publisher']
+
+            pub = FilePublisher()
+            pub.pub.start.assert_called_once()
+            assert mock.call('l2processor', port=0, nameservers="") in NoisyPublisher.mock_calls
+            Publisher.assert_not_called()
+            assert pub.port == 0
+            assert pub.nameservers == ""
+            pub = FilePublisher(port=40000, nameservers=['localhost'])
+            assert mock.call('l2processor', port=40000,
+                             nameservers=['localhost']) in NoisyPublisher.mock_calls
+            assert pub.port == 40000
+            assert pub.nameservers == ['localhost']
+            assert len(pub.pub.start.mock_calls) == 2
 
         # Direct instantiation with nameservers set to None, which should use Publisher instead of NoisyPublisher
-        with mock.patch('trollflow2.plugins.Message'):
-            with mock.patch('trollflow2.plugins.NoisyPublisher') as NoisyPublisher:
-                with mock.patch('trollflow2.plugins.Publisher') as Publisher:
-                    pub = FilePublisher(port=40000, nameservers=None)
-                    NoisyPublisher.assert_not_called()
-                    Publisher.assert_called_once_with('tcp://*:40000', 'l2processor')
+        with mock.patch.multiple('trollflow2.plugins', Message=mock.DEFAULT,
+                                 NoisyPublisher=mock.DEFAULT, Publisher=mock.DEFAULT) as mocks:
+            NoisyPublisher = mocks['NoisyPublisher']
+            Publisher = mocks['Publisher']
+
+            pub = FilePublisher(port=40000, nameservers=None)
+            NoisyPublisher.assert_not_called()
+            Publisher.assert_called_once_with('tcp://*:40000', 'l2processor')
 
         # Instantiate via loading YAML
-        with mock.patch('trollflow2.plugins.Message'):
-            with mock.patch('trollflow2.plugins.NoisyPublisher') as NoisyPublisher:
-                with mock.patch('trollflow2.plugins.Publisher') as Publisher:
-                    fpub = yaml.load(YAML_FILE_PUBLISHER, Loader=yaml.UnsafeLoader)
-                    assert mock.call('l2processor', port=40002,
-                                     nameservers=['localhost']) in NoisyPublisher.mock_calls
-                    Publisher.assert_not_called()
-                    fpub.pub.start.assert_called_once()
-                    assert fpub.port == 40002
-                    assert fpub.nameservers == ['localhost']
+        with mock.patch.multiple('trollflow2.plugins', Message=mock.DEFAULT,
+                                 NoisyPublisher=mock.DEFAULT, Publisher=mock.DEFAULT) as mocks:
+            NoisyPublisher = mocks['NoisyPublisher']
+            Publisher = mocks['Publisher']
+
+            fpub = yaml.load(YAML_FILE_PUBLISHER, Loader=yaml.UnsafeLoader)
+            assert mock.call('l2processor', port=40002,
+                             nameservers=['localhost']) in NoisyPublisher.mock_calls
+            Publisher.assert_not_called()
+            fpub.pub.start.assert_called_once()
+            assert fpub.port == 40002
+            assert fpub.nameservers == ['localhost']
 
     def test_dispatch(self):
         """Test dispatch order messages."""
         from trollflow2.plugins import FilePublisher
-        with mock.patch('trollflow2.plugins.Message') as message:
-            with mock.patch('trollflow2.plugins.NoisyPublisher'):
-                with mock.patch('trollflow2.plugins.Publisher'):
-                    pub = FilePublisher()
-                    job = {'product_list': self.product_list,
-                           'input_mda': self.input_mda}
-                    pub(job)
-                    dispatches = 0
-                    for args, _kwargs in message.call_args_list:
-                        mda = args[2]
-                        if args[1] == 'file':
-                            self.assertIn('uri', mda)
-                            self.assertIn('uid', mda)
-                        elif args[1] == 'dispatch':
-                            self.assertIn('source', mda)
-                            self.assertIn('target', mda)
-                            self.assertIn('file_mda', mda)
-                            self.assertEqual(mda['source'],
-                                            '/tmp/satdmz/pps/www/latest_2018/NOAA-15_20190217_0600_euron1_in_fname_ctth_static.png')  # noqa
-                            self.assertEqual(mda['target'],
-                                            'ftp://ftp.important_client.com/somewhere/NOAA-15_20190217_0600_euron1_in_fname_ctth_static.png')  # noqa
-                            dispatches += 1
-                    self.assertEqual(dispatches, 1)
+        with mock.patch.multiple('trollflow2.plugins', Message=mock.DEFAULT,
+                                 NoisyPublisher=mock.DEFAULT, Publisher=mock.DEFAULT) as mocks:
+            message = mocks['Message']
+
+            pub = FilePublisher()
+            job = {'product_list': self.product_list,
+                   'input_mda': self.input_mda}
+            pub(job)
+            dispatches = 0
+            for args, _kwargs in message.call_args_list:
+                mda = args[2]
+                if args[1] == 'file':
+                    self.assertIn('uri', mda)
+                    self.assertIn('uid', mda)
+                elif args[1] == 'dispatch':
+                    self.assertIn('source', mda)
+                    self.assertIn('target', mda)
+                    self.assertIn('file_mda', mda)
+                    self.assertEqual(mda['source'],
+                                    '/tmp/satdmz/pps/www/latest_2018/NOAA-15_20190217_0600_euron1_in_fname_ctth_static.png')  # noqa
+                    self.assertEqual(mda['target'],
+                                    'ftp://ftp.important_client.com/somewhere/NOAA-15_20190217_0600_euron1_in_fname_ctth_static.png')  # noqa
+                    dispatches += 1
+            self.assertEqual(dispatches, 1)
 
     def test_deleting(self):
         """Test deleting the publisher."""
         from trollflow2.plugins import FilePublisher
         nb_ = mock.MagicMock()
-        with mock.patch('trollflow2.plugins.Message'):
-            with mock.patch('trollflow2.plugins.NoisyPublisher') as NoisyPublisher:
-                with mock.patch('trollflow2.plugins.Publisher'):
-                    NoisyPublisher.return_value = nb_
-                    pub = FilePublisher()
-                    job = {'product_list': self.product_list,
-                           'input_mda': self.input_mda}
-                    pub(job)
+        with mock.patch.multiple('trollflow2.plugins', Message=mock.DEFAULT,
+                                 NoisyPublisher=mock.DEFAULT, Publisher=mock.DEFAULT) as mocks:
+            NoisyPublisher = mocks['NoisyPublisher']
+
+            NoisyPublisher.return_value = nb_
+            pub = FilePublisher()
+            job = {'product_list': self.product_list,
+                   'input_mda': self.input_mda}
+            pub(job)
 
         nb_.stop.assert_not_called()
         del pub
@@ -1450,14 +1460,15 @@ class TestFilePublisher(TestCase):
         """Test stopping the publisher."""
         from trollflow2.plugins import FilePublisher
         nb_ = mock.MagicMock()
-        with mock.patch('trollflow2.plugins.Message'):
-            with mock.patch('trollflow2.plugins.NoisyPublisher') as NoisyPublisher:
-                with mock.patch('trollflow2.plugins.Publisher'):
-                    NoisyPublisher.return_value = nb_
-                    pub = FilePublisher()
-                    job = {'product_list': self.product_list,
-                           'input_mda': self.input_mda}
-                    pub(job)
+        with mock.patch.multiple('trollflow2.plugins', Message=mock.DEFAULT,
+                                 NoisyPublisher=mock.DEFAULT, Publisher=mock.DEFAULT) as mocks:
+            NoisyPublisher = mocks['NoisyPublisher']
+
+            NoisyPublisher.return_value = nb_
+            pub = FilePublisher()
+            job = {'product_list': self.product_list,
+                   'input_mda': self.input_mda}
+            pub(job)
 
         nb_.stop.assert_not_called()
         pub.stop()
