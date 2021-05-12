@@ -93,7 +93,10 @@ def check_results(produced_files, start_time, exitcode):
     """Make sure the composites have been saved."""
     end_time = datetime.now()
     error_detected = False
-    qsize = produced_files.qsize()
+    try:
+        qsize = produced_files.qsize()
+    except NotImplementedError:  # MacOS
+        qsize = None
     while True:
         try:
             saved_file = produced_files.get(block=False)
@@ -114,8 +117,12 @@ def check_results(produced_files, start_time, exitcode):
             LOG.critical('Process crashed with exit code %d', exitcode)
     if not error_detected:
         elapsed = end_time - start_time
-        LOG.info(f'All {qsize:d} files produced nominally in '
-                 f"{elapsed!s}", extra={"time": elapsed})
+        if qsize is not None:
+            LOG.info(f'All {qsize:d} files produced nominally in '
+                     f"{elapsed!s}", extra={"time": elapsed})
+        else:
+            LOG.info(f'All files produced nominally in '
+                     f"{elapsed!s}", extra={"time": elapsed})
 
 
 def generate_messages(connection_parameters):
