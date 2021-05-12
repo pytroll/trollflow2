@@ -92,6 +92,7 @@ def check_results(produced_files, start_time, exitcode):
     """Make sure the composites have been saved."""
     end_time = datetime.now()
     error_detected = False
+    qsize = produced_files.qsize()
     while True:
         try:
             saved_file = produced_files.get(block=False)
@@ -112,7 +113,8 @@ def check_results(produced_files, start_time, exitcode):
             LOG.critical('Process crashed with exit code %d', exitcode)
     if not error_detected:
         elapsed = end_time - start_time
-        LOG.info('All files produced nominally in %s.', str(elapsed), extra={'time': elapsed})
+        LOG.info(f'All {qsize:d} files produced nominally in '
+                 f"{elapsed!s}", extra={"time": elapsed})
 
 
 def run(prod_list, topics=None, test_message=None, nameserver='localhost',
