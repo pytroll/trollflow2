@@ -145,8 +145,9 @@ def run(product_list, connection_parameters=None, test_message=None):
     """Spawn one or multiple subprocesses to run the jobs from the product list."""
     test_message = get_test_message(test_message)
     if test_message:
-        return _run_threaded(product_list, test_message)
-    return _run_subprocess(product_list, connection_parameters)
+        _run_threaded(product_list, test_message)
+    else:
+        _run_subprocess(product_list, connection_parameters)
 
 
 def _run_threaded(product_list, test_message):
