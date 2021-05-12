@@ -165,7 +165,7 @@ def _run_subprocess(product_list, connection_parameters=None):
     LOG.info("Launching trollflow2 with subprocesses")
     from multiprocessing import Process
     log_queue = Queue()
-    target_fun = partial(qlogged_process, log_queue=log_queue, prod_list=product_list)
+    target_fun = partial(queue_logged_process, log_queue=log_queue, prod_list=product_list)
     connection_parameters = _fill_in_connection_parameters(connection_parameters, product_list)
 
     messages = generate_messages(connection_parameters)
