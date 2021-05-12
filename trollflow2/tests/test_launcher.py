@@ -248,15 +248,52 @@ class TestRun(TestCase):
         super().setUp()
         self.config = yaml.load(yaml_test1, Loader=UnsafeLoader)
 
-    def test_run(self):
-        """Test running."""
+    def test_run_does_not_call_process_directly(self):
+        """Test that process is called through Process."""
+        from trollflow2.launcher import run
+        with mock.patch('trollflow2.launcher.yaml.load'),\
+                mock.patch('trollflow2.launcher.open'),\
+                mock.patch('trollflow2.launcher.generate_messages') as generate_messages,\
+                mock.patch('trollflow2.launcher.process') as process,\
+                mock.patch('trollflow2.launcher.check_results'),\
+                mock.patch('multiprocessing.Process'):
+            generate_messages.side_effect = ['foo', KeyboardInterrupt]
+            prod_list = 'bar'
+            try:
+                run(prod_list)
+            except KeyboardInterrupt:
+                pass
+            process.assert_not_called()
+
+    def test_run_uses_process_via_multiprocessing(self):
+        """Test that process is called through Process."""
+        from trollflow2.launcher import run
+        from threading import Thread
+        with mock.patch('trollflow2.launcher.yaml.load'),\
+                mock.patch('trollflow2.launcher.open'),\
+                mock.patch('trollflow2.launcher.generate_messages') as generate_messages,\
+                mock.patch('trollflow2.launcher.process') as process,\
+                mock.patch('multiprocessing.Process') as Process:
+            def gen_messages(*args):
+                del args
+                yield 'foo'
+                raise KeyboardInterrupt
+            generate_messages.side_effect = gen_messages
+            Process.side_effect = Thread
+            prod_list = 'bar'
+            try:
+                run(prod_list)
+            except KeyboardInterrupt:
+                pass
+            process.assert_called_once()
+
+    def test_run_relies_on_listener(self):
+        """Test running relies on listener."""
         from trollflow2.launcher import run
         with mock.patch('trollflow2.launcher.yaml.load') as yaml_load,\
                 mock.patch('trollflow2.launcher.open'),\
-                mock.patch('trollflow2.launcher.process') as process,\
                 mock.patch('multiprocessing.Process') as Process,\
-                mock.patch('trollflow2.launcher.ListenerContainer') as lc_,\
-                mock.patch('multiprocessing.Queue') as queue:
+                mock.patch('trollflow2.launcher.ListenerContainer') as lc_:
             listener = mock.MagicMock()
             listener.output_queue.get.return_value = 'foo'
             lc_.return_value = listener
@@ -265,17 +302,12 @@ class TestRun(TestCase):
             # stop looping
             proc_ret.join.side_effect = KeyboardInterrupt
             yaml_load.return_value = self.config
-            the_queue = mock.MagicMock()
-            queue.return_value = the_queue
             prod_list = 'bar'
             try:
                 run(prod_list)
             except KeyboardInterrupt:
                 pass
             listener.output_queue.called_once()
-            Process.assert_called_with(args=('foo', prod_list, the_queue), target=process)
-            proc_ret.start.assert_called_once()
-            proc_ret.join.assert_called_once()
             lc_.assert_called_with(addresses=None, nameserver='localhost',
                                    topics=['/topic1', '/topic2'])
             # Subscriber topics are removed from config
@@ -283,11 +315,43 @@ class TestRun(TestCase):
             # Topics are given as command line option
             lc_.reset_mock()
             try:
-                run(prod_list, topics=['/topic3'])
+                run(prod_list, connection_parameters=dict(topic=['/topic3']))
             except KeyboardInterrupt:
                 pass
             lc_.assert_called_with(addresses=None, nameserver='localhost',
                                    topics=['/topic3'])
+
+    def test_run_starts_and_joins_process(self):
+        """Test running."""
+        from trollflow2.launcher import run
+        with mock.patch('trollflow2.launcher.yaml.load') as yaml_load,\
+                mock.patch('trollflow2.launcher.open'),\
+                mock.patch('multiprocessing.Process') as Process,\
+                mock.patch('trollflow2.launcher.ListenerContainer') as lc_:
+            listener = mock.MagicMock()
+            listener.output_queue.get.return_value = 'foo'
+            lc_.return_value = listener
+            proc_ret = mock.MagicMock()
+            Process.return_value = proc_ret
+            # stop looping
+            proc_ret.join.side_effect = KeyboardInterrupt
+            yaml_load.return_value = self.config
+            prod_list = 'bar'
+            try:
+                run(prod_list)
+            except KeyboardInterrupt:
+                pass
+            proc_ret.start.assert_called_once()
+            proc_ret.join.assert_called_once()
+
+
+class TestInterruptRun(TestCase):
+    """Test case for running the plugins."""
+
+    def setUp(self):
+        """Set up the test case."""
+        super().setUp()
+        self.config = yaml.load(yaml_test1, Loader=UnsafeLoader)
 
     def test_run_keyboard_interrupt(self):
         """Test interrupting the run with a ctrl-C."""
@@ -302,6 +366,74 @@ class TestRun(TestCase):
             lc_.return_value = listener
             run(0)
             listener.stop.assert_called_once()
+
+
+class TestRunLogging(TestCase):
+    """Test case for checking the logging in `run`."""
+
+    def setUp(self):
+        """Set up the test case."""
+        super().setUp()
+        self.config = yaml.load(yaml_test1, Loader=UnsafeLoader)
+
+    def test_target_fun_logs_to_existing_handlers(self):
+        """Test that target_fun logs to existing handlers."""
+        from trollflow2.launcher import run
+        from trollflow2.launcher import LOG
+        from threading import Thread
+        with mock.patch('trollflow2.launcher.yaml.load'),\
+                mock.patch('trollflow2.launcher.open'), \
+                mock.patch('trollflow2.launcher.process') as process,\
+                mock.patch('trollflow2.launcher.generate_messages') as generate_messages, \
+                mock.patch('trollflow2.launcher.check_results'), \
+                mock.patch('multiprocessing.Process') as Process:
+
+            def fake_process(*args, **kwargs):
+                LOG.error('hej')
+
+            fake_handler = mock.MagicMock()
+            fake_handler.level = 0
+            Process.side_effect = Thread
+            process.side_effect = fake_process
+            generate_messages.return_value = ['bla']
+
+            try:
+                LOG.addHandler(fake_handler)
+                run(0)
+            finally:
+                LOG.removeHandler(fake_handler)
+            assert fake_handler.method_calls
+
+    def test_target_fun_does_not_log_to_existing_handlers_directly(self):
+        """Test that target_fun does not log to existing handlers directly."""
+        from trollflow2.launcher import run
+        from trollflow2.launcher import LOG
+        from threading import Thread
+        with mock.patch('trollflow2.launcher.yaml.load'),\
+                mock.patch('trollflow2.launcher.open'), \
+                mock.patch('trollflow2.launcher.process') as process,\
+                mock.patch('trollflow2.launcher.generate_messages') as generate_messages, \
+                mock.patch('trollflow2.launcher.check_results'), \
+                mock.patch('multiprocessing.Process') as Process:
+
+            def fake_process(*args, **kwargs):
+                LOG.error('hej')
+
+            fake_handler = mock.MagicMock()
+            fake_handler.level = 0
+            Process.side_effect = Thread
+            process.side_effect = fake_process
+            generate_messages.return_value = ['bla']
+
+            try:
+                LOG.addHandler(fake_handler)
+                original_handlers = set(LOG.handlers.copy())
+                run(0)
+                assert len(LOG.handlers) >= 1
+                new_handlers = set(LOG.handlers.copy())
+                assert len(new_handlers & original_handlers) == 0
+            finally:
+                LOG.removeHandler(fake_handler)
 
 
 class TestExpand(TestCase):
