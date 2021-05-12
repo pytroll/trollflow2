@@ -1,3 +1,55 @@
+## Version 0.10.0 (2021/04/12)
+
+### Issues Closed
+
+* [Issue 100](https://github.com/pytroll/trollflow2/issues/100) - Trollflow2 stops processing if plugin gets stuck (messages go unprocessed, no error message in log) ([PR 104](https://github.com/pytroll/trollflow2/pull/104))
+
+In this release 1 issue was closed.
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR 110](https://github.com/pytroll/trollflow2/pull/110) - For unstable build, also install pyresample.
+
+#### Features added
+
+* [PR 104](https://github.com/pytroll/trollflow2/pull/104) - Add an option to configure a timeout for plugins ([100](https://github.com/pytroll/trollflow2/issues/100))
+
+In this release 2 pull requests were closed.
+
+
+## Version 0.9.0 (2021/03/31)
+
+### Issues Closed
+
+* [Issue 96](https://github.com/pytroll/trollflow2/issues/96) - Latest trollflow2 master fails with latest satpy master ([PR 97](https://github.com/pytroll/trollflow2/pull/97))
+* [Issue 92](https://github.com/pytroll/trollflow2/issues/92) - Go through logging levels and adjust as necessary ([PR 93](https://github.com/pytroll/trollflow2/pull/93))
+* [Issue 77](https://github.com/pytroll/trollflow2/issues/77) - Sometimes weird products is send to plugins.FilePublisher ([PR 109](https://github.com/pytroll/trollflow2/pull/109))
+* [Issue 28](https://github.com/pytroll/trollflow2/issues/28) - Filename sometimes defined in format section
+
+In this release 4 issues were closed.
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR 109](https://github.com/pytroll/trollflow2/pull/109) - Check that products exist before publishing ([77](https://github.com/pytroll/trollflow2/issues/77))
+* [PR 105](https://github.com/pytroll/trollflow2/pull/105) - Fix fsfile-induced test failures
+* [PR 97](https://github.com/pytroll/trollflow2/pull/97) - Adapt trollflow2 for removal of ppp_config_dir ([96](https://github.com/pytroll/trollflow2/issues/96), [96](https://github.com/pytroll/trollflow2/issues/96))
+* [PR 90](https://github.com/pytroll/trollflow2/pull/90) - Fix a default resolution bug making satpy 0.23 crash
+
+#### Features added
+
+* [PR 102](https://github.com/pytroll/trollflow2/pull/102) - Add github actions
+* [PR 101](https://github.com/pytroll/trollflow2/pull/101) - Add area name to "area kept" log message ([101](https://github.com/pytroll/trollflow2/issues/101))
+* [PR 94](https://github.com/pytroll/trollflow2/pull/94) - Add possibility to provide a jsonified filesystem spec in the message
+* [PR 93](https://github.com/pytroll/trollflow2/pull/93) - Adjust message levels and wordings ([92](https://github.com/pytroll/trollflow2/issues/92))
+* [PR 91](https://github.com/pytroll/trollflow2/pull/91) - Add the aggregate plugin
+
+In this release 9 pull requests were closed.
+
+
 ## Version 0.8.0 (2020/09/24)
 
 ### Issues Closed

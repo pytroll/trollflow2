@@ -22,7 +22,13 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 """Test the launcher module."""
 
+import sys
+import time
+import pytest
 import unittest
+import datetime
+import logging
+import queue
 
 import yaml
 
@@ -202,7 +208,8 @@ class TestMessageToJobs(TestCase):
                                              'satpy.readers': mock.MagicMock(),
                                              'satpy.resample': mock.MagicMock(),
                                              'satpy.writers': mock.MagicMock(),
-                                             'satpy.dataset': mock.MagicMock()}):
+                                             'satpy.dataset': mock.MagicMock(),
+                                             'satpy.version': mock.MagicMock()}):
             from fsspec.spec import AbstractFileSystem as abs_fs
             from satpy.readers import FSFile as fsfile
             from trollflow2.launcher import message_to_jobs
@@ -378,6 +385,22 @@ class TestProcess(TestCase):
             with self.assertRaises(yaml.YAMLError):
                 process("msg", "prod_list", the_queue)
 
+            # Test timeout in running job
+            @pytest.mark.skipIf(sys.platform != "linux",
+                                "Timeout only supported on Linux")
+            def wait(job):
+                time.sleep(0.1)
+            fun1.reset_mock(return_value=True, side_effect=True)
+            open_.reset_mock(return_value=True, side_effect=True)
+            expand.reset_mock(return_value=True, side_effect=True)
+            expand.return_value = {"workers": [{"fun": fun1, "timeout": 0.05}]}
+            fun1.side_effect = wait
+            with pytest.raises(TimeoutError, match="Timeout for .* expired "
+                                                   "after 0.1 seconds"):
+                process("msg", "prod_list", the_queue)
+            # wait a second to ensure alarm is not raised later
+            time.sleep(0.11)
+
 
 class TestDistributed(TestCase):
     """Test functions for distributed processing."""
@@ -423,6 +446,59 @@ class TestDistributed(TestCase):
         res = get_dask_client(config)
         assert res is None
         assert ncores.call_count == 3
+
+
+def test_check_results(tmp_path, caplog):
+    """Test functionality for check_results."""
+    from trollflow2.launcher import check_results
+
+    class FakeQueue:
+        def __init__(self, lo, hi, skip=[]):
+            self._files = set()
+            for i in range(lo, hi):
+                f = (tmp_path / f"file{i:d}")
+                self._files.add(str(f))
+                if i not in skip:
+                    with f.open(mode="wt") as fp:
+                        fp.write("zucchini" * i)
+
+        def get(self, block=None):
+            try:
+                return self._files.pop()
+            except KeyError:
+                raise queue.Empty
+
+        def qsize(self):
+            return len(self._files)
+
+    produced_files = FakeQueue(0, 3)
+    start_time = datetime.datetime(1900, 1, 1)
+    exitcode = 0
+    with caplog.at_level(logging.DEBUG):
+        check_results(produced_files, start_time, exitcode)
+    assert "Empty file detected" in caplog.text
+    assert "files produced nominally" not in caplog.text
+
+    produced_files = FakeQueue(5, 8, skip=[6])
+    with caplog.at_level(logging.DEBUG):
+        check_results(produced_files, start_time, exitcode)
+    assert "Missing file" in caplog.text
+    assert "files produced nominally" not in caplog.text
+
+    produced_files = FakeQueue(10, 13)
+    with caplog.at_level(logging.DEBUG), \
+            mock.patch("trollflow2.launcher.datetime") as dd:
+        dd.now.return_value = datetime.datetime(1927, 5, 20, 0, 0)
+        check_results(produced_files, start_time, exitcode)
+    assert "All 3 files produced nominally in 10000 days" in caplog.text
+
+    with caplog.at_level(logging.DEBUG):
+        check_results(produced_files, start_time, 1)
+    assert "Process crashed with exit code 1" in caplog.text
+
+    with caplog.at_level(logging.DEBUG):
+        check_results(produced_files, start_time, -1)
+    assert "Process killed with signal 1" in caplog.text
 
 
 if __name__ == '__main__':

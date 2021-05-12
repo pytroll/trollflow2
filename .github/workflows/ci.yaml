@@ -34,14 +34,15 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install -U codecov pytest pytest-cov pyyaml "dpath<1.5" trollsift six numpy
+          pip install -U codecov pytest pytest-cov pyyaml "dpath<1.5" trollsift six numpy satpy rasterio posttroll pyorbital
 
       - name: Install unstable dependencies
         if: matrix.experimental == true
         run: |
           python -m pip install \
           --no-deps --upgrade \
-          git+https://github.com/pytroll/satpy;
+          git+https://github.com/pytroll/satpy \
+          git+https://github.com/pytroll/pyresample;
 
       - name: Install trollflow2
         run: |

@@ -339,6 +339,9 @@ class FilePublisher(object):
         mda.pop('dataset', None)
         mda.pop('collection', None)
         for fmat, fmat_config in plist_iter(job['product_list']['product_list'], mda):
+            if fmat['product'] not in job['resampled_scenes'].get(fmat['area'], []):
+                LOG.debug('Not publishing missing product %s.', str(fmat))
+                continue
             try:
                 topic, file_mda = self.create_message(fmat, mda)
             except KeyError:

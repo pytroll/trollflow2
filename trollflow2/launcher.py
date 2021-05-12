@@ -33,6 +33,7 @@ import gc
 import os
 import re
 import traceback
+import signal
 from collections import OrderedDict
 from datetime import datetime
 from logging import getLogger
@@ -91,6 +92,7 @@ def check_results(produced_files, start_time, exitcode):
     """Make sure the composites have been saved."""
     end_time = datetime.now()
     error_detected = False
+    qsize = produced_files.qsize()
     while True:
         try:
             saved_file = produced_files.get(block=False)
@@ -111,7 +113,8 @@ def check_results(produced_files, start_time, exitcode):
             LOG.critical('Process crashed with exit code %d', exitcode)
     if not error_detected:
         elapsed = end_time - start_time
-        LOG.info('All files produced nominally in %s.', str(elapsed), extra={'time': elapsed})
+        LOG.info(f'All {qsize:d} files produced nominally in '
+                 f"{elapsed!s}", extra={"time": elapsed})
 
 
 def run(prod_list, topics=None, test_message=None, nameserver='localhost',
@@ -287,7 +290,21 @@ def process(msg, prod_list, produced_files):
             try:
                 for wrk in config['workers']:
                     cwrk = wrk.copy()
+                    if "timeout" in cwrk:
+
+                        def _timeout_handler(signum, frame, wrk=wrk):
+                            raise TimeoutError(
+                                f"Timeout for {wrk['fun']!s} expired "
+                                f"after {wrk['timeout']:.1f} seconds, "
+                                "giving up")
+                        signal.signal(signal.SIGALRM, _timeout_handler)
+                        # using setitimer because it accepts floats,
+                        # unlike signal.alarm
+                        signal.setitimer(signal.ITIMER_REAL,
+                                         cwrk.pop("timeout"))
                     cwrk.pop('fun')(job, **cwrk)
+                    if "timeout" in cwrk:
+                        signal.alarm(0)  # cancel the alarm
             except AbortProcessing as err:
                 LOG.warning(str(err))
     except Exception:
