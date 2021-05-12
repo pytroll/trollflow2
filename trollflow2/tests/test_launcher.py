@@ -395,7 +395,7 @@ class TestRunLogging(TestCase):
                 run(0)
             finally:
                 LOG.removeHandler(fake_handler)
-            assert len(fake_handler.method_calls) > 0
+            assert fake_handler.method_calls
 
     def test_target_fun_does_not_log_to_existing_handlers_directly(self):
         """Test that target_fun does not log to existing handlers directly."""
