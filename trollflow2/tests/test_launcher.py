@@ -271,14 +271,18 @@ class TestRun(TestCase):
                 mock.patch('trollflow2.launcher.generate_messages') as generate_messages,\
                 mock.patch('trollflow2.launcher.process') as process,\
                 mock.patch('multiprocessing.Process') as Process:
-            generate_messages.side_effect = ['foo', KeyboardInterrupt]
+            def gen_messages(*args):
+                del args
+                yield 'foo'
+                raise KeyboardInterrupt
+            generate_messages.side_effect = gen_messages
             Process.side_effect = Thread
             prod_list = 'bar'
             try:
                 run(prod_list)
             except KeyboardInterrupt:
                 pass
-            assert process.called
+            process.assert_called_once()
 
     def test_run_relies_on_listener(self):
         """Test running relies on listener."""
