@@ -156,7 +156,7 @@ def _run_threaded(product_list, test_message):
     from posttroll.message import Message
     messages = [Message(rawstr=test_message)]
     target_fun = partial(process, prod_list=product_list)
-    return _run_product_list_on_messages(messages, target_fun, Thread)
+    _run_product_list_on_messages(messages, target_fun, Thread)
 
 
 def _run_subprocess(product_list, connection_parameters=None):
