@@ -1302,7 +1302,6 @@ class TestFilePublisher(TestCase):
         from trollflow2.dict_tools import plist_iter
         from trollsift import compose
         import os.path
-
         from satpy import Scene
         from satpy.tests.utils import make_dataid
 
@@ -1313,7 +1312,10 @@ class TestFilePublisher(TestCase):
                'input_mda': self.input_mda,
                'resampled_scenes': dict(euron1=scn_euron1)}
 
-        with mock.patch('trollflow2.plugins.Message') as message, mock.patch('trollflow2.plugins.NoisyPublisher'):
+        with mock.patch.multiple('trollflow2.plugins', Message=mock.DEFAULT,
+                                 NoisyPublisher=mock.DEFAULT, Publisher=mock.DEFAULT) as mocks:
+            message = mocks['Message']
+
             pub = FilePublisher()
             product_list = self.product_list.copy()
             product_list['product_list']['publish_topic'] = '/{areaname}/{productname}'
@@ -1349,7 +1351,6 @@ class TestFilePublisher(TestCase):
         from trollflow2.dict_tools import plist_iter
         from trollsift import compose
         import os.path
-
         from satpy import Scene
         from satpy.tests.utils import make_dataid
 
@@ -1360,7 +1361,10 @@ class TestFilePublisher(TestCase):
                'input_mda': self.input_mda,
                'resampled_scenes': dict(euron1=scn_euron1)}
 
-        with mock.patch('trollflow2.plugins.Message') as message, mock.patch('trollflow2.plugins.NoisyPublisher'):
+        with mock.patch.multiple('trollflow2.plugins', Message=mock.DEFAULT,
+                                 NoisyPublisher=mock.DEFAULT, Publisher=mock.DEFAULT) as mocks:
+            message = mocks['Message']
+
             pub = FilePublisher()
             product_list = self.product_list.copy()
             product_list['product_list']['publish_topic'] = '/static_topic'
@@ -1428,24 +1432,44 @@ class TestFilePublisher(TestCase):
         from trollflow2.plugins import FilePublisher
 
         # Direct instantiation
-        with mock.patch('trollflow2.plugins.Message'), mock.patch('trollflow2.plugins.NoisyPublisher') as nb_:
+        with mock.patch.multiple('trollflow2.plugins', Message=mock.DEFAULT,
+                                 NoisyPublisher=mock.DEFAULT, Publisher=mock.DEFAULT) as mocks:
+            NoisyPublisher = mocks['NoisyPublisher']
+            Publisher = mocks['Publisher']
+
             pub = FilePublisher()
-            assert mock.call('l2processor', port=0, nameservers=None) in nb_.mock_calls
+            pub.pub.start.assert_called_once()
+            assert mock.call('l2processor', port=0, nameservers="") in NoisyPublisher.mock_calls
+            Publisher.assert_not_called()
             assert pub.port == 0
-            assert pub.nameservers is None
+            assert pub.nameservers == ""
             pub = FilePublisher(port=40000, nameservers=['localhost'])
             assert mock.call('l2processor', port=40000,
-                             nameservers=['localhost']) in nb_.mock_calls
+                             nameservers=['localhost']) in NoisyPublisher.mock_calls
             assert pub.port == 40000
             assert pub.nameservers == ['localhost']
             assert len(pub.pub.start.mock_calls) == 2
 
+        # Direct instantiation with nameservers set to None, which should use Publisher instead of NoisyPublisher
+        with mock.patch.multiple('trollflow2.plugins', Message=mock.DEFAULT,
+                                 NoisyPublisher=mock.DEFAULT, Publisher=mock.DEFAULT) as mocks:
+            NoisyPublisher = mocks['NoisyPublisher']
+            Publisher = mocks['Publisher']
+
+            pub = FilePublisher(port=40000, nameservers=None)
+            NoisyPublisher.assert_not_called()
+            Publisher.assert_called_once_with('tcp://*:40000', 'l2processor')
+
         # Instantiate via loading YAML
-        with mock.patch('trollflow2.plugins.Message'), mock.patch('trollflow2.plugins.NoisyPublisher') as nb_:
+        with mock.patch.multiple('trollflow2.plugins', Message=mock.DEFAULT,
+                                 NoisyPublisher=mock.DEFAULT, Publisher=mock.DEFAULT) as mocks:
+            NoisyPublisher = mocks['NoisyPublisher']
+            Publisher = mocks['Publisher']
 
             fpub = yaml.load(YAML_FILE_PUBLISHER, Loader=yaml.UnsafeLoader)
             assert mock.call('l2processor', port=40002,
-                             nameservers=['localhost']) in nb_.mock_calls
+                             nameservers=['localhost']) in NoisyPublisher.mock_calls
+            Publisher.assert_not_called()
             fpub.pub.start.assert_called_once()
             assert fpub.port == 40002
             assert fpub.nameservers == ['localhost']
@@ -1463,7 +1487,10 @@ class TestFilePublisher(TestCase):
                'input_mda': self.input_mda,
                'resampled_scenes': dict(euron1=scn)}
 
-        with mock.patch('trollflow2.plugins.Message') as message, mock.patch('trollflow2.plugins.NoisyPublisher'):
+        with mock.patch.multiple('trollflow2.plugins', Message=mock.DEFAULT,
+                                 NoisyPublisher=mock.DEFAULT, Publisher=mock.DEFAULT) as mocks:
+            message = mocks['Message']
+
             pub = FilePublisher()
             pub(job)
             dispatches = 0
@@ -1477,9 +1504,9 @@ class TestFilePublisher(TestCase):
                     self.assertIn('target', mda)
                     self.assertIn('file_mda', mda)
                     self.assertEqual(mda['source'],
-                                     '/tmp/satdmz/pps/www/latest_2018/NOAA-15_20190217_0600_euron1_in_fname_ctth_static.png')  # noqa
+                                    '/tmp/satdmz/pps/www/latest_2018/NOAA-15_20190217_0600_euron1_in_fname_ctth_static.png')  # noqa
                     self.assertEqual(mda['target'],
-                                     'ftp://ftp.important_client.com/somewhere/NOAA-15_20190217_0600_euron1_in_fname_ctth_static.png')  # noqa
+                                    'ftp://ftp.important_client.com/somewhere/NOAA-15_20190217_0600_euron1_in_fname_ctth_static.png')  # noqa
                     dispatches += 1
             self.assertEqual(dispatches, 1)
 
@@ -1487,8 +1514,11 @@ class TestFilePublisher(TestCase):
         """Test deleting the publisher."""
         from trollflow2.plugins import FilePublisher
         nb_ = mock.MagicMock()
-        with mock.patch('trollflow2.plugins.Message'), mock.patch('trollflow2.plugins.NoisyPublisher') as nb:
-            nb.return_value = nb_
+        with mock.patch.multiple('trollflow2.plugins', Message=mock.DEFAULT,
+                                 NoisyPublisher=mock.DEFAULT, Publisher=mock.DEFAULT) as mocks:
+            NoisyPublisher = mocks['NoisyPublisher']
+
+            NoisyPublisher.return_value = nb_
             pub = FilePublisher()
             job = {'product_list': self.product_list,
                    'input_mda': self.input_mda,
@@ -1503,8 +1533,11 @@ class TestFilePublisher(TestCase):
         """Test stopping the publisher."""
         from trollflow2.plugins import FilePublisher
         nb_ = mock.MagicMock()
-        with mock.patch('trollflow2.plugins.Message'), mock.patch('trollflow2.plugins.NoisyPublisher') as nb:
-            nb.return_value = nb_
+        with mock.patch.multiple('trollflow2.plugins', Message=mock.DEFAULT,
+                                 NoisyPublisher=mock.DEFAULT, Publisher=mock.DEFAULT) as mocks:
+            NoisyPublisher = mocks['NoisyPublisher']
+
+            NoisyPublisher.return_value = nb_
             pub = FilePublisher()
             job = {'product_list': self.product_list,
                    'input_mda': self.input_mda,
