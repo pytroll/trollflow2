@@ -31,7 +31,7 @@ import dpath
 import rasterio
 import dask
 from posttroll.message import Message
-from posttroll.publisher import NoisyPublisher
+from posttroll.publisher import Publisher, NoisyPublisher
 from pyorbital.astronomy import sun_zenith_angle
 from pyresample.boundary import AreaDefBoundary, Boundary
 from pyresample.area_config import AreaNotFound
@@ -269,7 +269,7 @@ def save_datasets(job):
 class FilePublisher(object):
     """Publisher for generated files."""
 
-    def __init__(self, port=0, nameservers=None):
+    def __init__(self, port=0, nameservers=""):
         """Create new instance."""
         self.pub = None
         self.port = port
@@ -280,10 +280,13 @@ class FilePublisher(object):
         """Set things running even when loading from YAML."""
         LOG.debug('Starting publisher')
         self.port = kwargs.get('port', 0)
-        self.nameservers = kwargs.get('nameservers', None)
-        self.pub = NoisyPublisher('l2processor', port=self.port,
-                                  nameservers=self.nameservers)
-        self.pub.start()
+        self.nameservers = kwargs.get('nameservers', "")
+        if self.nameservers is None:
+            self.pub = Publisher("tcp://*:" + str(self.port), "l2processor")
+        else:
+            self.pub = NoisyPublisher('l2processor', port=self.port,
+                                      nameservers=self.nameservers)
+            self.pub.start()
 
     @staticmethod
     def create_message(fmat, mda):
