@@ -138,6 +138,21 @@ product_list:
               - format: tif
                 writer: geotiff
                 filename: /tmp/satdmz/pps/www/latest_2018/NOAA-15_20190217_0600_omerc_bb_in_fname_ctth.png
+      null:
+          areaname: satproj
+          fname_pattern: "{start_time:%Y%m%d_%H%M}_{areaname:s}_{productname}.{format}"
+          output_dir: /tmp
+          products:
+            ("chl_nn", "chl_oc4me", "trsp", "tsm_nn", "iop_nn", "mask", "latitude", "longitude"):
+              min_sunlight_coverage: 10
+              productname: sat_coast
+              publish_topic: /nc/2C/olcil2
+              formats:
+                - format: nc
+                  writer: cf
+                  encoding:
+                    latitude: {'dtype': 'int32', 'scale_factor': 1.0e-6, '_FillValue': -200000000, 'zlib': true}
+                    longitude: {'dtype': 'int32', 'scale_factor': 1.0e-6, '_FillValue': -200000000, 'zlib': true}
 """
 
 yaml_test3 = """
@@ -1299,9 +1314,6 @@ class TestFilePublisher(TestCase):
     def test_filepublisher_with_compose(self):
         """Test filepublisher with compose."""
         from trollflow2.plugins import FilePublisher
-        from trollflow2.dict_tools import plist_iter
-        from trollsift import compose
-        import os.path
         from satpy import Scene
         from satpy.tests.utils import make_dataid
 
@@ -1319,17 +1331,7 @@ class TestFilePublisher(TestCase):
             pub = FilePublisher()
             product_list = self.product_list.copy()
             product_list['product_list']['publish_topic'] = '/{areaname}/{productname}'
-            topic_pattern = job['product_list']['product_list']['publish_topic']
-            topics = []
-            # Create filenames and topics
-            for fmat, fmat_config in plist_iter(job['product_list']['product_list'],
-                                                job['input_mda'].copy()):
-                fname_pattern = fmat['fname_pattern']
-                filename = compose(os.path.join(fmat['output_dir'],
-                                                fname_pattern), fmat)
-                fmat.pop('format', None)
-                fmat_config['filename'] = filename
-                topics.append(compose(topic_pattern, fmat))
+            topics = self._create_filenames_and_topics(job)
 
             pub(job)
             message.assert_called()
@@ -1347,10 +1349,6 @@ class TestFilePublisher(TestCase):
 
     def test_filepublisher_without_compose(self):
         """Test filepublisher without compose."""
-        from trollflow2.plugins import FilePublisher
-        from trollflow2.dict_tools import plist_iter
-        from trollsift import compose
-        import os.path
         from satpy import Scene
         from satpy.tests.utils import make_dataid
 
@@ -1365,22 +1363,7 @@ class TestFilePublisher(TestCase):
                                  NoisyPublisher=mock.DEFAULT, Publisher=mock.DEFAULT) as mocks:
             message = mocks['Message']
 
-            pub = FilePublisher()
-            product_list = self.product_list.copy()
-            product_list['product_list']['publish_topic'] = '/static_topic'
-            topic_pattern = job['product_list']['product_list']['publish_topic']
-            topics = []
-            # Create filenames and topics
-            for fmat, fmat_config in plist_iter(job['product_list']['product_list'],
-                                                job['input_mda'].copy()):
-                fname_pattern = fmat['fname_pattern']
-                filename = compose(os.path.join(fmat['output_dir'],
-                                                fname_pattern), fmat)
-                fmat.pop('format', None)
-                fmat_config['filename'] = filename
-                topics.append(compose(topic_pattern, fmat))
-
-            pub(job)
+            pub, topics = self._run_publisher_on_job(job)
             message.assert_called()
             pub.pub.send.assert_called()
 
@@ -1395,36 +1378,65 @@ class TestFilePublisher(TestCase):
 
     def test_non_existing_products_are_not_published(self):
         """Test that non existing products are not published."""
-        from trollflow2.plugins import FilePublisher
-        from trollflow2.dict_tools import plist_iter
-        from trollsift import compose
-        import os.path
         from satpy import Scene
 
         scn = mock.MagicMock()
-        scn.resample.return_value = Scene()
         job = {"scene": scn, "product_list": self.product_list, 'input_mda': self.input_mda,
                'resampled_scenes': dict(euron1=Scene(), germ=Scene())}
 
         with mock.patch('trollflow2.plugins.Message') as message, mock.patch('trollflow2.plugins.NoisyPublisher'):
-            pub = FilePublisher()
-            product_list = self.product_list.copy()
-            product_list['product_list']['publish_topic'] = '/static_topic'
-
-            topic_pattern = job['product_list']['product_list']['publish_topic']
-            topics = []
-            # Create filenames and topics
-            for fmat, fmat_config in plist_iter(job['product_list']['product_list'],
-                                                job['input_mda'].copy()):
-                fname_pattern = fmat['fname_pattern']
-                filename = compose(os.path.join(fmat['output_dir'],
-                                                fname_pattern), fmat)
-                fmat.pop('format', None)
-                fmat_config['filename'] = filename
-                topics.append(compose(topic_pattern, fmat))
-
-            pub(job)
+            self._run_publisher_on_job(job)
             message.assert_not_called()
+
+    def test_multiple_dataset_files_can_be_published(self):
+        """Test that netcdf files with multiple datasets can be published normally."""
+        from satpy import Scene
+        import numpy as np
+        from satpy.tests.utils import make_dataid
+
+        resampled_scene = Scene()
+        resampled_scene[make_dataid(name='latitude')] = np.ones((4, 4))
+
+        scn = mock.MagicMock()
+        job = {"scene": scn, "product_list": self.product_list, 'input_mda': self.input_mda,
+               'resampled_scenes': {None: resampled_scene}}
+
+        with mock.patch('trollflow2.plugins.Message') as message, mock.patch('trollflow2.plugins.NoisyPublisher'):
+            self._run_publisher_on_job(job)
+            assert message.call_args_list[-1][0][2]['product'] == (
+                'chl_nn', 'chl_oc4me', 'trsp', 'tsm_nn', 'iop_nn', 'mask', 'latitude', 'longitude')
+
+    def _run_publisher_on_job(self, job):
+        """Run a publisher on *job*."""
+        from trollflow2.plugins import FilePublisher
+
+        pub = FilePublisher()
+        product_list = self.product_list.copy()
+        product_list['product_list']['publish_topic'] = '/static_topic'
+        topics = self._create_filenames_and_topics(job)
+        pub(job)
+        return pub, topics
+
+    @staticmethod
+    def _create_filenames_and_topics(job):
+        """Create the filenames and topics for *job*."""
+        from trollflow2.dict_tools import plist_iter
+        from trollsift import compose
+        import os.path
+
+        topic_pattern = job['product_list']['product_list']['publish_topic']
+        topics = []
+
+        for fmat, fmat_config in plist_iter(job['product_list']['product_list'],
+                                            job['input_mda'].copy()):
+            fname_pattern = fmat['fname_pattern']
+            filename = compose(os.path.join(fmat['output_dir'],
+                                            fname_pattern), fmat)
+            fmat.pop('format', None)
+            fmat_config['filename'] = filename
+            topics.append(compose(topic_pattern, fmat))
+
+        return topics
 
     def test_filepublisher_kwargs(self):
         """Test filepublisher keyword argument usage."""
