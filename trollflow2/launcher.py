@@ -311,6 +311,8 @@ def get_dask_client(config):
     except KeyError:
         LOG.debug("Distributed processing not configured, "
                   "using default scheduler")
+    else:
+        LOG.debug(f"Using dask distributed client {client!s}")
 
     return client
 

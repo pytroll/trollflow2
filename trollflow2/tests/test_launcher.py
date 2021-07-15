@@ -534,50 +534,60 @@ class TestProcess(TestCase):
             time.sleep(0.11)
 
 
-class TestDistributed(TestCase):
-    """Test functions for distributed processing."""
+def test_get_dask_client(caplog):
+    """Test getting dask client."""
+    from trollflow2.launcher import get_dask_client
 
-    def test_get_dask_client(self):
-        """Test getting dask client."""
-        from trollflow2.launcher import get_dask_client
+    ncores = mock.MagicMock()
+    ncores.return_value = {}
+    client = mock.MagicMock(ncores=ncores)
+    client_class = mock.MagicMock()
+    client_class.return_value = client
 
-        ncores = mock.MagicMock()
-        ncores.return_value = {}
-        client = mock.MagicMock(ncores=ncores)
-        client_class = mock.MagicMock()
-        client_class.return_value = client
-
-        # No client configured
-        config = {}
+    # No client configured
+    config = {}
+    with caplog.at_level(logging.DEBUG):
         res = get_dask_client(config)
-        assert res is None
+    assert "Distributed processing not configured" in caplog.text
+    caplog.clear()
+    assert res is None
 
-        # Config is valid, but no workers are available
-        config = {"dask_distributed": {"class": client_class,
-                                       "settings": {"foo": 1, "bar": 2}
-                                       }
-                  }
+    # Config is valid, but no workers are available
+    config = {"dask_distributed": {"class": client_class,
+                                   "settings": {"foo": 1, "bar": 2}
+                                   }
+              }
+    with caplog.at_level(logging.WARNING):
         res = get_dask_client(config)
-        assert res is None
-        ncores.assert_called_once()
-        client.close.assert_called_once()
+    assert "No workers available, reverting to default scheduler" in caplog.text
+    caplog.clear()
+    assert res is None
+    ncores.assert_called_once()
+    client.close.assert_called_once()
 
-        # The scheduler had no workers, the client doesn't have `.close()`
-        client.close.side_effect = AttributeError
+    # The scheduler had no workers, the client doesn't have `.close()`
+    client.close.side_effect = AttributeError
+    with caplog.at_level(logging.WARNING):
         res = get_dask_client(config)
-        assert res is None
+    assert res is None
 
-        # Config is valid, scheduler has workers
-        ncores.return_value = {'a': 1, 'b': 1}
+    # Config is valid, scheduler has workers
+    ncores.return_value = {'a': 1, 'b': 1}
+    with caplog.at_level(logging.DEBUG):
         res = get_dask_client(config)
-        assert res is client
-        assert ncores.call_count == 3
+    assert "Using dask distributed client" in caplog.text
+    caplog.clear()
+    assert res is client
+    assert ncores.call_count == 3
 
-        # Scheduler couldn't connect to workers
-        client_class.side_effect = OSError
+    # Scheduler couldn't connect to workers
+    client_class.side_effect = OSError
+    with caplog.at_level(logging.ERROR):
         res = get_dask_client(config)
-        assert res is None
-        assert ncores.call_count == 3
+    assert "Scheduler not found, reverting to default scheduler" in caplog.text
+    caplog.clear()
+    assert res is None
+    assert ncores.call_count == 3
 
 
 def test_check_results(tmp_path, caplog):
