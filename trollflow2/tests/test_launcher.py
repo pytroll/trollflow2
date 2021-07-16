@@ -571,7 +571,7 @@ class TestProcess(TestCase):
             process("msg", "prod_list", self.queue)
 
     @pytest.mark.skipif(sys.platform != "linux",
-                        "Timeout only supported on Linux")
+                        reason="Timeout only supported on Linux")
     def test_timeout_in_running_job(self):
         """Test timeout in running job."""
         def wait(job):
