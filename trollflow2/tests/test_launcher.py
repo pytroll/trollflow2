@@ -31,6 +31,7 @@ import logging
 import queue
 
 import yaml
+from yaml import YAMLError
 
 try:
     from yaml import UnsafeLoader
@@ -38,6 +39,7 @@ except ImportError:
     from yaml import Loader as UnsafeLoader
 from unittest import mock
 from trollflow2.tests.utils import TestCase
+from trollflow2.launcher import process
 
 yaml_test1 = """
 product_list:
@@ -451,87 +453,139 @@ class TestExpand(TestCase):
 class TestProcess(TestCase):
     """Test case for the subprocessing."""
 
-    def test_process(self):
-        """Test subprocessing."""
-        from trollflow2.launcher import process
-        with mock.patch('trollflow2.launcher.traceback') as traceback,\
-                mock.patch('trollflow2.launcher.sendmail') as sendmail,\
-                mock.patch('trollflow2.launcher.expand') as expand,\
-                mock.patch('trollflow2.launcher.yaml') as yaml_,\
-                mock.patch('trollflow2.launcher.message_to_jobs') as message_to_jobs,\
-                mock.patch('trollflow2.launcher.open') as open_,\
-                mock.patch('trollflow2.launcher.get_dask_client') as gdc:
+    def setUp(self):
+        """Set up the test."""
+        self.patcher = mock.patch.multiple("trollflow2.launcher",
+                                           traceback=mock.DEFAULT,
+                                           sendmail=mock.DEFAULT,
+                                           expand=mock.DEFAULT,
+                                           yaml=mock.DEFAULT,
+                                           message_to_jobs=mock.DEFAULT,
+                                           open=mock.DEFAULT,
+                                           get_dask_client=mock.DEFAULT)
+        mocks = self.patcher.start()
 
-            fid = mock.MagicMock()
-            fid.read.return_value = yaml_test1
-            open_.return_value.__enter__.return_value = fid
-            mock_config = mock.MagicMock()
-            yaml_.load.return_value = mock_config
-            yaml_.YAMLError = yaml.YAMLError
-            # Make a client that has no `.close()` method (for coverage)
-            client = mock.MagicMock()
-            client.close.side_effect = AttributeError
-            gdc.return_value = client
-            fun1 = mock.MagicMock()
-            # Return something resembling a config
-            expand.return_value = {"workers": [{"fun": fun1}]}
+        self.traceback = mocks['traceback']
+        self.sendmail = mocks['sendmail']
 
-            message_to_jobs.return_value = {1: {"job1": dict([])}}
-            the_queue = mock.MagicMock()
-            fun1.stop.assert_not_called()
-            process("msg", "prod_list", the_queue)
-            fun1.stop.assert_called_once()
+        self.open = mocks['open']
+        fid = mock.MagicMock()
+        fid.read.return_value = yaml_test1
+        self.open.return_value.__enter__.return_value = fid
 
-            open_.assert_called_with("prod_list")
-            yaml_.load.assert_called_once()
-            message_to_jobs.assert_called_with("msg", {"workers": [{"fun": fun1}]})
-            fun1.assert_called_with({'job1': {}, 'processing_priority': 1, 'produced_files': the_queue})
-            gdc.assert_called_once()
-            client.close.assert_called_once()
+        self.yaml = mocks['yaml']
+        # Is this necessary?
+        self.yaml.YAMLError = YAMLError
 
-            fun1.stop = mock.MagicMock(side_effect=AttributeError('boo'))
-            process("msg", "prod_list", the_queue)
+        self.get_dask_client = mocks['get_dask_client']
+        # Make a client that has no `.close()` method (for coverage)
+        self.client = mock.MagicMock()
+        self.client.close.side_effect = AttributeError
+        self.get_dask_client.return_value = self.client
 
-            # Test that errors are propagated
-            fun1.side_effect = KeyboardInterrupt
-            with self.assertRaises(KeyboardInterrupt):
-                process("msg", "prod_list", the_queue)
-            # Test crash hander call.  This will raise KeyError as there
-            # are no configured workers in the config returned by expand()
-            traceback.format_exc.return_value = 'baz'
-            crash_handlers = {"crash_handlers": {"config": {"foo": "bar"},
-                                                 "handlers": [{"fun": sendmail}]}}
-            expand.return_value = crash_handlers
-            with self.assertRaises(KeyError):
-                process("msg", "prod_list", the_queue)
-            config = crash_handlers['crash_handlers']['config']
-            sendmail.assert_called_once_with(config, 'baz')
+        self.expand = mocks['expand']
+        self.fake_plugin = mock.MagicMock()
+        # Return something resembling a config
+        self.expand.return_value = {"workers": [{"fun": self.fake_plugin}]}
 
-            # Test failure in open(), e.g. a missing file
-            open_.side_effect = IOError
-            with self.assertRaises(IOError):
-                process("msg", "prod_list", the_queue)
+        self.message_to_jobs = mocks['message_to_jobs']
+        self.message_to_jobs.return_value = {1: {"job1": dict([])}}
 
-            # Test failure in yaml.load(), e.g. bad formatting
-            open_.side_effect = yaml.YAMLError
-            with self.assertRaises(yaml.YAMLError):
-                process("msg", "prod_list", the_queue)
+        self.queue = mock.MagicMock()
 
-            # Test timeout in running job
-            @pytest.mark.skipIf(sys.platform != "linux",
-                                "Timeout only supported on Linux")
-            def wait(job):
-                time.sleep(0.1)
-            fun1.reset_mock(return_value=True, side_effect=True)
-            open_.reset_mock(return_value=True, side_effect=True)
-            expand.reset_mock(return_value=True, side_effect=True)
-            expand.return_value = {"workers": [{"fun": fun1, "timeout": 0.05}]}
-            fun1.side_effect = wait
-            with pytest.raises(TimeoutError, match="Timeout for .* expired "
-                                                   "after 0.1 seconds"):
-                process("msg", "prod_list", the_queue)
-            # wait a second to ensure alarm is not raised later
-            time.sleep(0.11)
+    def tearDown(self):
+        """Tear down the test case."""
+        self.patcher.stop()
+
+    def test_plugin_is_stopped_after_processing(self):
+        """Test plugin is stopped after processing."""
+        self.fake_plugin.stop.assert_not_called()
+        process("msg", "prod_list", self.queue)
+        self.fake_plugin.stop.assert_called_once()
+
+    def test_product_list_is_opened(self):
+        """Test product list is opened."""
+        process("msg", "prod_list", self.queue)
+        self.open.assert_called_with("prod_list")
+
+    def test_yaml_config_is_read_only_once(self):
+        """Test that the yaml config is read only once."""
+        process("msg", "prod_list", self.queue)
+        self.yaml.load.assert_called_once()
+
+    def test_workers_config_is_passed_down(self):
+        """Test that the workers config is used."""
+        process("msg", "prod_list", self.queue)
+        self.message_to_jobs.assert_called_with("msg", {"workers": [{"fun": self.fake_plugin}]})
+
+    def test_plugin_is_used(self):
+        """Test that the plugin is being used."""
+        process("msg", "prod_list", self.queue)
+        self.fake_plugin.assert_called_with({'job1': {}, 'processing_priority': 1, 'produced_files': self.queue})
+
+    def test_dask_client_is_used(self):
+        """Test that the dask client is used."""
+        process("msg", "prod_list", self.queue)
+        self.get_dask_client.assert_called_once()
+
+    def test_dask_client_is_closed(self):
+        """Test that the dask client is closed."""
+        process("msg", "prod_list", self.queue)
+        self.client.close.assert_called_once()
+
+    def test_plugin_with_no_stop_work(self):
+        """Test that plugins with no `stop` method (like regular functions) can be used."""
+        self.fake_plugin.stop = mock.MagicMock(side_effect=AttributeError('boo'))
+        process("msg", "prod_list", self.queue)
+
+    def test_error_propagation(self):
+        """Test that errors are propagated."""
+        self.fake_plugin.side_effect = KeyboardInterrupt
+        with pytest.raises(KeyboardInterrupt):
+            process("msg", "prod_list", self.queue)
+
+    def test_crash_handler_call(self):
+        """Test crash hander call.
+
+        This will raise KeyError as there are no configured workers in the config returned by expand().
+        """
+        self.traceback.format_exc.return_value = 'baz'
+        crash_handlers = {"crash_handlers": {"config": {"foo": "bar"},
+                                             "handlers": [{"fun": self.sendmail}]}}
+        self.expand.return_value = crash_handlers
+        with pytest.raises(KeyError):
+            process("msg", "prod_list", self.queue)
+        config = crash_handlers['crash_handlers']['config']
+        self.sendmail.assert_called_once_with(config, 'baz')
+
+    def test_open_missing_file(self):
+        """Test failure in open() due to a missing config file."""
+        self.open.side_effect = IOError
+        with pytest.raises(IOError):
+            process("msg", "prod_list", self.queue)
+
+    def test_open_bad_yaml(self):
+        """Test failure in yaml.load(), e.g. bad formatting."""
+        self.open.side_effect = YAMLError
+        with pytest.raises(YAMLError):
+            process("msg", "prod_list", self.queue)
+
+    @pytest.mark.skipIf(sys.platform != "linux",
+                        "Timeout only supported on Linux")
+    def test_timeout_in_running_job(self):
+        """Test timeout in running job."""
+        def wait(job):
+            del job
+            time.sleep(0.1)
+
+        self.fake_plugin.side_effect = wait
+
+        self.expand.return_value = {"workers": [{"fun": self.fake_plugin, "timeout": 0.05}]}
+        with pytest.raises(TimeoutError, match="Timeout for .* expired "
+                                               "after 0.1 seconds"):
+            process("msg", "prod_list", self.queue)
+        # wait a little to ensure alarm is not raised later
+        time.sleep(0.11)
 
 
 class TestDistributed(TestCase):
@@ -585,7 +639,9 @@ def test_check_results(tmp_path, caplog):
     from trollflow2.launcher import check_results
 
     class FakeQueue:
-        def __init__(self, lo, hi, skip=[]):
+        def __init__(self, lo, hi, skip=None):
+            if skip is None:
+                skip = []
             self._files = set()
             for i in range(lo, hi):
                 f = (tmp_path / f"file{i:d}")
