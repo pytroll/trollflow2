@@ -570,7 +570,7 @@ class TestProcess(TestCase):
         with pytest.raises(YAMLError):
             process("msg", "prod_list", self.queue)
 
-    @pytest.mark.skipIf(sys.platform != "linux",
+    @pytest.mark.skipif(sys.platform != "linux",
                         "Timeout only supported on Linux")
     def test_timeout_in_running_job(self):
         """Test timeout in running job."""
