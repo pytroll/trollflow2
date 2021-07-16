@@ -22,14 +22,14 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 """Test the launcher module."""
 
-import sys
-import time
-import pytest
-import unittest
 import datetime
 import logging
 import queue
+import sys
+import time
+import unittest
 
+import pytest
 import yaml
 from yaml import YAMLError
 
