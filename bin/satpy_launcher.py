@@ -62,7 +62,7 @@ def main():
     if log_config is not None:
         with open(log_config) as fd:
             import yaml
-            log_dict = yaml.load(fd.read())
+            log_dict = yaml.safe_load(fd.read())
             logging.config.dictConfig(log_dict)
     else:
         from satpy.utils import debug_on
