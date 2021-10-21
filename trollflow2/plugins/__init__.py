@@ -747,41 +747,10 @@ def check_valid_data_fraction(job):
         to_remove = set()
         for (prod_name, prod_props) in area_props["products"].items():
             if "min_valid_data_fraction" in prod_props:
-                LOG.debug(f"Checking validity for {area_name:s}/{prod_name:s}")
-                if prod_name not in job["resampled_scenes"][area_name]:
-                    LOG.debug(f"product {prod_name!s} not found, already removed or loading failed?")
-                    continue
-                prod = job["resampled_scenes"][area_name][prod_name]
-                platform_name = prod.attrs["platform_name"]
-                start_time = prod.attrs["start_time"]
-                end_time = prod.attrs["end_time"]
-                sensor = prod.attrs["sensor"]
-                if area_name not in exp_cov:
-                    # get_scene_coverage uses %, convert to fraction
-                    exp_cov[area_name] = get_scene_coverage(
-                        platform_name, start_time, end_time, sensor, area_name)/100
-                exp_valid = exp_cov[area_name]
-                if exp_valid == 0:
-                    LOG.debug(f"product {prod_name!s} no expected coverage at all, removing")
+                if not _product_meets_min_valid_data_fraction(
+                        prod_name, prod_props, area_name, area_props, job,
+                        exp_cov):
                     to_remove.add(prod_name)
-                    continue
-                valid = job["resampled_scenes"][area_name][prod_name].notnull()
-                actual_valid = float(valid.sum()/valid.size)
-                rel_valid = float(actual_valid / exp_valid)
-                LOG.debug(f"Expected maximum validity: {exp_valid:%}")
-                LOG.debug(f"Actual validity (coverage): {actual_valid:%}")
-                LOG.debug(f"Relative validity: {rel_valid:%}")
-                min_frac = prod_props["min_valid_data_fraction"]/100
-                if not 0 <= rel_valid < 1.05:
-                    LOG.warning(f"Found {rel_valid:%} valid data, impossible... "
-                                "inaccurate coverage estimate suspected!")
-                elif rel_valid < min_frac:
-                    LOG.debug(f"Found {rel_valid:%}<{min_frac:%} valid data, removing "
-                              f"{prod_name:s} for area {area_name:s} from the worklist")
-                    to_remove.add(prod_name)
-                else:
-                    LOG.debug(f"Found {rel_valid:%}>{min_frac:%}, keeping "
-                              f"{prod_name:s} for area {area_name:s} in the worklist")
         for rem in to_remove:
             del area_props["products"][rem]
 
@@ -805,3 +774,51 @@ def _persist_what_we_must(job):
     persisted = dask.persist(*[p[2] for p in to_persist])
     for ((sc, prod_name, old), new) in zip(to_persist, persisted):
         sc[prod_name] = new
+
+
+def _product_meets_min_valid_data_fraction(
+        prod_name, prod_props, area_name, area_props, job, exp_cov):
+    """Check if product meets min_valid_data_fraction
+
+    Helper for `check_valid_data_fraction`, check if ``product`` meets the
+    ``min_valid_data_fraction`` as defined in ``prod_props``.
+
+    Returns True if product can remain or is absent.  Returns False if product
+    has to be promev.d
+    """
+
+    LOG.debug(f"Checking validity for {area_name:s}/{prod_name:s}")
+    if prod_name not in job["resampled_scenes"][area_name]:
+        LOG.debug(f"product {prod_name!s} not found, already removed or loading failed?")
+        return True
+    prod = job["resampled_scenes"][area_name][prod_name]
+    platform_name = prod.attrs["platform_name"]
+    start_time = prod.attrs["start_time"]
+    end_time = prod.attrs["end_time"]
+    sensor = prod.attrs["sensor"]
+    if area_name not in exp_cov:
+        # get_scene_coverage uses %, convert to fraction
+        exp_cov[area_name] = get_scene_coverage(
+            platform_name, start_time, end_time, sensor, area_name)/100
+    exp_valid = exp_cov[area_name]
+    if exp_valid == 0:
+        LOG.debug(f"product {prod_name!s} no expected coverage at all, removing")
+        return False
+    valid = job["resampled_scenes"][area_name][prod_name].notnull()
+    actual_valid = float(valid.sum()/valid.size)
+    rel_valid = float(actual_valid / exp_valid)
+    LOG.debug(f"Expected maximum validity: {exp_valid:%}")
+    LOG.debug(f"Actual validity (coverage): {actual_valid:%}")
+    LOG.debug(f"Relative validity: {rel_valid:%}")
+    min_frac = prod_props["min_valid_data_fraction"]/100
+    if not 0 <= rel_valid < 1.05:
+        LOG.warning(f"Found {rel_valid:%} valid data, impossible... "
+                    "inaccurate coverage estimate suspected!")
+        return True
+    if rel_valid < min_frac:
+        LOG.debug(f"Found {rel_valid:%}<{min_frac:%} valid data, removing "
+                  f"{prod_name:s} for area {area_name:s} from the worklist")
+        return False
+    LOG.debug(f"Found {rel_valid:%}>{min_frac:%}, keeping "
+              f"{prod_name:s} for area {area_name:s} in the worklist")
+    return True
