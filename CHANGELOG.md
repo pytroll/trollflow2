@@ -1,3 +1,33 @@
+## Version 0.11.0 (2021/10/21)
+
+### Issues Closed
+
+* [Issue 121](https://github.com/pytroll/trollflow2/issues/121) - trollflow2 fails to launch with pyyaml 6.0 ([PR 122](https://github.com/pytroll/trollflow2/pull/122) by [@pnuu](https://github.com/pnuu))
+* [Issue 116](https://github.com/pytroll/trollflow2/issues/116) - Netcdf product with multiple dataset can't be created anymore ([PR 119](https://github.com/pytroll/trollflow2/pull/119) by [@mraspaud](https://github.com/mraspaud))
+* [Issue 113](https://github.com/pytroll/trollflow2/issues/113) - Improve usefulness of "all files produced nominally in x seconds" ([PR 114](https://github.com/pytroll/trollflow2/pull/114) by [@gerritholl](https://github.com/gerritholl))
+* [Issue 111](https://github.com/pytroll/trollflow2/issues/111) - Check channel-dependent validity ([PR 112](https://github.com/pytroll/trollflow2/pull/112) by [@gerritholl](https://github.com/gerritholl))
+* [Issue 103](https://github.com/pytroll/trollflow2/issues/103) - Dpath isn't maintained anymore
+
+In this release 5 issues were closed.
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR 120](https://github.com/pytroll/trollflow2/pull/120) - Fix MacOS timeout test skip
+* [PR 119](https://github.com/pytroll/trollflow2/pull/119) - Allow products based on multiple datasets to be published ([116](https://github.com/pytroll/trollflow2/issues/116))
+* [PR 115](https://github.com/pytroll/trollflow2/pull/115) - Use queued logging for running in subprocesses
+
+#### Features added
+
+* [PR 122](https://github.com/pytroll/trollflow2/pull/122) - Use safe loading for logging config ([121](https://github.com/pytroll/trollflow2/issues/121))
+* [PR 114](https://github.com/pytroll/trollflow2/pull/114) - Add no. of files to check_results log message ([113](https://github.com/pytroll/trollflow2/issues/113))
+* [PR 112](https://github.com/pytroll/trollflow2/pull/112) - Skip products when data contain too many fill values ([111](https://github.com/pytroll/trollflow2/issues/111))
+* [PR 108](https://github.com/pytroll/trollflow2/pull/108) - Make it possible to use `FilePublisher` without running a nameserver
+
+In this release 7 pull requests were closed.
+
+
 ## Version 0.10.0 (2021/04/12)
 
 ### Issues Closed
