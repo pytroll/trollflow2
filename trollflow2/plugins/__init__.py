@@ -265,6 +265,15 @@ def save_datasets(job):
         compute_writer_results(objs)
 
 
+def product_missing_from_scene(product, scene):
+    """Check if product is missing from the scene."""
+    if not isinstance(product, (tuple, list)):
+        product = (product, )
+    if all(prod not in scene for prod in product):
+        return True
+    return False
+
+
 class FilePublisher(object):
     """Publisher for generated files."""
 
@@ -339,7 +348,8 @@ class FilePublisher(object):
         mda.pop('dataset', None)
         mda.pop('collection', None)
         for fmat, fmat_config in plist_iter(job['product_list']['product_list'], mda):
-            if fmat['product'] not in job['resampled_scenes'].get(fmat['area'], []):
+            resampled_scene = job['resampled_scenes'].get(fmat['area'], [])
+            if product_missing_from_scene(fmat['product'], resampled_scene):
                 LOG.debug('Not publishing missing product %s.', str(fmat))
                 continue
             try:
