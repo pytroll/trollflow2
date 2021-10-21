@@ -266,7 +266,7 @@ def save_datasets(job):
 
 
 def product_missing_from_scene(product, scene):
-    """Check if product is missing for the scene."""
+    """Check if product is missing from the scene."""
     if not isinstance(product, (tuple, list)):
         product = (product, )
     if all(prod not in scene for prod in product):
