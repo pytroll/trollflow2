@@ -29,6 +29,7 @@ from urllib.parse import urlunsplit
 
 import dpath
 import rasterio
+import dask
 from posttroll.message import Message
 from posttroll.publisher import Publisher, NoisyPublisher
 from pyorbital.astronomy import sun_zenith_angle
@@ -373,7 +374,7 @@ class FilePublisher(object):
 
 
 def covers(job):
-    """Check area coverage.
+    """Check overall area coverage.
 
     Remove areas with too low coverage from the worklist.
     """
@@ -407,30 +408,54 @@ def covers(job):
 
     areas = list(product_list['product_list']['areas'].keys())
     for area in areas:
-        area_path = "/product_list/areas/%s" % area
-        min_coverage = get_config_value(product_list,
-                                        area_path,
-                                        "min_coverage")
-        if not min_coverage:
-            LOG.debug("Minimum area coverage not given or set to zero "
-                      "for area %s", area)
-            continue
-
-        cov = get_scene_coverage(platform_name, start_time, end_time,
-                                 sensor, area)
-        product_list['product_list']['areas'][area]['area_coverage_percent'] = cov
-        if cov < min_coverage:
-            LOG.info(
-                "Area coverage %.2f %% below threshold %.2f %%",
-                cov, min_coverage)
-            LOG.info("Removing area %s from the worklist", area)
-            dpath.util.delete(product_list, area_path)
-
-        else:
-            LOG.debug(f"Area coverage {cov:.2f}% above threshold "
-                      f"{min_coverage:.2f}% - Carry on with {area:s}")
+        _check_coverage_for_area(
+            area, product_list, platform_name, start_time, end_time,
+            sensor, job["scene"])
 
     job['product_list'] = product_list
+
+
+def _check_coverage_for_area(
+        area, product_list, platform_name, start_time, end_time, sensor, scene):
+    """Check area coverage for single area.
+
+    Helper for covers().  Changes product_list in-place.
+    """
+    area_path = "/product_list/areas/%s" % area
+    min_coverage = get_config_value(product_list,
+                                    area_path,
+                                    "min_coverage")
+    if not min_coverage:
+        LOG.debug("Minimum area coverage not given or set to zero "
+                  "for area %s", area)
+        return
+
+    _check_overall_coverage_for_area(
+        area, product_list, platform_name, start_time, end_time,
+        sensor, min_coverage)
+
+
+def _check_overall_coverage_for_area(
+        area, product_list, platform_name, start_time, end_time, sensor,
+        min_coverage):
+    """Check overall coverage single area.
+
+    Helper for covers().
+    """
+    area_path = "/product_list/areas/%s" % area
+    cov = get_scene_coverage(platform_name, start_time, end_time,
+                             sensor, area)
+    product_list['product_list']['areas'][area]['area_coverage_percent'] = cov
+    if cov < min_coverage:
+        LOG.info(
+            "Area coverage %.2f %% below threshold %.2f %%",
+            cov, min_coverage)
+        LOG.info("Removing area %s from the worklist", area)
+        dpath.util.delete(product_list, area_path)
+
+    else:
+        LOG.debug(f"Area coverage {cov:.2f}% above threshold "
+                  f"{min_coverage:.2f}% - Carry on with {area:s}")
 
 
 def get_scene_coverage(platform_name, start_time, end_time, sensor, area_id):
@@ -688,3 +713,122 @@ def _get_plugin_conf(product_list, path, defaults):
         conf[key] = get_config_value(product_list, path, key,
                                      default=defaults.get(key))
     return conf
+
+
+def check_valid_data_fraction(job):
+    """Remove products that have too much invalid data.
+
+    Remove any products where the fraction valid_data/expected_valid_data is
+    less than a configured threshold in %.  Expected valid data is calculated
+    by the scene coverage for each resampled scene.  This plugin was designed
+    for use with AVHRR, which may alternate between channels 3A and 3B.
+    Since this is different between resampled scenes, this plugin must be
+    applied after scene resampling.
+
+    This will trigger a calculation for the data to be checked.
+
+    In theory, this selection should be possible based on metadata, which
+    should contain information about channels 3A and 3B.  Unfortunately,
+    experience has shown these metadata are not always reliable.
+
+    To be configured with the ``rel_valid`` key indicating validity in %.
+    For example:
+
+        product_list:
+          areas:
+            fribbulus_xax:
+              red:
+                min_valid_data_fraction: 40
+
+        workers:
+          - fun: !!python/name:trollflow2.plugins.create_scene
+          - fun: !!python/name:trollflow2.plugins.load_composites
+          - fun: !!python/name:trollflow2.plugins.resample
+          - fun: !!python/name:trollflow2.plugins.check_valid_data_fraction
+          - fun: !!python/name:trollflow2.plugins.save_datasets
+
+    """
+    exp_cov = {}
+    # As stated, this will trigger a computation.  To prevent computing
+    # multiple times, we should persist everything that needs to be persisted,
+    # all together.
+    _persist_what_we_must(job)
+    for (area_name, area_props) in job["product_list"]["product_list"]["areas"].items():
+        to_remove = set()
+        for (prod_name, prod_props) in area_props["products"].items():
+            if "min_valid_data_fraction" in prod_props:
+                if not _product_meets_min_valid_data_fraction(
+                        prod_name, prod_props, area_name, area_props, job,
+                        exp_cov):
+                    to_remove.add(prod_name)
+        for rem in to_remove:
+            del area_props["products"][rem]
+
+
+def _persist_what_we_must(job):
+    """Persist anything that has a min_valid_data_fraction key.
+
+    The `check_valid_data_fraction` plugin needs to calculate the products, but those should
+    be calculated all at once.  This function looks for all products that have
+    a `"min_valid_data_fraction"` in the product properties, persists (calculates) them all
+    at once and replaces the corresponding datasets with their persisted
+    versions.
+    """
+    to_persist = []
+    for (area_name, area_props) in job["product_list"]["product_list"]["areas"].items():
+        scn = job["resampled_scenes"][area_name]
+        for (prod_name, prod_props) in area_props["products"].items():
+            if "min_valid_data_fraction" in prod_props and prod_name in scn:
+                to_persist.append((scn, prod_name, scn[prod_name]))
+    LOG.debug("Persisting early due to content checks")
+    persisted = dask.persist(*[p[2] for p in to_persist])
+    for ((sc, prod_name, old), new) in zip(to_persist, persisted):
+        sc[prod_name] = new
+
+
+def _product_meets_min_valid_data_fraction(
+        prod_name, prod_props, area_name, area_props, job, exp_cov):
+    """Check if product meets min_valid_data_fraction
+
+    Helper for `check_valid_data_fraction`, check if ``product`` meets the
+    ``min_valid_data_fraction`` as defined in ``prod_props``.
+
+    Returns True if product can remain or is absent.  Returns False if product
+    has to be removed.
+    """
+
+    LOG.debug(f"Checking validity for {area_name:s}/{prod_name:s}")
+    if prod_name not in job["resampled_scenes"][area_name]:
+        LOG.debug(f"product {prod_name!s} not found, already removed or loading failed?")
+        return True
+    prod = job["resampled_scenes"][area_name][prod_name]
+    platform_name = prod.attrs["platform_name"]
+    start_time = prod.attrs["start_time"]
+    end_time = prod.attrs["end_time"]
+    sensor = prod.attrs["sensor"]
+    if area_name not in exp_cov:
+        # get_scene_coverage uses %, convert to fraction
+        exp_cov[area_name] = get_scene_coverage(
+            platform_name, start_time, end_time, sensor, area_name)/100
+    exp_valid = exp_cov[area_name]
+    if exp_valid == 0:
+        LOG.debug(f"product {prod_name!s} no expected coverage at all, removing")
+        return False
+    valid = job["resampled_scenes"][area_name][prod_name].notnull()
+    actual_valid = float(valid.sum()/valid.size)
+    rel_valid = float(actual_valid / exp_valid)
+    LOG.debug(f"Expected maximum validity: {exp_valid:%}")
+    LOG.debug(f"Actual validity (coverage): {actual_valid:%}")
+    LOG.debug(f"Relative validity: {rel_valid:%}")
+    min_frac = prod_props["min_valid_data_fraction"]/100
+    if not 0 <= rel_valid < 1.05:
+        LOG.warning(f"Found {rel_valid:%} valid data, impossible... "
+                    "inaccurate coverage estimate suspected!")
+        return True
+    if rel_valid < min_frac:
+        LOG.debug(f"Found {rel_valid:%}<{min_frac:%} valid data, removing "
+                  f"{prod_name:s} for area {area_name:s} from the worklist")
+        return False
+    LOG.debug(f"Found {rel_valid:%}>{min_frac:%}, keeping "
+              f"{prod_name:s} for area {area_name:s} in the worklist")
+    return True

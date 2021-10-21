@@ -239,14 +239,17 @@ Area coverage
 *************
 
 The ``covers`` plugin can be used to check that the received data covers
-the target areas.  If the area coverage is too low (see options
-below), the area is discarded from the processing of this scene.  This
-plugin needs ``pytroll-schedule`` to be installed.
+the target areas.  If the area coverage is too low (see options below),
+the area is discarded from the processing of this scene.  This plugin
+needs ``pytroll-schedule`` to be installed.  This plugin should be called
+after the scene is created, but can be called before any composites
+are loaded.
 
 Options:
  - ``coverage_by_collection_area: False`` - If ``True``, the
    ``'collection_area_id'`` in the incoming message needs to match the
-   name of the target area.
+   name of the target area.  This setting might come from the geographic
+   gatherer in pytroll-collectors.
  - ``min_coverage: 0`` - Minimum required coverage.  If coverage is less
    than defined, the data are not processed for this area.  By default
    process all areas.
@@ -289,6 +292,23 @@ e.g. platform name or sensor name is not the one supported by Satpy
 Options:
  - ``metadata_aliases: null`` - A nested dictionary with a structure
    ``{'metadata_item_name': {'original_value': 'replacement_value'}}``.
+
+Validity check
+**************
+
+The ``check_valid_data_fraction`` plugin can be used to filter out any channels that,
+after resampling, have less valid data than expected.  For example,
+AVHRR may switch between channels 3A and 3B in the middle of a swath.
+After resampling, in a resampled scene created from a data file that
+originally had both 3A and 3B, one of them may be not available at all.
+Expected valid data is calculated with expected scene coverage.
+Valid data is any data that is not fill value (NaN).
+
+This plugin triggers a calculation of the data to be checked.
+
+Options:
+  - ``min_valid_data_fraction: 10`` - only generate products if at least 10% of covered
+  part of scene contains valid data.
 
 Product list
 ------------
