@@ -446,7 +446,6 @@ def _check_overall_coverage_for_area(
     else:
         LOG.debug(f"Area coverage {cov:.2f}% above threshold "
                   f"{min_coverage:.2f}% - Carry on with {area:s}")
-    return min_coverage
 
 
 def get_scene_coverage(platform_name, start_time, end_time, sensor, area_id):
@@ -706,7 +705,7 @@ def _get_plugin_conf(product_list, path, defaults):
     return conf
 
 
-def check_valid(job):
+def check_valid_data_fraction(job):
     """Remove products that have too much invalid data.
 
     Remove any products where the fraction valid_data/expected_valid_data is
@@ -735,7 +734,7 @@ def check_valid(job):
           - fun: !!python/name:trollflow2.plugins.create_scene
           - fun: !!python/name:trollflow2.plugins.load_composites
           - fun: !!python/name:trollflow2.plugins.resample
-          - fun: !!python/name:trollflow2.plugins.check_valid
+          - fun: !!python/name:trollflow2.plugins.check_valid_data_fraction
           - fun: !!python/name:trollflow2.plugins.save_datasets
 
     """
@@ -790,7 +789,7 @@ def check_valid(job):
 def _persist_what_we_must(job):
     """Persist anything that has a min_valid key.
 
-    The `check_valid` plugin needs to calculate the products, but those should
+    The `check_valid_data_fraction` plugin needs to calculate the products, but those should
     be calculated all at once.  This function looks for all products that have
     a `"min_valid"` in the product properties, persists (calculates) them all
     at once and replaces the corresponding datasets with their persisted

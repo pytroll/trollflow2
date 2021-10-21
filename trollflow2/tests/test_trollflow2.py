@@ -1602,7 +1602,7 @@ def sc_3a_3b():
 def test_valid_filter(caplog, sc_3a_3b):
     """Test filter for minimum fraction of valid data."""
     from trollflow2.launcher import yaml
-    from trollflow2.plugins import check_valid
+    from trollflow2.plugins import check_valid_data_fraction
     product_list = yaml.safe_load(yaml_test3)
 
     job = {}
@@ -1619,7 +1619,7 @@ def test_valid_filter(caplog, sc_3a_3b):
     with mock.patch("trollflow2.plugins.get_scene_coverage") as tpg, \
             caplog.at_level(logging.DEBUG):
         tpg.return_value = 100
-        check_valid(job)
+        check_valid_data_fraction(job)
         assert "NIR016" not in prods
         assert "IR037" in prods
         assert "removing NIR016 for area euron1" in caplog.text
@@ -1627,13 +1627,13 @@ def test_valid_filter(caplog, sc_3a_3b):
         assert "product absent not found, already removed" in caplog.text
         tpg.reset_mock()
         tpg.return_value = 1
-        check_valid(job2)
+        check_valid_data_fraction(job2)
         assert "inaccurate coverage estimate suspected!" in caplog.text
         assert "NIR016" in prods2
         assert "IR037" in prods2
         tpg.reset_mock()
         tpg.return_value = 0
-        check_valid(job2)
+        check_valid_data_fraction(job2)
         assert "no expected coverage at all, removing" in caplog.text
         assert "NIR016" not in prods2
         assert "IR037" not in prods2
