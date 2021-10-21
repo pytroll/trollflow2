@@ -296,7 +296,7 @@ Options:
 Validity check
 **************
 
-The ``check_valid`` plugin can be used to filter out any channels that,
+The ``check_valid_data_fraction`` plugin can be used to filter out any channels that,
 after resampling, have less valid data than expected.  For example,
 AVHRR may switch between channels 3A and 3B in the middle of a swath.
 After resampling, in a resampled scene created from a data file that
