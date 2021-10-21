@@ -1612,7 +1612,7 @@ def test_valid_filter(caplog, sc_3a_3b):
     job['resampled_scenes'] = {"euron1": sc_3a_3b}
     prods = job['product_list']['product_list']['areas']['euron1']['products']
     for p in ("NIR016", "IR037", "absent"):
-        prods[p] = {"min_valid": 40}
+        prods[p] = {"min_valid_data_fraction": 40}
     job2 = copy.deepcopy(job)
     prods2 = job2['product_list']['product_list']['areas']['euron1']['products']
 
@@ -1650,7 +1650,7 @@ def test_persisted(sc_3a_3b):
     job['resampled_scenes'] = {"euron1": sc_3a_3b}
     prods = job['product_list']['product_list']['areas']['euron1']['products']
     for p in ("NIR016", "IR037", "absent"):
-        prods[p] = {"min_valid": 40}
+        prods[p] = {"min_valid_data_fraction": 40}
 
     def fake_persist(*args):
         for da in args:

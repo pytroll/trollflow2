@@ -728,7 +728,7 @@ def check_valid_data_fraction(job):
           areas:
             fribbulus_xax:
               red:
-                min_valid: 40
+                min_valid_data_fraction: 40
 
         workers:
           - fun: !!python/name:trollflow2.plugins.create_scene
@@ -746,7 +746,7 @@ def check_valid_data_fraction(job):
     for (area_name, area_props) in job["product_list"]["product_list"]["areas"].items():
         to_remove = set()
         for (prod_name, prod_props) in area_props["products"].items():
-            if "min_valid" in prod_props:
+            if "min_valid_data_fraction" in prod_props:
                 LOG.debug(f"Checking validity for {area_name:s}/{prod_name:s}")
                 if prod_name not in job["resampled_scenes"][area_name]:
                     LOG.debug(f"product {prod_name!s} not found, already removed or loading failed?")
@@ -771,7 +771,7 @@ def check_valid_data_fraction(job):
                 LOG.debug(f"Expected maximum validity: {exp_valid:%}")
                 LOG.debug(f"Actual validity (coverage): {actual_valid:%}")
                 LOG.debug(f"Relative validity: {rel_valid:%}")
-                min_frac = prod_props["min_valid"]/100
+                min_frac = prod_props["min_valid_data_fraction"]/100
                 if not 0 <= rel_valid < 1.05:
                     LOG.warning(f"Found {rel_valid:%} valid data, impossible... "
                                 "inaccurate coverage estimate suspected!")
@@ -787,11 +787,11 @@ def check_valid_data_fraction(job):
 
 
 def _persist_what_we_must(job):
-    """Persist anything that has a min_valid key.
+    """Persist anything that has a min_valid_data_fraction key.
 
     The `check_valid_data_fraction` plugin needs to calculate the products, but those should
     be calculated all at once.  This function looks for all products that have
-    a `"min_valid"` in the product properties, persists (calculates) them all
+    a `"min_valid_data_fraction"` in the product properties, persists (calculates) them all
     at once and replaces the corresponding datasets with their persisted
     versions.
     """
@@ -799,7 +799,7 @@ def _persist_what_we_must(job):
     for (area_name, area_props) in job["product_list"]["product_list"]["areas"].items():
         scn = job["resampled_scenes"][area_name]
         for (prod_name, prod_props) in area_props["products"].items():
-            if "min_valid" in prod_props and prod_name in scn:
+            if "min_valid_data_fraction" in prod_props and prod_name in scn:
                 to_persist.append((scn, prod_name, scn[prod_name]))
     LOG.debug("Persisting early due to content checks")
     persisted = dask.persist(*[p[2] for p in to_persist])
