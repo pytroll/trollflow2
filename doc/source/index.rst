@@ -307,7 +307,7 @@ Valid data is any data that is not fill value (NaN).
 This plugin triggers a calculation of the data to be checked.
 
 Options:
-  - ``min_valid: 10`` - only generate products if at least 10% of covered
+  - ``min_valid_data_fraction: 10`` - only generate products if at least 10% of covered
   part of scene contains valid data.
 
 Product list
