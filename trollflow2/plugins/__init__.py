@@ -784,7 +784,7 @@ def _product_meets_min_valid_data_fraction(
     ``min_valid_data_fraction`` as defined in ``prod_props``.
 
     Returns True if product can remain or is absent.  Returns False if product
-    has to be promev.d
+    has to be removed.
     """
 
     LOG.debug(f"Checking validity for {area_name:s}/{prod_name:s}")
