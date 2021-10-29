@@ -378,65 +378,6 @@ class TestRunLogging(TestCase):
         super().setUp()
         self.config = yaml.load(yaml_test1, Loader=UnsafeLoader)
 
-    def test_target_fun_logs_to_existing_handlers(self):
-        """Test that target_fun logs to existing handlers."""
-        from trollflow2.launcher import run
-        from trollflow2.launcher import LOG
-        from threading import Thread
-        with mock.patch('trollflow2.launcher.yaml.load'),\
-                mock.patch('trollflow2.launcher.open'), \
-                mock.patch('trollflow2.launcher.process') as process,\
-                mock.patch('trollflow2.launcher.generate_messages') as generate_messages, \
-                mock.patch('trollflow2.launcher.check_results'), \
-                mock.patch('multiprocessing.Process') as Process:
-
-            def fake_process(*args, **kwargs):
-                LOG.error('hej')
-
-            fake_handler = mock.MagicMock()
-            fake_handler.level = 0
-            Process.side_effect = Thread
-            process.side_effect = fake_process
-            generate_messages.return_value = ['bla']
-
-            try:
-                LOG.addHandler(fake_handler)
-                run(0)
-            finally:
-                LOG.removeHandler(fake_handler)
-            assert fake_handler.method_calls
-
-    def test_target_fun_does_not_log_to_existing_handlers_directly(self):
-        """Test that target_fun does not log to existing handlers directly."""
-        from trollflow2.launcher import run
-        from trollflow2.launcher import LOG
-        from threading import Thread
-        with mock.patch('trollflow2.launcher.yaml.load'),\
-                mock.patch('trollflow2.launcher.open'), \
-                mock.patch('trollflow2.launcher.process') as process,\
-                mock.patch('trollflow2.launcher.generate_messages') as generate_messages, \
-                mock.patch('trollflow2.launcher.check_results'), \
-                mock.patch('multiprocessing.Process') as Process:
-
-            def fake_process(*args, **kwargs):
-                LOG.error('hej')
-
-            fake_handler = mock.MagicMock()
-            fake_handler.level = 0
-            Process.side_effect = Thread
-            process.side_effect = fake_process
-            generate_messages.return_value = ['bla']
-
-            try:
-                LOG.addHandler(fake_handler)
-                original_handlers = set(LOG.handlers.copy())
-                run(0)
-                assert len(LOG.handlers) >= 1
-                new_handlers = set(LOG.handlers.copy())
-                assert len(new_handlers & original_handlers) == 0
-            finally:
-                LOG.removeHandler(fake_handler)
-
 
 class TestExpand(TestCase):
     """Test expanding the product list."""

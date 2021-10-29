@@ -37,7 +37,7 @@ import traceback
 from collections import OrderedDict
 from datetime import datetime
 from functools import partial
-from logging import getLogger, handlers
+from logging import getLogger
 from multiprocessing import Queue
 from queue import Empty
 
@@ -173,18 +173,12 @@ def _run_subprocess(product_list, connection_parameters=None):
     """Run in a subprocess, with queued logging."""
     LOG.info("Launching trollflow2 with subprocesses")
     from multiprocessing import Process
-    log_queue = Queue()
-    target_fun = partial(queue_logged_process, log_queue=log_queue, prod_list=product_list)
+    target_fun = partial(queue_logged_process, prod_list=product_list)
     connection_parameters = _fill_in_connection_parameters(connection_parameters, product_list)
 
     messages = generate_messages(connection_parameters)
 
-    qlog_listener = handlers.QueueListener(log_queue, *LOG.handlers)
-    qlog_listener.start()
-    try:
-        _run_product_list_on_messages(messages, target_fun, Process)
-    finally:
-        qlog_listener.stop()
+    _run_product_list_on_messages(messages, target_fun, Process)
 
 
 def _fill_in_connection_parameters(connection_parameters, product_list):
@@ -317,26 +311,13 @@ def get_dask_client(config):
     return client
 
 
-def queue_logged_process(msg, prod_list, produced_files, log_queue):
+def queue_logged_process(msg, prod_list, produced_files):
     """Run `process` with a queued log."""
-    _reset_log_handlers()
-    handler = handlers.QueueHandler(log_queue)
-    LOG.addHandler(handler)
     process(msg, prod_list, produced_files)
-
-
-def _reset_log_handlers():
-    """Reset log handlers."""
-    try:
-        while LOG.hasHandlers():
-            LOG.removeHandler(LOG.handlers[0])
-    except IndexError:
-        pass
 
 
 def process(msg, prod_list, produced_files):
     """Process a message."""
-    config = {}
     try:
         with open(prod_list) as fid:
             config = yaml.load(fid.read(), Loader=UnsafeLoader)
