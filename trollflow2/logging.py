@@ -28,11 +28,12 @@ from logging.handlers import QueueHandler, QueueListener
 from multiprocessing import Queue
 
 DEFAULT_LOG_CONFIG = {'version': 1,
+                      'disable_existing_loggers': False,
                       'formatters': {'pytroll': {'format': '[%(levelname)s: %(asctime)s : %(name)s] %(message)s',
                                                  'datefmt': '%Y-%m-%d %H:%M:%S'}},
-                      'handlers': {'file': {'class': 'logging.StreamHandler',
-                                            'formatter': 'pytroll'}},
-                      'root': {'level': 'DEBUG', 'handlers': ['file']}}
+                      'handlers': {'console': {'class': 'logging.StreamHandler',
+                                               'formatter': 'pytroll'}},
+                      'root': {'level': 'DEBUG', 'handlers': ['console']}}
 
 
 @contextmanager
@@ -47,13 +48,13 @@ def logging_on(config=None):
     the only handler exposed to the subprocesses or threads of trollflow2 is a
     QueueHandler.
     """
+    root = logging.getLogger()
+
     if config is None:
         config = DEFAULT_LOG_CONFIG
     logging.config.dictConfig(config)
 
-    # set level
-    root = logging.getLogger()
-
+    # Lift out the existing handlers
     handlers = root.handlers.copy()
     while root.hasHandlers():
         root.removeHandler(root.handlers[0])

@@ -23,6 +23,7 @@
 """The satpy launcher."""
 
 import argparse
+import logging
 
 from trollflow2.launcher import run
 from trollflow2.logging import logging_on
@@ -64,7 +65,10 @@ def main():
             import yaml
             log_config = yaml.safe_load(fd.read())
 
+    logger = logging.getLogger("satpy_launcher")
+
     with logging_on(log_config):
+        logger.warning("oh no!")
         product_list = args.pop("product_list")
         test_message = args.pop("test_message")
         connection_parameters = args

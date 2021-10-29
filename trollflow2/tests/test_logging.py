@@ -31,7 +31,7 @@ import pytest
 from trollflow2.logging import logging_on
 
 
-def teardown_function():
+def setup_function():
     """Clean up the handlers after execution."""
     root = logging.getLogger()
     while root.hasHandlers():
