@@ -25,7 +25,7 @@
 import argparse
 
 from trollflow2.launcher import run
-import logging
+from trollflow2.logging import logging_on
 
 
 def parse_args():
@@ -62,17 +62,14 @@ def main():
     if log_config is not None:
         with open(log_config) as fd:
             import yaml
-            log_dict = yaml.safe_load(fd.read())
-            logging.config.dictConfig(log_dict)
-    else:
-        from satpy.utils import debug_on
-        debug_on()
+            log_config = yaml.safe_load(fd.read())
 
-    product_list = args.pop("product_list")
-    test_message = args.pop("test_message")
-    connection_parameters = args
+    with logging_on(log_config):
+        product_list = args.pop("product_list")
+        test_message = args.pop("test_message")
+        connection_parameters = args
 
-    run(product_list, connection_parameters, test_message)
+        run(product_list, connection_parameters, test_message)
 
 
 if __name__ == "__main__":
