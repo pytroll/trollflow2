@@ -49,17 +49,14 @@ def logging_on(config=None):
     """
     if config is None:
         config = DEFAULT_LOG_CONFIG
-    else:
-        logging.config.dictConfig(config)
+    logging.config.dictConfig(config)
 
     # set level
     root = logging.getLogger()
-    if config is None:
-        handlers = []
-    else:
-        handlers = root.handlers.copy()
-        while root.hasHandlers():
-            root.removeHandler(root.handlers[0])
+
+    handlers = root.handlers.copy()
+    while root.hasHandlers():
+        root.removeHandler(root.handlers[0])
 
     # set up queuehandler
     que = Queue(-1)  # no limit on size
@@ -67,13 +64,6 @@ def logging_on(config=None):
 
     root.addHandler(queue_handler)
 
-    # set up default handler
-    if config is None:
-        console = logging.StreamHandler()
-        console.setFormatter(logging.Formatter("[%(levelname)s: %(asctime)s :"
-                                               " %(name)s] %(message)s",
-                                               '%Y-%m-%d %H:%M:%S'))
-        handlers.append(console)
     # set up and run listener
     listener = QueueListener(que, *handlers)
     listener.start()

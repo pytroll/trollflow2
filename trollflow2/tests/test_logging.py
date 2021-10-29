@@ -38,14 +38,12 @@ def teardown_function():
         root.removeHandler(root.handlers[0])
 
 
-def test_logging_adds_one_queue_handlers(caplog):
+def test_logging_adds_one_queue_handlers():
     """Test that logging adds a queue handler."""
     log = logging.getLogger()
     with logging_on():
-        log.warning('bla')
         assert len(log.handlers) == 1
         assert isinstance(log.handlers[0], QueueHandler)
-    assert "bla" in caplog.text
 
 
 def test_logging_is_queued_by_default():
