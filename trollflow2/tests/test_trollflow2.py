@@ -327,6 +327,27 @@ class TestSaveDatasets(TestCase):
         self.assertTrue(os.path.exists(tst_dir))
         os.rmdir(tst_dir)
 
+    def test_use_tmp_dir(self):
+        """Test `prepared_filename` context with temporary directory.
+
+        Test that when both use_tmp_file and use_tmp_dir are set, that the
+        temporary file is created in its own temporary directory, whereas the
+        basename is not changed.
+        """
+        from trollflow2.plugins import prepared_filename
+        tst_file = "trappedinaunittest.tif"
+
+        renames = {}
+        fmat = {"use_tmp_file": True, "fname_pattern": tst_file,
+                "use_tmp_dir": "/tmp/abcd"}
+        with prepared_filename(fmat, renames) as filename:
+            pass
+        assert filename != tst_file
+        assert filename.endswith(tst_file)
+        assert len(renames) == 1
+        assert next(iter(renames.values())) == tst_file
+        assert next(iter(renames.keys())).startswith("/tmp/abcd/")
+
     def test_prepare_filename_and_directory(self):
         """Test filename composition and directory creation."""
         from trollflow2.plugins import _prepare_filename_and_directory
