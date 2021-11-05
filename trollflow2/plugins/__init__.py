@@ -252,11 +252,16 @@ def renamed_files():
 def save_datasets(job):
     """Save the datasets (and trigger the computation).
 
-    If the `use_tmp_file` option is provided in the product list and is set to
+    If the ``use_tmp_file`` option is provided in the product list and is set to
     True, the file will be first saved to a temporary name before being renamed.
     This is useful when other processes are waiting for the file to be present
     to start their work, but would crash on incomplete files.
 
+    If, in addition, the ``use_tmp_dir`` option is provided in the product
+    list, then the temporary file will be created in this directory without
+    changing the filename.  This is useful for writers which write the filename
+    to the headers, such as the SatPy ninjotiff and ninjogeotiff writers.  The
+    value of ``use_tmp_dir`` has no effect if ``use_tmp_file`` is False.
     """
     scns = job['resampled_scenes']
     objs = []

@@ -339,14 +339,14 @@ class TestSaveDatasets(TestCase):
 
         renames = {}
         fmat = {"use_tmp_file": True, "fname_pattern": tst_file,
-                "use_tmp_dir": "/tmp/abcd"}
+                "use_tmp_dir": "/dummy/abcd"}
         with prepared_filename(fmat, renames) as filename:
             pass
         assert filename != tst_file
         assert filename.endswith(tst_file)
         assert len(renames) == 1
         assert next(iter(renames.values())) == tst_file
-        assert next(iter(renames.keys())).startswith("/tmp/abcd/")
+        assert next(iter(renames.keys())).startswith("/dummy/abcd/")
 
     def test_prepare_filename_and_directory(self):
         """Test filename composition and directory creation."""
