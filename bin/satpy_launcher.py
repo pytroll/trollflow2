@@ -25,7 +25,7 @@
 import argparse
 import logging
 
-from trollflow2.launcher import run
+from trollflow2.launcher import run, LOG_QUEUE
 from trollflow2.logging import logging_on
 
 
@@ -67,8 +67,8 @@ def main():
 
     logger = logging.getLogger("satpy_launcher")
 
-    with logging_on(log_config):
-        logger.warning("oh no!")
+    with logging_on(LOG_QUEUE, log_config):
+        logger.warning("Launching Satpy-based runner.")
         product_list = args.pop("product_list")
         test_message = args.pop("test_message")
         connection_parameters = args

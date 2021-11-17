@@ -23,51 +23,20 @@
 
 import logging
 import time
-from logging.handlers import QueueHandler, BufferingHandler
+from multiprocessing import Manager
 from unittest import mock
 
 import pytest
 
 from trollflow2.logging import logging_on
 
-
-def setup_function():
-    """Clean up the handlers after execution."""
-    root = logging.getLogger()
-    while root.hasHandlers():
-        root.removeHandler(root.handlers[0])
-
-
-def test_logging_adds_one_queue_handlers():
-    """Test that logging adds a queue handler."""
-    log = logging.getLogger()
-    with logging_on():
-        assert len(log.handlers) == 1
-        assert isinstance(log.handlers[0], QueueHandler)
-
-
-def test_logging_is_queued_by_default():
-    """Test that logging is queued by default."""
-    log = logging.getLogger()
-    num_queued_handlers_before = count_queue_handlers(log)
-    with logging_on():
-        num_queued_handlers = count_queue_handlers(log)
-        assert num_queued_handlers > num_queued_handlers_before
-
-
-def count_queue_handlers(log):
-    """Count the number of queue handlers in the log handlers."""
-    num_queued_handlers = 0
-    for handler in log.handlers:
-        if isinstance(handler, logging.handlers.QueueHandler):
-            num_queued_handlers += 1
-    return num_queued_handlers
+log_queue = Manager().Queue(-1)  # no limit on size
 
 
 def test_queued_logging_has_a_listener():
     """Test that the queued logging has a listener."""
     with mock.patch("trollflow2.logging.QueueListener", autospec=True) as q_listener:
-        with logging_on():
+        with logging_on(log_queue):
             assert q_listener.called
             assert q_listener.return_value.start.called
         assert q_listener.return_value.stop.called
@@ -77,7 +46,7 @@ def test_queued_logging_stops_listener_on_exception():
     """Test that queued logging stops the listener even if an exception occurs."""
     with mock.patch("trollflow2.logging.QueueListener", autospec=True) as q_listener:
         with pytest.raises(Exception):
-            with logging_on():
+            with logging_on(log_queue):
                 raise Exception("Oh no!")
         assert q_listener.return_value.stop.called
 
@@ -96,7 +65,7 @@ def test_log_config_is_used_when_provided():
 
     log = logging.getLogger()
     with mock.patch("logging.handlers.BufferingHandler.emit", autospec=True) as emit:
-        with logging_on(config=config):
+        with logging_on(log_queue, config=config):
             assert not emit.called
             log.warning("uh oh...")
             # we wait for the log record to go through the queue listener in
@@ -105,11 +74,38 @@ def test_log_config_is_used_when_provided():
             assert emit.called
 
 
-def test_log_config_still_uses_queuehandler():
-    """Test that the log config still uses the queuehandler."""
-    config = LOG_CONFIG
+def test_logging_works(caplog):
+    """Test that the logs get out there."""
+    log = logging.getLogger("something")
+    with logging_on(log_queue):
+        logging.getLogger().addHandler(caplog.handler)
+        log.warning("oh no :(")
+        assert "oh no :(" in caplog.text
 
-    log = logging.getLogger()
-    with logging_on(config=config):
-        for handler in log.handlers:
-            assert not isinstance(handler, BufferingHandler)
+
+def fun(q, log_message):
+    """Fake a function to run."""
+    log = logging.getLogger('for fun')
+    from logging.handlers import QueueHandler
+    q_handler = QueueHandler(q)
+    logging.getLogger().addHandler(q_handler)
+    log.warning(log_message)
+
+
+def run_subprocess(log_message, queue):
+    """Run a subprocess."""
+    from multiprocessing import get_context
+    ctx = get_context('spawn')
+    proc = ctx.Process(target=fun, args=(queue, log_message))
+    proc.start()
+    proc.join()
+
+
+def test_logging_works_in_subprocess(caplog):
+    """Test that the logs get out there, even from a subprocess."""
+    log_message = 'yeah, we are in a subprocess now'
+    with logging_on(log_queue):
+        logging.getLogger().addHandler(caplog.handler)
+
+        run_subprocess(log_message, log_queue)
+        assert log_message in caplog.text

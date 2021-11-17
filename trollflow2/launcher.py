@@ -35,14 +35,17 @@ import re
 import signal
 import traceback
 from collections import OrderedDict
+from contextlib import suppress
 from datetime import datetime
 from functools import partial
 from logging import getLogger
-from multiprocessing import Queue
+from logging.handlers import QueueHandler
+from multiprocessing import Manager
 from queue import Empty
 
 import yaml
 from six.moves.urllib.parse import urlparse
+
 from trollflow2.dict_tools import gen_dict_extract, plist_iter
 from trollflow2.plugins import AbortProcessing
 
@@ -60,6 +63,8 @@ except ImportError:
 
 LOG = getLogger(__name__)
 DEFAULT_PRIORITY = 999
+
+LOG_QUEUE = Manager().Queue()
 
 
 def tuple_constructor(loader, node):
@@ -165,20 +170,21 @@ def _run_threaded(product_list, test_message):
     from threading import Thread
     from posttroll.message import Message
     messages = [Message(rawstr=test_message)]
-    target_fun = partial(process, prod_list=product_list)
+    target_fun = partial(queue_logged_process, prod_list=product_list)
     _run_product_list_on_messages(messages, target_fun, Thread)
 
 
 def _run_subprocess(product_list, connection_parameters=None):
     """Run in a subprocess, with queued logging."""
     LOG.info("Launching trollflow2 with subprocesses")
-    from multiprocessing import Process
+    from multiprocessing import get_context
+    ctx = get_context("spawn")
     target_fun = partial(queue_logged_process, prod_list=product_list)
     connection_parameters = _fill_in_connection_parameters(connection_parameters, product_list)
 
     messages = generate_messages(connection_parameters)
 
-    _run_product_list_on_messages(messages, target_fun, Process)
+    _run_product_list_on_messages(messages, target_fun, ctx.Process, LOG_QUEUE)
 
 
 def _fill_in_connection_parameters(connection_parameters, product_list):
@@ -191,11 +197,14 @@ def _fill_in_connection_parameters(connection_parameters, product_list):
     return connection_parameters
 
 
-def _run_product_list_on_messages(messages, target_fun, process_class):
+def _run_product_list_on_messages(messages, target_fun, process_class, log_queue=None):
     """Run the product list on the messages."""
     for msg in messages:
-        produced_files = Queue()
-        proc = process_class(target=target_fun, args=(msg,), kwargs=dict(produced_files=produced_files))
+        produced_files = Manager().Queue()
+        kwargs = dict(produced_files=produced_files)
+        if log_queue is not None:
+            kwargs["log_queue"] = log_queue
+        proc = process_class(target=target_fun, args=(msg,), kwargs=kwargs)
         start_time = datetime.now()
         proc.start()
         proc.join()
@@ -311,9 +320,26 @@ def get_dask_client(config):
     return client
 
 
-def queue_logged_process(msg, prod_list, produced_files):
+def queue_logged_process(msg, prod_list, produced_files, log_queue):
     """Run `process` with a queued log."""
+    root_logger = getLogger()
+    root_logger.addHandler(QueueHandler(log_queue))
+    with suppress(ValueError):
+        signal.signal(signal.SIGUSR1, print_traces)
+        LOG.debug("Use SIGUSR1 to check the current tracebacks of this subprocess.")
     process(msg, prod_list, produced_files)
+
+
+def print_traces(signum, frame):
+    """Print traces for debugging."""
+    import sys
+    import traceback
+    print(f"Got signal {signum} in {frame}, dumping traces.")
+
+    for thread, frame in sys._current_frames().items():
+        print('Thread 0x%x' % thread)
+        traceback.print_stack(frame)
+        print()
 
 
 def process(msg, prod_list, produced_files):

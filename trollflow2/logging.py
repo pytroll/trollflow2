@@ -21,11 +21,10 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 """Logging utilities."""
 
-from contextlib import contextmanager
 import logging
 import logging.config
-from logging.handlers import QueueHandler, QueueListener
-from multiprocessing import Queue
+from contextlib import contextmanager
+from logging.handlers import QueueListener
 
 DEFAULT_LOG_CONFIG = {'version': 1,
                       'disable_existing_loggers': False,
@@ -37,36 +36,25 @@ DEFAULT_LOG_CONFIG = {'version': 1,
 
 
 @contextmanager
-def logging_on(config=None):
+def logging_on(log_queue, config=None):
     """Activate queued logging.
 
     This context activates logging through the use of logging's QueueHandler and
     QueueListener.
     Whether the default config parameters are used or a custom configuration is
-    passed, the regular handlers are removed from the root handler after
-    configuration and passed instead to the QueueListener instance, such that
-    the only handler exposed to the subprocesses or threads of trollflow2 is a
-    QueueHandler.
+    passed, the log handlers are passed to a QueueListener instance, such that
+    the subprocesses of trollflow2 can use a QueueHandler to communicate logs.
     """
     root = logging.getLogger()
+    # Lift out the existing handlers (we need to keep these for pytest's caplog)
+    handlers = root.handlers.copy()
 
     if config is None:
         config = DEFAULT_LOG_CONFIG
     logging.config.dictConfig(config)
 
-    # Lift out the existing handlers
-    handlers = root.handlers.copy()
-    while root.hasHandlers():
-        root.removeHandler(root.handlers[0])
-
-    # set up queuehandler
-    que = Queue(-1)  # no limit on size
-    queue_handler = QueueHandler(que)
-
-    root.addHandler(queue_handler)
-
     # set up and run listener
-    listener = QueueListener(que, *handlers)
+    listener = QueueListener(log_queue, *(root.handlers + handlers))
     listener.start()
     try:
         yield
