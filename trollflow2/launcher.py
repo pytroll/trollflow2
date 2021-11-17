@@ -39,7 +39,6 @@ from contextlib import suppress
 from datetime import datetime
 from functools import partial
 from logging import getLogger
-from logging.handlers import QueueHandler
 from multiprocessing import Manager
 from queue import Empty
 
@@ -47,6 +46,7 @@ import yaml
 from six.moves.urllib.parse import urlparse
 
 from trollflow2.dict_tools import gen_dict_extract, plist_iter
+from trollflow2.logging import setup_queued_logging
 from trollflow2.plugins import AbortProcessing
 
 try:
@@ -322,8 +322,7 @@ def get_dask_client(config):
 
 def queue_logged_process(msg, prod_list, produced_files, log_queue):
     """Run `process` with a queued log."""
-    root_logger = getLogger()
-    root_logger.addHandler(QueueHandler(log_queue))
+    setup_queued_logging(log_queue)
     with suppress(ValueError):
         signal.signal(signal.SIGUSR1, print_traces)
         LOG.debug("Use SIGUSR1 to check the current tracebacks of this subprocess.")

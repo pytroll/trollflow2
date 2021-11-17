@@ -387,6 +387,11 @@ class TestInterruptRun(TestCase):
 class TestRunLogging(TestCase):
     """Test case for checking the logging in `run`."""
 
+    @pytest.fixture(autouse=True)
+    def inject_fixtures(self, caplog):
+        """Inject the caplog fixture into this testcase instance."""
+        self._caplog = caplog
+
     def setUp(self):
         """Set up the test case."""
         super().setUp()

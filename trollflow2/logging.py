@@ -24,7 +24,8 @@
 import logging
 import logging.config
 from contextlib import contextmanager
-from logging.handlers import QueueListener
+from logging import getLogger, DEBUG
+from logging.handlers import QueueListener, QueueHandler
 
 DEFAULT_LOG_CONFIG = {'version': 1,
                       'disable_existing_loggers': False,
@@ -60,3 +61,10 @@ def logging_on(log_queue, config=None):
         yield
     finally:
         listener.stop()
+
+
+def setup_queued_logging(log_queue):
+    """Set up queued logging."""
+    root_logger = getLogger()
+    root_logger.addHandler(QueueHandler(log_queue))
+    root_logger.setLevel(DEBUG)

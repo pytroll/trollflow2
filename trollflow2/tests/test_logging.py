@@ -28,7 +28,7 @@ from unittest import mock
 
 import pytest
 
-from trollflow2.logging import logging_on
+from trollflow2.logging import logging_on, setup_queued_logging
 
 log_queue = Manager().Queue(-1)  # no limit on size
 
@@ -86,10 +86,8 @@ def test_logging_works(caplog):
 def fun(q, log_message):
     """Fake a function to run."""
     log = logging.getLogger('for fun')
-    from logging.handlers import QueueHandler
-    q_handler = QueueHandler(q)
-    logging.getLogger().addHandler(q_handler)
-    log.warning(log_message)
+    setup_queued_logging(q)
+    log.debug(log_message)
 
 
 def run_subprocess(log_message, queue):
