@@ -25,7 +25,6 @@
 import argparse
 import logging
 
-from trollflow2.launcher import run, LOG_QUEUE
 from trollflow2.logging import logging_on
 
 
@@ -57,6 +56,7 @@ def parse_args():
 
 def main():
     """Launch trollflow2."""
+    from trollflow2.launcher import run, LOG_QUEUE
     args = vars(parse_args())
 
     log_config = args.pop("log_config", None)
