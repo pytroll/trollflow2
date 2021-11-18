@@ -43,8 +43,7 @@ from multiprocessing import Manager
 from queue import Empty
 
 import yaml
-from six.moves.urllib.parse import urlparse
-
+from urllib.parse import urlparse
 from trollflow2.dict_tools import gen_dict_extract, plist_iter
 from trollflow2.logging import setup_queued_logging
 from trollflow2.plugins import AbortProcessing
@@ -64,7 +63,8 @@ except ImportError:
 LOG = getLogger(__name__)
 DEFAULT_PRIORITY = 999
 
-LOG_QUEUE = Manager().Queue()
+MANAGER = Manager()
+LOG_QUEUE = MANAGER.Queue()
 
 
 def tuple_constructor(loader, node):
@@ -200,7 +200,7 @@ def _fill_in_connection_parameters(connection_parameters, product_list):
 def _run_product_list_on_messages(messages, target_fun, process_class, log_queue=None):
     """Run the product list on the messages."""
     for msg in messages:
-        produced_files = Manager().Queue()
+        produced_files = MANAGER.Queue()
         kwargs = dict(produced_files=produced_files)
         if log_queue is not None:
             kwargs["log_queue"] = log_queue
