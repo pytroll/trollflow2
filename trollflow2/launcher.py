@@ -325,7 +325,7 @@ def queue_logged_process(msg, prod_list, produced_files, log_queue):
     setup_queued_logging(log_queue)
     with suppress(ValueError):
         signal.signal(signal.SIGUSR1, print_traces)
-        LOG.debug("Use SIGUSR1 to check the current tracebacks of this subprocess.")
+        LOG.debug("Use SIGUSR1 on pid {} to check the current tracebacks of this subprocess.".format(os.getpid()))
     process(msg, prod_list, produced_files)
 
 

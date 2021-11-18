@@ -400,11 +400,11 @@ class TestRunLogging(TestCase):
     def test_subprocess_uses_queued_logging(self):
         """Test that the subprocess logs are handled."""
         from trollflow2.launcher import run
-        with mock.patch('trollflow2.launcher.yaml.load'),\
-                mock.patch('trollflow2.launcher.open'),\
-                mock.patch('trollflow2.launcher.generate_messages') as generate_messages,\
-                mock.patch('trollflow2.launcher.process'),\
-                mock.patch('trollflow2.launcher.check_results'),\
+        with mock.patch('trollflow2.launcher.yaml.load'), \
+                mock.patch('trollflow2.launcher.open'), \
+                mock.patch('trollflow2.launcher.generate_messages') as generate_messages, \
+                mock.patch('trollflow2.launcher.process'), \
+                mock.patch('trollflow2.launcher.check_results'), \
                 mock.patch('multiprocessing.get_context'):
             generate_messages.side_effect = ['foo', KeyboardInterrupt]
             prod_list = 'bar'
