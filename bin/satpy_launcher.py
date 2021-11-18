@@ -26,6 +26,8 @@ import argparse
 import logging
 
 from trollflow2.logging import logging_on
+from trollflow2.launcher import Runner
+from multiprocessing import Manager
 
 
 def parse_args():
@@ -56,7 +58,6 @@ def parse_args():
 
 def main():
     """Launch trollflow2."""
-    from trollflow2.launcher import run, LOG_QUEUE
     args = vars(parse_args())
 
     log_config = args.pop("log_config", None)
@@ -67,13 +68,16 @@ def main():
 
     logger = logging.getLogger("satpy_launcher")
 
-    with logging_on(LOG_QUEUE, log_config):
+    log_queue = Manager().Queue()
+
+    with logging_on(log_queue, log_config):
         logger.warning("Launching Satpy-based runner.")
         product_list = args.pop("product_list")
         test_message = args.pop("test_message")
         connection_parameters = args
 
-        run(product_list, connection_parameters, test_message)
+        runner = Runner(product_list, log_queue, connection_parameters, test_message)
+        runner.run()
 
 
 if __name__ == "__main__":

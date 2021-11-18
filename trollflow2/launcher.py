@@ -39,11 +39,10 @@ from contextlib import suppress
 from datetime import datetime
 from functools import partial
 from logging import getLogger
-from multiprocessing import Manager
 from queue import Empty
+from urllib.parse import urlparse
 
 import yaml
-from urllib.parse import urlparse
 from trollflow2.dict_tools import gen_dict_extract, plist_iter
 from trollflow2.logging import setup_queued_logging
 from trollflow2.plugins import AbortProcessing
@@ -62,9 +61,6 @@ except ImportError:
 
 LOG = getLogger(__name__)
 DEFAULT_PRIORITY = 999
-
-MANAGER = Manager()
-LOG_QUEUE = MANAGER.Queue()
 
 
 def tuple_constructor(loader, node):
@@ -155,64 +151,69 @@ def _create_listener_from_connection_parameters(connection_parameters):
     return listener
 
 
-def run(product_list, connection_parameters=None, test_message=None):
-    """Spawn one or multiple subprocesses to run the jobs from the product list."""
-    test_message = get_test_message(test_message)
-    if test_message:
-        _run_threaded(product_list, test_message)
-    else:
-        _run_subprocess(product_list, connection_parameters)
+class Runner:
+    """Class that handles all the administration around running on a product list."""
 
+    def __init__(self, product_list, log_queue, connection_parameters=None, test_message=None):
+        """Set up the runner."""
+        self.product_list = product_list
+        self.log_queue = log_queue
+        self.connection_parameters = connection_parameters
+        self.test_message = test_message
 
-def _run_threaded(product_list, test_message):
-    """Run in a thread."""
-    LOG.info("Launching trollflow2 with threads")
-    from threading import Thread
-    from posttroll.message import Message
-    messages = [Message(rawstr=test_message)]
-    target_fun = partial(queue_logged_process, prod_list=product_list)
-    _run_product_list_on_messages(messages, target_fun, Thread)
+    def run(self):
+        """Spawn one or multiple subprocesses to run the jobs from the product list."""
+        test_message = get_test_message(self.test_message)
+        if test_message:
+            self._run_threaded(test_message)
+        else:
+            self._run_subprocess()
 
+    def _run_threaded(self, test_message):
+        """Run in a thread."""
+        LOG.info("Launching trollflow2 with threads")
+        from threading import Thread
+        from posttroll.message import Message
+        messages = [Message(rawstr=test_message)]
+        target_fun = partial(queue_logged_process, prod_list=self.product_list)
+        self._run_product_list_on_messages(messages, target_fun, Thread, self.log_queue)
 
-def _run_subprocess(product_list, connection_parameters=None):
-    """Run in a subprocess, with queued logging."""
-    LOG.info("Launching trollflow2 with subprocesses")
-    from multiprocessing import get_context
-    ctx = get_context("spawn")
-    target_fun = partial(queue_logged_process, prod_list=product_list)
-    connection_parameters = _fill_in_connection_parameters(connection_parameters, product_list)
+    def _run_subprocess(self):
+        """Run in a subprocess, with queued logging."""
+        LOG.info("Launching trollflow2 with subprocesses")
+        from multiprocessing import get_context
+        ctx = get_context("spawn")
+        target_fun = partial(queue_logged_process, prod_list=self.product_list)
+        self._fill_in_connection_parameters()
 
-    messages = generate_messages(connection_parameters)
+        messages = generate_messages(self.connection_parameters)
 
-    _run_product_list_on_messages(messages, target_fun, ctx.Process, LOG_QUEUE)
+        self._run_product_list_on_messages(messages, target_fun, ctx.Process)
 
+    def _fill_in_connection_parameters(self):
+        with open(self.product_list) as fid:
+            config = yaml.load(fid.read(), Loader=BaseLoader)
+        if self.connection_parameters is None:
+            self.connection_parameters = dict()
+        if not self.connection_parameters.get('topic'):
+            self.connection_parameters['topic'] = config['product_list'].pop('subscribe_topics', None)
 
-def _fill_in_connection_parameters(connection_parameters, product_list):
-    with open(product_list) as fid:
-        config = yaml.load(fid.read(), Loader=BaseLoader)
-    if connection_parameters is None:
-        connection_parameters = dict()
-    if not connection_parameters.get('topic'):
-        connection_parameters['topic'] = config['product_list'].pop('subscribe_topics', None)
-    return connection_parameters
-
-
-def _run_product_list_on_messages(messages, target_fun, process_class, log_queue=None):
-    """Run the product list on the messages."""
-    for msg in messages:
-        produced_files = MANAGER.Queue()
-        kwargs = dict(produced_files=produced_files)
-        if log_queue is not None:
-            kwargs["log_queue"] = log_queue
-        proc = process_class(target=target_fun, args=(msg,), kwargs=kwargs)
-        start_time = datetime.now()
-        proc.start()
-        proc.join()
-        try:
-            exitcode = proc.exitcode
-        except AttributeError:
-            exitcode = 0
-        check_results(produced_files, start_time, exitcode)
+    def _run_product_list_on_messages(self, messages, target_fun, process_class):
+        """Run the product list on the messages."""
+        for msg in messages:
+            produced_files = self.log_queue._manager.Queue()
+            kwargs = dict(produced_files=produced_files)
+            if self.log_queue is not None:
+                kwargs["log_queue"] = self.log_queue
+            proc = process_class(target=target_fun, args=(msg,), kwargs=kwargs)
+            start_time = datetime.now()
+            proc.start()
+            proc.join()
+            try:
+                exitcode = proc.exitcode
+            except AttributeError:
+                exitcode = 0
+            check_results(produced_files, start_time, exitcode)
 
 
 def get_area_priorities(product_list):
