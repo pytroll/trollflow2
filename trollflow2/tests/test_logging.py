@@ -98,6 +98,7 @@ def run_subprocess(log_message, queue):
     proc.start()
     proc.join()
 
+
 @pytest.mark.skipif(sys.platform != "linux",
                     reason="Logging from a subprocess seems to work only on Linux")
 def test_logging_works_in_subprocess(caplog):
