@@ -181,8 +181,7 @@ class Runner:
     def _run_subprocess(self):
         """Run in a subprocess, with queued logging."""
         LOG.info("Launching trollflow2 with subprocesses")
-        from multiprocessing import get_context, freeze_support
-        freeze_support()
+        from multiprocessing import get_context
         ctx = get_context("spawn")
         target_fun = partial(queue_logged_process, prod_list=self.product_list)
         self._fill_in_connection_parameters()
