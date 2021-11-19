@@ -41,8 +41,12 @@ def parse_args():
                         help="The yaml file with the product list",
                         type=str)
     parser.add_argument("-m", "--test_message",
-                        help="File path with the message used for testing offline",
+                        help="File path with the message used for testing offline. This implies threaded running.",
                         type=str, required=False)
+    parser.add_argument("-t", "--threaded",
+                        help="Run the product generation in threads instead of processes.",
+                        action='store_true')
+
     parser.add_argument("-c", "--log-config",
                         help="Log config file (yaml) to use",
                         type=str, required=False)
@@ -74,9 +78,10 @@ def main():
         logger.warning("Launching Satpy-based runner.")
         product_list = args.pop("product_list")
         test_message = args.pop("test_message")
+        threaded = args.pop("threaded")
         connection_parameters = args
 
-        runner = Runner(product_list, log_queue, connection_parameters, test_message)
+        runner = Runner(product_list, log_queue, connection_parameters, test_message, threaded)
         runner.run()
 
 

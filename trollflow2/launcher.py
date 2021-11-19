@@ -37,7 +37,6 @@ import traceback
 from collections import OrderedDict
 from contextlib import suppress
 from datetime import datetime
-from functools import partial
 from logging import getLogger
 from queue import Empty
 from urllib.parse import urlparse
@@ -154,43 +153,36 @@ def _create_listener_from_connection_parameters(connection_parameters):
 class Runner:
     """Class that handles all the administration around running on a product list."""
 
-    def __init__(self, product_list, log_queue, connection_parameters=None, test_message=None):
+    def __init__(self, product_list, log_queue, connection_parameters=None, test_message=None, threaded=False):
         """Set up the runner."""
         self.product_list = product_list
         self.log_queue = log_queue
         self.connection_parameters = connection_parameters
-        self.test_message = test_message
+        self.test_message = get_test_message(test_message)
+        self.threaded = threaded
 
     def run(self):
         """Spawn one or multiple subprocesses to run the jobs from the product list."""
-        test_message = get_test_message(self.test_message)
-        if test_message:
-            self._run_threaded(test_message)
+        messages = self._get_message_iterator()
+
+        if self.threaded:
+            self._run_threaded(messages)
         else:
-            self._run_subprocess()
+            self._run_subprocess(messages)
 
-    def _run_threaded(self, test_message):
-        """Run in a thread."""
-        LOG.info("Launching trollflow2 with threads")
-        from threading import Thread
-        from posttroll.message import Message
-        messages = [Message(rawstr=test_message)]
-        target_fun = partial(queue_logged_process, prod_list=self.product_list)
-        self._run_product_list_on_messages(messages, target_fun, Thread, self.log_queue)
-
-    def _run_subprocess(self):
-        """Run in a subprocess, with queued logging."""
-        LOG.info("Launching trollflow2 with subprocesses")
-        from multiprocessing import get_context
-        ctx = get_context("spawn")
-        target_fun = partial(queue_logged_process, prod_list=self.product_list)
-        self._fill_in_connection_parameters()
-
-        messages = generate_messages(self.connection_parameters)
-
-        self._run_product_list_on_messages(messages, target_fun, ctx.Process)
+    def _get_message_iterator(self):
+        """Get the messages to work on."""
+        if self.test_message:
+            from posttroll.message import Message
+            messages = [Message(rawstr=self.test_message)]
+            self.threaded = True
+        else:
+            self._fill_in_connection_parameters()
+            messages = generate_messages(self.connection_parameters)
+        return messages
 
     def _fill_in_connection_parameters(self):
+        """Fill in the connection parameters for the message listener."""
         with open(self.product_list) as fid:
             config = yaml.load(fid.read(), Loader=BaseLoader)
         if self.connection_parameters is None:
@@ -198,12 +190,25 @@ class Runner:
         if not self.connection_parameters.get('topic'):
             self.connection_parameters['topic'] = config['product_list'].pop('subscribe_topics', None)
 
+    def _run_threaded(self, messages):
+        """Run in a thread."""
+        LOG.info("Launching trollflow2 with threads")
+        from threading import Thread
+        self._run_product_list_on_messages(messages, process, Thread)
+
+    def _run_subprocess(self, messages):
+        """Run in a subprocess, with queued logging."""
+        LOG.info("Launching trollflow2 with subprocesses")
+        from multiprocessing import get_context
+        ctx = get_context("spawn")
+        self._run_product_list_on_messages(messages, queue_logged_process, ctx.Process)
+
     def _run_product_list_on_messages(self, messages, target_fun, process_class):
         """Run the product list on the messages."""
         for msg in messages:
-            produced_files = self.log_queue._manager.Queue()
-            kwargs = dict(produced_files=produced_files)
-            if self.log_queue is not None:
+            produced_files_queue = self.log_queue._manager.Queue()
+            kwargs = dict(produced_files=produced_files_queue, prod_list=self.product_list)
+            if not self.threaded:
                 kwargs["log_queue"] = self.log_queue
             proc = process_class(target=target_fun, args=(msg,), kwargs=kwargs)
             start_time = datetime.now()
@@ -213,7 +218,7 @@ class Runner:
                 exitcode = proc.exitcode
             except AttributeError:
                 exitcode = 0
-            check_results(produced_files, start_time, exitcode)
+            check_results(produced_files_queue, start_time, exitcode)
 
 
 def get_area_priorities(product_list):
