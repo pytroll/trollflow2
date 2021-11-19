@@ -22,8 +22,9 @@
 """Tests for the logging utilities."""
 
 import logging
+import sys
 import time
-from multiprocessing import Manager, get_context, freeze_support
+from multiprocessing import Manager, get_context
 from unittest import mock
 
 import pytest
@@ -91,13 +92,14 @@ def fun(q, log_message):
 
 def run_subprocess(log_message, queue):
     """Run a subprocess."""
-    freeze_support()
     ctx = get_context('spawn')
     proc = ctx.Process(target=fun, args=(queue, log_message))
     proc.start()
     proc.join()
 
 
+@pytest.mark.skipif(sys.platform != "linux",
+                    reason="Subprocess logging seems to work only on Linux")
 def test_logging_works_in_subprocess(caplog):
     """Test that the logs get out there, even from a subprocess."""
     log_message = 'yeah, we are in a subprocess now'
