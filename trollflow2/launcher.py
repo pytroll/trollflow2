@@ -39,6 +39,7 @@ from contextlib import suppress
 from datetime import datetime
 from functools import partial
 from logging import getLogger
+from multiprocessing import get_context, freeze_support
 from queue import Empty
 from urllib.parse import urlparse
 
@@ -181,7 +182,7 @@ class Runner:
     def _run_subprocess(self):
         """Run in a subprocess, with queued logging."""
         LOG.info("Launching trollflow2 with subprocesses")
-        from multiprocessing import get_context
+        freeze_support()
         ctx = get_context("spawn")
         target_fun = partial(queue_logged_process, prod_list=self.product_list)
         self._fill_in_connection_parameters()

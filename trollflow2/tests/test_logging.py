@@ -23,11 +23,10 @@
 
 import logging
 import time
-from multiprocessing import Manager
+from multiprocessing import Manager, get_context, freeze_support
 from unittest import mock
 
 import pytest
-
 from trollflow2.logging import logging_on, setup_queued_logging
 
 log_queue = Manager().Queue(-1)  # no limit on size
@@ -92,7 +91,7 @@ def fun(q, log_message):
 
 def run_subprocess(log_message, queue):
     """Run a subprocess."""
-    from multiprocessing import get_context
+    freeze_support()
     ctx = get_context('spawn')
     proc = ctx.Process(target=fun, args=(queue, log_message))
     proc.start()
