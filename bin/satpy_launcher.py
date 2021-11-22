@@ -23,9 +23,11 @@
 """The satpy launcher."""
 
 import argparse
-
-from trollflow2.launcher import run
 import logging
+
+from trollflow2.logging import logging_on
+from trollflow2.launcher import Runner
+from multiprocessing import Manager
 
 
 def parse_args():
@@ -39,8 +41,12 @@ def parse_args():
                         help="The yaml file with the product list",
                         type=str)
     parser.add_argument("-m", "--test_message",
-                        help="File path with the message used for testing offline",
+                        help="File path with the message used for testing offline. This implies threaded running.",
                         type=str, required=False)
+    parser.add_argument("-t", "--threaded",
+                        help="Run the product generation in threads instead of processes.",
+                        action='store_true')
+
     parser.add_argument("-c", "--log-config",
                         help="Log config file (yaml) to use",
                         type=str, required=False)
@@ -62,17 +68,21 @@ def main():
     if log_config is not None:
         with open(log_config) as fd:
             import yaml
-            log_dict = yaml.safe_load(fd.read())
-            logging.config.dictConfig(log_dict)
-    else:
-        from satpy.utils import debug_on
-        debug_on()
+            log_config = yaml.safe_load(fd.read())
 
-    product_list = args.pop("product_list")
-    test_message = args.pop("test_message")
-    connection_parameters = args
+    logger = logging.getLogger("satpy_launcher")
 
-    run(product_list, connection_parameters, test_message)
+    log_queue = Manager().Queue()
+
+    with logging_on(log_queue, log_config):
+        logger.warning("Launching Satpy-based runner.")
+        product_list = args.pop("product_list")
+        test_message = args.pop("test_message")
+        threaded = args.pop("threaded")
+        connection_parameters = args
+
+        runner = Runner(product_list, log_queue, connection_parameters, test_message, threaded)
+        runner.run()
 
 
 if __name__ == "__main__":
