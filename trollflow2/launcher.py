@@ -162,7 +162,7 @@ class Runner:
         self.threaded = threaded
 
     def run(self):
-        """Spawn one or multiple subprocesses to run the jobs from the product list."""
+        """Spawn one or multiple subprocesses or threads to run the jobs from the product list."""
         messages = self._get_message_iterator()
 
         if self.threaded:
@@ -339,12 +339,12 @@ def print_traces(signum, frame):
     """Print traces for debugging."""
     import sys
     import traceback
-    print(f"Got signal {signum} in {frame}, dumping traces.")
+    print(f"Got signal {signum} in {frame}, dumping traces.", file=sys.stderr)
 
     for thread, frame in sys._current_frames().items():
-        print('Thread 0x%x' % thread)
-        traceback.print_stack(frame)
-        print()
+        print('Thread 0x%x' % thread, file=sys.stderr)
+        traceback.print_stack(frame, file=sys.stderr)
+        print(file=sys.stderr)
 
 
 def process(msg, prod_list, produced_files):
