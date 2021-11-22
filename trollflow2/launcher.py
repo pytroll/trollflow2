@@ -341,9 +341,9 @@ def print_traces(signum, frame):
     import traceback
     print(f"Got signal {signum} in {frame}, dumping traces.", file=sys.stderr)
 
-    for thread, frame in sys._current_frames().items():
+    for thread, current_frame in sys._current_frames().items():
         print('Thread 0x%x' % thread, file=sys.stderr)
-        traceback.print_stack(frame, file=sys.stderr)
+        traceback.print_stack(current_frame, file=sys.stderr)
         print(file=sys.stderr)
 
 
