@@ -1,3 +1,14 @@
+## Version 0.11.1 (2021/11/22)
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR 124](https://github.com/pytroll/trollflow2/pull/124) - Logging fix using global QueueHandler
+
+In this release 1 pull request was closed.
+
+
 ## Version 0.11.0 (2021/10/21)
 
 ### Issues Closed
