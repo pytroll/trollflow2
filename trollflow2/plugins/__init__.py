@@ -190,14 +190,14 @@ def prepared_filename(fmat, renames):
 
     # tmp filenaming
     use_tmp_file = fmat.get('use_tmp_file', False)
-    use_tmp_dir = fmat.get("use_tmp_dir", False)
+    staging_zone = fmat.get("staging_zone", False)
 
-    if use_tmp_file:
-        if use_tmp_dir:
-            tmp_dir = pathlib.Path(use_tmp_dir)
+    if staging_zone or use_tmp_file:
+        if staging_zone:
+            directory = pathlib.Path(staging_zone)
             of = pathlib.Path(orig_filename)
-            filename = os.fspath(tmp_dir / of.name)
-        else:
+            filename = os.fspath(directory / of.name)
+        if use_tmp_file:
             filename = _get_temp_filename(directory, renames.keys())
         yield filename
         renames[filename] = orig_filename
@@ -257,11 +257,13 @@ def save_datasets(job):
     This is useful when other processes are waiting for the file to be present
     to start their work, but would crash on incomplete files.
 
-    If, in addition, the ``use_tmp_dir`` option is provided in the product
-    list, then the temporary file will be created in this directory without
+    If the ``staging_zone`` option is provided in the product
+    list, then the file will be created in this directory first, without
     changing the filename.  This is useful for writers which write the filename
     to the headers, such as the SatPy ninjotiff and ninjogeotiff writers.  The
-    value of ``use_tmp_dir`` has no effect if ``use_tmp_file`` is False.
+    ``staging_zone`` directory must be on the same filesystem as
+    ``output_dir``.  It is recommended to set ``use_tmp_file`` to `False` when
+    using a ``staging_zone`` directory.
     """
     scns = job['resampled_scenes']
     objs = []

@@ -327,27 +327,6 @@ class TestSaveDatasets(TestCase):
         self.assertTrue(os.path.exists(tst_dir))
         os.rmdir(tst_dir)
 
-    def test_use_tmp_dir(self):
-        """Test `prepared_filename` context with temporary directory.
-
-        Test that when both use_tmp_file and use_tmp_dir are set, that the
-        temporary file is created in its own temporary directory, whereas the
-        basename is not changed.
-        """
-        from trollflow2.plugins import prepared_filename
-        tst_file = "trappedinaunittest.tif"
-
-        renames = {}
-        fmat = {"use_tmp_file": True, "fname_pattern": tst_file,
-                "use_tmp_dir": "/dummy/abcd"}
-        with prepared_filename(fmat, renames) as filename:
-            pass
-        assert filename != tst_file
-        assert filename.endswith(tst_file)
-        assert len(renames) == 1
-        assert next(iter(renames.values())) == tst_file
-        assert next(iter(renames.keys())).startswith("/dummy/abcd/")
-
     def test_prepare_filename_and_directory(self):
         """Test filename composition and directory creation."""
         from trollflow2.plugins import _prepare_filename_and_directory
@@ -568,6 +547,48 @@ class TestSaveDatasets(TestCase):
                      '/tmp/NOAA-15_20190217_0600_omerc_bb_cloud_top_height.tif']
         for fname, efname in zip(the_queue.put.mock_calls, filenames):
             self.assertEqual(fname, mock.call(efname))
+
+
+def test_use_staging_zone_no_tmpfile():
+    """Test `prepared_filename` context with staging zone.
+
+    Test that when staging_zone is set, the output file is created in this
+    directory first, before being moved to output_dir.
+    """
+    from trollflow2.plugins import prepared_filename
+    tst_file = "trappedinaunittest.tif"
+
+    renames = {}
+    fmat = {"use_tmp_file": False, "fname_pattern": tst_file,
+            "staging_zone": "/dummy/abcd"}
+    with prepared_filename(fmat, renames) as filename:
+        pass
+    assert filename != tst_file
+    assert filename.endswith(tst_file)
+    assert len(renames) == 1
+    assert next(iter(renames.values())) == tst_file
+    assert next(iter(renames.keys())).startswith("/dummy/abcd/")
+
+
+def test_use_staging_zone_tmpfile(tmp_path):
+    """Test `prepared_filename` context with staging zone and tmpfile.
+
+    Test that when both staging zone and tmpfile are set, an output file
+    with a temporary name is created in the staging zone directory.
+    """
+    from trollflow2.plugins import prepared_filename
+    tst_file = "stilltrappedinaunittest.tif"
+
+    renames = {}
+    fmat = {"use_tmp_file": True, "fname_pattern": tst_file,
+            "staging_zone": os.fspath(tmp_path)}
+    with prepared_filename(fmat, renames) as filename:
+        pass
+    assert filename != tst_file
+    assert not filename.endswith(tst_file)
+    assert len(renames) == 1
+    assert next(iter(renames.values())) == tst_file
+    assert next(iter(renames.keys())).startswith(os.fspath(tmp_path))
 
 
 class TestCreateScene(TestCase):
