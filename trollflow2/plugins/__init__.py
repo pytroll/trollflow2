@@ -196,9 +196,10 @@ def prepared_filename(fmat, renames):
         if staging_zone:
             directory = pathlib.Path(staging_zone)
             of = pathlib.Path(orig_filename)
-            filename = os.fspath(directory / of.name)
         if use_tmp_file:
             filename = _get_temp_filename(directory, renames.keys())
+        else:
+            filename = os.fspath(directory / of.name)
         yield filename
         renames[filename] = orig_filename
     else:
