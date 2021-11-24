@@ -294,7 +294,7 @@ def product_missing_from_scene(product, scene):
     return False
 
 
-class FilePublisher(object):
+class FilePublisher:
     """Publisher for generated files."""
 
     def __init__(self, port=0, nameservers=""):
@@ -801,13 +801,13 @@ def _persist_what_we_must(job):
                 to_persist.append((scn, prod_name, scn[prod_name]))
     LOG.debug("Persisting early due to content checks")
     persisted = dask.persist(*[p[2] for p in to_persist])
-    for ((sc, prod_name, old), new) in zip(to_persist, persisted):
+    for ((sc, prod_name, _old), new) in zip(to_persist, persisted):
         sc[prod_name] = new
 
 
 def _product_meets_min_valid_data_fraction(
         prod_name, prod_props, area_name, area_props, job, exp_cov):
-    """Check if product meets min_valid_data_fraction
+    """Check if product meets min_valid_data_fraction.
 
     Helper for `check_valid_data_fraction`, check if ``product`` meets the
     ``min_valid_data_fraction`` as defined in ``prod_props``.
@@ -815,7 +815,6 @@ def _product_meets_min_valid_data_fraction(
     Returns True if product can remain or is absent.  Returns False if product
     has to be removed.
     """
-
     LOG.debug(f"Checking validity for {area_name:s}/{prod_name:s}")
     if prod_name not in job["resampled_scenes"][area_name]:
         LOG.debug(f"product {prod_name!s} not found, already removed or loading failed?")

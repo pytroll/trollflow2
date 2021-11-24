@@ -35,15 +35,15 @@ import re
 import signal
 import traceback
 from collections import OrderedDict
+from contextlib import suppress
 from datetime import datetime
-from functools import partial
-from logging import getLogger, handlers
-from multiprocessing import Queue
+from logging import getLogger
 from queue import Empty
+from urllib.parse import urlparse
 
 import yaml
-from six.moves.urllib.parse import urlparse
 from trollflow2.dict_tools import gen_dict_extract, plist_iter
+from trollflow2.logging import setup_queued_logging
 from trollflow2.plugins import AbortProcessing
 
 try:
@@ -150,66 +150,75 @@ def _create_listener_from_connection_parameters(connection_parameters):
     return listener
 
 
-def run(product_list, connection_parameters=None, test_message=None):
-    """Spawn one or multiple subprocesses to run the jobs from the product list."""
-    test_message = get_test_message(test_message)
-    if test_message:
-        _run_threaded(product_list, test_message)
-    else:
-        _run_subprocess(product_list, connection_parameters)
+class Runner:
+    """Class that handles all the administration around running on a product list."""
 
+    def __init__(self, product_list, log_queue, connection_parameters=None, test_message=None, threaded=False):
+        """Set up the runner."""
+        self.product_list = product_list
+        self.log_queue = log_queue
+        self.connection_parameters = connection_parameters
+        self.test_message = get_test_message(test_message)
+        self.threaded = threaded
 
-def _run_threaded(product_list, test_message):
-    """Run in a thread."""
-    LOG.info("Launching trollflow2 with threads")
-    from threading import Thread
-    from posttroll.message import Message
-    messages = [Message(rawstr=test_message)]
-    target_fun = partial(process, prod_list=product_list)
-    _run_product_list_on_messages(messages, target_fun, Thread)
+    def run(self):
+        """Spawn one or multiple subprocesses or threads to run the jobs from the product list."""
+        messages = self._get_message_iterator()
 
+        if self.threaded:
+            self._run_threaded(messages)
+        else:
+            self._run_subprocess(messages)
 
-def _run_subprocess(product_list, connection_parameters=None):
-    """Run in a subprocess, with queued logging."""
-    LOG.info("Launching trollflow2 with subprocesses")
-    from multiprocessing import Process
-    log_queue = Queue()
-    target_fun = partial(queue_logged_process, log_queue=log_queue, prod_list=product_list)
-    connection_parameters = _fill_in_connection_parameters(connection_parameters, product_list)
+    def _get_message_iterator(self):
+        """Get the messages to work on."""
+        if self.test_message:
+            from posttroll.message import Message
+            messages = [Message(rawstr=self.test_message)]
+            self.threaded = True
+        else:
+            self._fill_in_connection_parameters()
+            messages = generate_messages(self.connection_parameters)
+        return messages
 
-    messages = generate_messages(connection_parameters)
+    def _fill_in_connection_parameters(self):
+        """Fill in the connection parameters for the message listener."""
+        with open(self.product_list) as fid:
+            config = yaml.load(fid.read(), Loader=BaseLoader)
+        if self.connection_parameters is None:
+            self.connection_parameters = dict()
+        if not self.connection_parameters.get('topic'):
+            self.connection_parameters['topic'] = config['product_list'].pop('subscribe_topics', None)
 
-    qlog_listener = handlers.QueueListener(log_queue, *LOG.handlers)
-    qlog_listener.start()
-    try:
-        _run_product_list_on_messages(messages, target_fun, Process)
-    finally:
-        qlog_listener.stop()
+    def _run_threaded(self, messages):
+        """Run in a thread."""
+        LOG.info("Launching trollflow2 with threads")
+        from threading import Thread
+        self._run_product_list_on_messages(messages, process, Thread)
 
+    def _run_subprocess(self, messages):
+        """Run in a subprocess, with queued logging."""
+        LOG.info("Launching trollflow2 with subprocesses")
+        from multiprocessing import get_context
+        ctx = get_context("spawn")
+        self._run_product_list_on_messages(messages, queue_logged_process, ctx.Process)
 
-def _fill_in_connection_parameters(connection_parameters, product_list):
-    with open(product_list) as fid:
-        config = yaml.load(fid.read(), Loader=BaseLoader)
-    if connection_parameters is None:
-        connection_parameters = dict()
-    if not connection_parameters.get('topic'):
-        connection_parameters['topic'] = config['product_list'].pop('subscribe_topics', None)
-    return connection_parameters
-
-
-def _run_product_list_on_messages(messages, target_fun, process_class):
-    """Run the product list on the messages."""
-    for msg in messages:
-        produced_files = Queue()
-        proc = process_class(target=target_fun, args=(msg,), kwargs=dict(produced_files=produced_files))
-        start_time = datetime.now()
-        proc.start()
-        proc.join()
-        try:
-            exitcode = proc.exitcode
-        except AttributeError:
-            exitcode = 0
-        check_results(produced_files, start_time, exitcode)
+    def _run_product_list_on_messages(self, messages, target_fun, process_class):
+        """Run the product list on the messages."""
+        for msg in messages:
+            produced_files_queue = self.log_queue._manager.Queue()
+            kwargs = dict(produced_files=produced_files_queue, prod_list=self.product_list)
+            if not self.threaded:
+                kwargs["log_queue"] = self.log_queue
+            proc = process_class(target=target_fun, args=(msg,), kwargs=kwargs)
+            start_time = datetime.now()
+            proc.start()
+            proc.join()
+            try:
+                exitcode = proc.exitcode
+            except AttributeError:
+                exitcode = 0
+            check_results(produced_files_queue, start_time, exitcode)
 
 
 def get_area_priorities(product_list):
@@ -319,24 +328,27 @@ def get_dask_client(config):
 
 def queue_logged_process(msg, prod_list, produced_files, log_queue):
     """Run `process` with a queued log."""
-    _reset_log_handlers()
-    handler = handlers.QueueHandler(log_queue)
-    LOG.addHandler(handler)
+    setup_queued_logging(log_queue)
+    with suppress(ValueError):
+        signal.signal(signal.SIGUSR1, print_traces)
+        LOG.debug("Use SIGUSR1 on pid {} to check the current tracebacks of this subprocess.".format(os.getpid()))
     process(msg, prod_list, produced_files)
 
 
-def _reset_log_handlers():
-    """Reset log handlers."""
-    try:
-        while LOG.hasHandlers():
-            LOG.removeHandler(LOG.handlers[0])
-    except IndexError:
-        pass
+def print_traces(signum, frame):
+    """Print traces for debugging."""
+    import sys
+    import traceback
+    print(f"Got signal {signum} in {frame}, dumping traces.", file=sys.stderr)
+
+    for thread, current_frame in sys._current_frames().items():
+        print('Thread 0x%x' % thread, file=sys.stderr)
+        traceback.print_stack(current_frame, file=sys.stderr)
+        print(file=sys.stderr)
 
 
 def process(msg, prod_list, produced_files):
     """Process a message."""
-    config = {}
     try:
         with open(prod_list) as fid:
             config = yaml.load(fid.read(), Loader=UnsafeLoader)
