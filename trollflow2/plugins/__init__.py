@@ -22,6 +22,7 @@
 """Trollflow2 plugins."""
 
 import os
+import pathlib
 from contextlib import contextmanager
 from logging import getLogger
 from tempfile import NamedTemporaryFile
@@ -189,9 +190,16 @@ def prepared_filename(fmat, renames):
 
     # tmp filenaming
     use_tmp_file = fmat.get('use_tmp_file', False)
+    staging_zone = fmat.get("staging_zone", False)
 
-    if use_tmp_file:
-        filename = _get_temp_filename(directory, renames.keys())
+    if staging_zone or use_tmp_file:
+        if staging_zone:
+            directory = pathlib.Path(staging_zone)
+            of = pathlib.Path(orig_filename)
+        if use_tmp_file:
+            filename = _get_temp_filename(directory, renames.keys())
+        else:
+            filename = os.fspath(directory / of.name)
         yield filename
         renames[filename] = orig_filename
     else:
@@ -245,11 +253,22 @@ def renamed_files():
 def save_datasets(job):
     """Save the datasets (and trigger the computation).
 
-    If the `use_tmp_file` option is provided in the product list and is set to
-    True, the file will be first saved to a temporary name before being renamed.
-    This is useful when other processes are waiting for the file to be present
-    to start their work, but would crash on incomplete files.
+    If the ``use_tmp_file`` option is provided in the product list and
+    is set to True, the file will be first saved to a temporary name
+    before being renamed.  This is useful when other processes are
+    waiting for the file to be present to start their work, but would
+    crash on incomplete files.
 
+    If the ``staging_zone`` option is provided in the product list,
+    then the file will be created in this directory first, using either a
+    temporary filename (if ``use_tmp_file`` is true) or the final filename
+    (if ``use_tmp_file`` is false).  This is useful for writers which
+    write the filename to the headers, such as the Satpy ninjotiff and
+    ninjogeotiff writers.  The ``staging_zone`` directory must be on
+    the same filesystem as ``output_dir``.  When using those writers,
+    it is recommended to set ``use_tmp_file`` to `False` when using a
+    ``staging_zone`` directory, such that the filename written to the
+    headers remains meaningful.
     """
     scns = job['resampled_scenes']
     objs = []

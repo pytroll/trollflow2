@@ -55,6 +55,8 @@ product_list: &product_list
   #   max: 80.0  # if higher than this, products are removed
   #   check_pass: True  # check coverage within the swath
   # min_coverage: 20  # at least 20% coverage
+  # use_tmp_file: False  # create temporary filename first
+  # staging_zone: "/data/pytroll/tmp/staging_zone"  # create files here first
 
   areas:
     omerc_bb:
