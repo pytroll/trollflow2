@@ -528,8 +528,9 @@ def metadata_alias(job):
 
 def sza_check(job):
     """Remove products which are not valid for the current Sun zenith angle."""
-    scn = job['scene']
-    start_time = scn.attrs['start_time']
+    scn_mda = job['scene'].attrs.copy()
+    scn_mda.update(job['input_mda'])
+    start_time = scn_mda['start_time']
     product_list = job['product_list']
     areas = list(product_list['product_list']['areas'].keys())
     for area in areas:

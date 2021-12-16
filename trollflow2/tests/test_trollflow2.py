@@ -1326,7 +1326,8 @@ class TestSZACheck(TestCase):
 def _create_job(product_list):
     job = {}
     scene = mock.MagicMock()
-    scene.attrs = {'start_time': 42}
+    scene.attrs = {}
+    job['input_mda'] = {'start_time': 42, 'another_message_item': 'coconut'}
     job['scene'] = scene
     job['product_list'] = product_list.copy()
 
