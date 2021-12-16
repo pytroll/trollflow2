@@ -1262,48 +1262,87 @@ class TestGetPluginConf(TestCase):
 class TestSZACheck(TestCase):
     """Test case for SZA check."""
 
-    def test_sza_check(self):
-        """Test the SZA check."""
+    def test_sza_check_no_settings(self):
+        """Test the SZA check without any settings."""
         from trollflow2.plugins import sza_check
         with mock.patch("trollflow2.plugins.sun_zenith_angle") as sun_zenith_angle:
-            job = {}
-            scene = mock.MagicMock()
-            scene.attrs = {'start_time': 42}
-            job['scene'] = scene
             from trollflow2.launcher import yaml, UnsafeLoader
             product_list = yaml.load(yaml_test1, Loader=UnsafeLoader)
-            job['product_list'] = product_list.copy()
-            # Run without any settings
+
+            job = _create_job(product_list)
             sza_check(job)
+
             sun_zenith_angle.assert_not_called()
 
-            # Add SZA limits to couple of products
-            # Day product
-            product_list['product_list']['areas']['omerc_bb']['products']['ct']['sunzen_maximum_angle'] = 95.
-            product_list['product_list']['areas']['omerc_bb']['products']['ct']['sunzen_check_lon'] = 25.
-            product_list['product_list']['areas']['omerc_bb']['products']['ct']['sunzen_check_lat'] = 60.
-            # Night product
-            product_list['product_list']['areas']['germ']['products']['cloudtype']['sunzen_minimum_angle'] = 85.
-            product_list['product_list']['areas']['germ']['products']['cloudtype']['sunzen_check_lon'] = 25.
-            product_list['product_list']['areas']['germ']['products']['cloudtype']['sunzen_check_lat'] = 60.
+    def test_sza_check_with_ok_sza(self):
+        """Test the SZA check with SZA that is ok for all the products."""
+        from trollflow2.plugins import sza_check
+        with mock.patch("trollflow2.plugins.sun_zenith_angle") as sun_zenith_angle:
+            from trollflow2.launcher import yaml, UnsafeLoader
+            product_list = yaml.load(yaml_test1, Loader=UnsafeLoader)
+            _add_sunzen_limits(product_list)
 
-            # Zenith angle that removes nothing
+            job = _create_job(product_list)
+            # Zenith angle that is ok for all the products
             sun_zenith_angle.return_value = 90.
             sza_check(job)
+
             sun_zenith_angle.assert_called_with(42, 25., 60.)
             self.assertDictEqual(job['product_list'], product_list)
 
+    def test_sza_check_removes_day_products(self):
+        """Test the SZA check with SZA that removes day products."""
+        from trollflow2.plugins import sza_check
+        with mock.patch("trollflow2.plugins.sun_zenith_angle") as sun_zenith_angle:
+            from trollflow2.launcher import yaml, UnsafeLoader
+            product_list = yaml.load(yaml_test1, Loader=UnsafeLoader)
+            _add_sunzen_limits(product_list)
+
+            job = _create_job(product_list)
             # Zenith angle that removes day products
             sun_zenith_angle.return_value = 100.
             sza_check(job)
+
             self.assertTrue('cloud_top_height' in product_list['product_list']['areas']['omerc_bb']['products'])
             self.assertFalse('ct' in product_list['product_list']['areas']['omerc_bb']['products'])
+
+    def test_sza_check_removes_night_products(self):
+        """Test the SZA check with SZA that removes night products."""
+        from trollflow2.plugins import sza_check
+        with mock.patch("trollflow2.plugins.sun_zenith_angle") as sun_zenith_angle:
+            from trollflow2.launcher import yaml, UnsafeLoader
+            product_list = yaml.load(yaml_test1, Loader=UnsafeLoader)
+            _add_sunzen_limits(product_list)
+
+            job = _create_job(product_list)
 
             # Zenith angle that removes night products
             sun_zenith_angle.return_value = 45.
             sza_check(job)
             # There was only one product, so the whole area is deleted
             self.assertFalse('germ' in job['product_list']['product_list']['areas'])
+
+
+def _create_job(product_list):
+    job = {}
+    scene = mock.MagicMock()
+    scene.attrs = {'start_time': 42}
+    job['scene'] = scene
+    job['product_list'] = product_list.copy()
+
+    return job
+
+
+def _add_sunzen_limits(product_list):
+    # Add SZA limits to couple of products
+    # Day product
+    product_list['product_list']['areas']['omerc_bb']['products']['ct']['sunzen_maximum_angle'] = 95.
+    product_list['product_list']['areas']['omerc_bb']['products']['ct']['sunzen_check_lon'] = 25.
+    product_list['product_list']['areas']['omerc_bb']['products']['ct']['sunzen_check_lat'] = 60.
+    # Night product
+    product_list['product_list']['areas']['germ']['products']['cloudtype']['sunzen_minimum_angle'] = 85.
+    product_list['product_list']['areas']['germ']['products']['cloudtype']['sunzen_check_lon'] = 25.
+    product_list['product_list']['areas']['germ']['products']['cloudtype']['sunzen_check_lat'] = 60.
 
 
 class TestOverviews(TestCase):
