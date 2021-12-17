@@ -1262,65 +1262,68 @@ class TestGetPluginConf(TestCase):
 class TestSZACheck(TestCase):
     """Test case for SZA check."""
 
+    def setUp(self):
+        """Create common items."""
+        product_list_no_sza, job_no_sza = _get_product_list_and_job()
+        self.product_list_no_sza = product_list_no_sza
+        self.job_no_sza = job_no_sza
+        product_list_with_sza, job_with_sza = _get_product_list_and_job(add_sza_limits=True)
+        self.product_list_with_sza = product_list_with_sza
+        self.job_with_sza = job_with_sza
+
     def test_sza_check_no_settings(self):
         """Test the SZA check without any settings."""
         from trollflow2.plugins import sza_check
         with mock.patch("trollflow2.plugins.sun_zenith_angle") as sun_zenith_angle:
-            from trollflow2.launcher import yaml, UnsafeLoader
-            product_list = yaml.load(yaml_test1, Loader=UnsafeLoader)
-
-            job = _create_job(product_list)
-            sza_check(job)
-
+            sza_check(self.job_no_sza)
             sun_zenith_angle.assert_not_called()
 
     def test_sza_check_with_ok_sza(self):
         """Test the SZA check with SZA that is ok for all the products."""
         from trollflow2.plugins import sza_check
         with mock.patch("trollflow2.plugins.sun_zenith_angle") as sun_zenith_angle:
-            from trollflow2.launcher import yaml, UnsafeLoader
-            product_list = yaml.load(yaml_test1, Loader=UnsafeLoader)
-            _add_sunzen_limits(product_list)
-
-            job = _create_job(product_list)
             # Zenith angle that is ok for all the products
             sun_zenith_angle.return_value = 90.
-            sza_check(job)
+
+            sza_check(self.job_with_sza)
 
             sun_zenith_angle.assert_called_with(42, 25., 60.)
-            self.assertDictEqual(job['product_list'], product_list)
+            self.assertDictEqual(self.job_with_sza['product_list'], self.product_list_with_sza)
 
     def test_sza_check_removes_day_products(self):
         """Test the SZA check with SZA that removes day products."""
         from trollflow2.plugins import sza_check
         with mock.patch("trollflow2.plugins.sun_zenith_angle") as sun_zenith_angle:
-            from trollflow2.launcher import yaml, UnsafeLoader
-            product_list = yaml.load(yaml_test1, Loader=UnsafeLoader)
-            _add_sunzen_limits(product_list)
-
-            job = _create_job(product_list)
             # Zenith angle that removes day products
             sun_zenith_angle.return_value = 100.
-            sza_check(job)
 
-            self.assertTrue('cloud_top_height' in product_list['product_list']['areas']['omerc_bb']['products'])
-            self.assertFalse('ct' in product_list['product_list']['areas']['omerc_bb']['products'])
+            sza_check(self.job_with_sza)
+
+            self.assertTrue('cloud_top_height' in
+                            self.product_list_with_sza['product_list']['areas']['omerc_bb']['products'])
+            self.assertFalse('ct' in self.product_list_with_sza['product_list']['areas']['omerc_bb']['products'])
 
     def test_sza_check_removes_night_products(self):
         """Test the SZA check with SZA that removes night products."""
         from trollflow2.plugins import sza_check
         with mock.patch("trollflow2.plugins.sun_zenith_angle") as sun_zenith_angle:
-            from trollflow2.launcher import yaml, UnsafeLoader
-            product_list = yaml.load(yaml_test1, Loader=UnsafeLoader)
-            _add_sunzen_limits(product_list)
-
-            job = _create_job(product_list)
-
             # Zenith angle that removes night products
             sun_zenith_angle.return_value = 45.
-            sza_check(job)
+
+            sza_check(self.job_with_sza)
+
             # There was only one product, so the whole area is deleted
-            self.assertFalse('germ' in job['product_list']['product_list']['areas'])
+            self.assertFalse('germ' in self.job_with_sza['product_list']['product_list']['areas'])
+
+
+def _get_product_list_and_job(add_sza_limits=False):
+    from trollflow2.launcher import yaml, UnsafeLoader
+    product_list = yaml.load(yaml_test1, Loader=UnsafeLoader)
+    if add_sza_limits:
+        _add_sunzen_limits(product_list)
+    job = _create_job(product_list)
+
+    return product_list, job
 
 
 def _create_job(product_list):
