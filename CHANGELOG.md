@@ -1,3 +1,25 @@
+## Version 0.12.0 (2021/12/20)
+
+### Issues Closed
+
+* [Issue 125](https://github.com/pytroll/trollflow2/issues/125) - Writing ninjo(geo)tiff with use_tmp_file writes temporary filename to metadata ([PR 126](https://github.com/pytroll/trollflow2/pull/126) by [@gerritholl](https://github.com/gerritholl))
+
+In this release 1 issue was closed.
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR 128](https://github.com/pytroll/trollflow2/pull/128) - Fix scene attribute usage in sza_check ([1943](https://github.com/pytroll/satpy/issues/1943))
+
+#### Features added
+
+* [PR 128](https://github.com/pytroll/trollflow2/pull/128) - Fix scene attribute usage in sza_check ([1943](https://github.com/pytroll/satpy/issues/1943))
+* [PR 126](https://github.com/pytroll/trollflow2/pull/126) - Add flag to create temporary file in temporary directory ([125](https://github.com/pytroll/trollflow2/issues/125), [125](https://github.com/pytroll/trollflow2/issues/125))
+
+In this release 3 pull requests were closed.
+
+
 ## Version 0.11.1 (2021/11/22)
 
 ### Pull Requests Merged
