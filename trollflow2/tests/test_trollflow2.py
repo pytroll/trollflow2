@@ -1040,13 +1040,21 @@ class TestCheckSunlightCoverage(TestCase):
             self.assertIn('green_snow', job['product_list']['product_list']['areas']['euron1']['products'])
 
             _get_sunlight_coverage.return_value = 0
-            check_sunlight_coverage(job)
+            with self.assertLogs("trollflow2.plugins", level=logging.INFO) as cm:
+                check_sunlight_coverage(job)
             self.assertNotIn('green_snow', job['product_list']['product_list']['areas']['euron1']['products'])
+            self.assertIn("Not enough sunlight coverage for product "
+                          "'green_snow', removed. Needs at least 10.0%, got "
+                          "0.0%.", cm.output[0])
 
             job['product_list']['product_list']['areas']['euron1']['products']['green_snow'] = pl_green
             _get_sunlight_coverage.return_value = 1
-            check_sunlight_coverage(job)
+            with self.assertLogs("trollflow2.plugins", level=logging.INFO) as cm:
+                check_sunlight_coverage(job)
             self.assertNotIn('green_snow', job['product_list']['product_list']['areas']['euron1']['products'])
+            self.assertIn("Too much sunlight coverage for product "
+                          "'green_snow', removed. Needs at most 40.0%, got "
+                          "100.0%.", cm.output[0])
 
 
 class TestCovers(TestCase):

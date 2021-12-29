@@ -644,11 +644,13 @@ def check_sunlight_coverage(job):
             area_conf['area_sunlight_coverage_percent'] = coverage[use_pass] * 100
             if min_day is not None and coverage[use_pass] < (min_day / 100.0):
                 LOG.info("Not enough sunlight coverage for "
-                         "product '%s', removed.", product)
+                         f"product '{product!s}', removed. Needs at least "
+                         f"{min_day:.1f}%, got {coverage[use_pass]:.1%}.")
                 dpath.util.delete(product_list, prod_path)
             if max_day is not None and coverage[use_pass] > (max_day / 100.0):
                 LOG.info("Too much sunlight coverage for "
-                         "product '%s', removed.", product)
+                         f"product '{product!s}', removed. Needs at most "
+                         f"{max_day:.1f}%, got {coverage[use_pass]:.1%}.")
                 dpath.util.delete(product_list, prod_path)
 
 
