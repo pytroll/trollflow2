@@ -28,7 +28,7 @@ from logging import getLogger
 from tempfile import NamedTemporaryFile
 from urllib.parse import urlunsplit
 
-import dpath
+import dpath.util
 import rasterio
 import dask
 from posttroll.message import Message
