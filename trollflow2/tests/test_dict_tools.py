@@ -85,6 +85,18 @@ product_list:
             formats:
               - format: tif
                 writer: geotiff
+
+      null:
+        areaname: germ_in_fname
+        fname_pattern: "{start_time:%Y%m%d_%H%M}_{areaname:s}_{productname}.{format}"
+        products:
+          cloudtype:
+            productname: cloudtype_in_fname
+            output_dir: /tmp/satdmz/pps/www/latest_2018/
+            formats:
+              - format: png
+                writer: simple_image
+
 """
 
 yaml_test2 = """
@@ -221,6 +233,13 @@ class TestConfigValue(unittest.TestCase):
         res = get_config_value(self.prodlist, self.path, "nothing",
                                default=42)
         self.assertEqual(res, 42)
+
+    def test_null_area(self):
+        from trollflow2.dict_tools import get_config_value
+        path = "/product_list/areas/None/products/cloudtype"
+        expected = "/tmp/satdmz/pps/www/latest_2018/"
+        res = get_config_value(self.prodlist, path, "output_dir")
+        self.assertEqual(res, expected)
 
 
 if __name__ == '__main__':
