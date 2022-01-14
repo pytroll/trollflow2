@@ -127,7 +127,7 @@ def resample(job):
         area_conf = _get_plugin_conf(product_list, '/product_list/areas/' + str(area),
                                      conf)
         LOG.debug('Resampling to %s', str(area))
-        if area is None:
+        if area == 'None':
             minarea = get_config_value(product_list,
                                        '/product_list/areas/' + str(area),
                                        'use_min_area')

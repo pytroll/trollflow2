@@ -23,11 +23,6 @@
 """Test the product list tools."""
 
 import unittest
-import yaml
-try:
-    from yaml import UnsafeLoader
-except ImportError:
-    from yaml import Loader as UnsafeLoader
 try:
     from unittest import mock
 except ImportError:
@@ -39,6 +34,9 @@ try:
     import numpy  # noqa
 except ImportError:
     pass
+
+from trollflow2.launcher import read_config
+
 
 yaml_test1 = """
 product_list:
@@ -166,7 +164,7 @@ class TestProdList(unittest.TestCase):
     def test_iter(self):
         """Test plist_iter."""
         from trollflow2.dict_tools import plist_iter
-        prodlist = yaml.load(yaml_test1, Loader=UnsafeLoader)['product_list']
+        prodlist = read_config(raw_string=yaml_test1)['product_list']
         expected = [{'areaname': 'euron1_in_fname', 'area': 'euron1', 'productname': 'cloud_top_height_in_fname', 'product': 'cloud_top_height',  # noqa
                      'min_coverage': 20.0, 'something': 'foo',
                      'output_dir': '/tmp/satdmz/pps/www/latest_2018/', 'format': 'png', 'writer': 'simple_image',
@@ -187,7 +185,7 @@ class TestProdList(unittest.TestCase):
         for i, exp in zip(plist_iter(prodlist), expected):
             self.assertDictEqual(i[0], exp)
 
-        prodlist = yaml.load(yaml_test2, Loader=UnsafeLoader)['product_list']
+        prodlist = read_config(raw_string=yaml_test2)['product_list']
         for i, exp in zip(plist_iter(prodlist), expected):
             self.assertDictEqual(i[0], exp)
 
@@ -197,7 +195,7 @@ class TestConfigValue(unittest.TestCase):
 
     def setUp(self):
         """Set up the test case."""
-        self.prodlist = yaml.load(yaml_test1, Loader=UnsafeLoader)
+        self.prodlist = read_config(raw_string=yaml_test1)
         self.path = "/product_list/areas/germ/products/cloudtype"
 
     def test_config_value_same_level(self):

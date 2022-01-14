@@ -32,6 +32,7 @@ from unittest import mock
 import pytest
 
 from trollflow2.tests.utils import TestCase
+from trollflow2.launcher import read_config
 
 
 yaml_test1 = """
@@ -362,12 +363,12 @@ class TestSaveDatasets(TestCase):
     def test_save_datasets(self):
         """Test saving datasets."""
         self.maxDiff = None
-        from trollflow2.launcher import yaml, UnsafeLoader
+        from yaml import UnsafeLoader
         from trollflow2.plugins import save_datasets, DEFAULT
         job = {}
         job['input_mda'] = input_mda
         job['product_list'] = {
-            'product_list': yaml.load(yaml_test_save, Loader=UnsafeLoader)['product_list'],
+            'product_list': read_config(raw_string=yaml_test_save, Loader=UnsafeLoader)['product_list'],
         }
         job['resampled_scenes'] = {}
         the_queue = mock.MagicMock()
@@ -630,8 +631,8 @@ class TestLoadComposites(TestCase):
     def setUp(self):
         """Set up the test case."""
         super().setUp()
-        from trollflow2.launcher import yaml, UnsafeLoader
-        self.product_list = yaml.load(yaml_test1, Loader=UnsafeLoader)
+        from yaml import UnsafeLoader
+        self.product_list = read_config(raw_string=yaml_test1, Loader=UnsafeLoader)
 
     def test_load_composites(self):
         """Test loading composites."""
@@ -670,8 +671,8 @@ class TestAggregate(TestCase):
     def setUp(self):
         """Set up the test case."""
         super().setUp()
-        from trollflow2.launcher import yaml, UnsafeLoader
-        self.product_list = yaml.load(yaml_test1, Loader=UnsafeLoader)
+        from yaml import UnsafeLoader
+        self.product_list = read_config(raw_string=yaml_test1, Loader=UnsafeLoader)
 
     def test_aggregate_returns_aggregated_scene(self):
         """Test aggregating."""
@@ -708,8 +709,8 @@ class TestResample(TestCase):
     def setUp(self):
         """Set up the test case."""
         super().setUp()
-        from trollflow2.launcher import yaml, UnsafeLoader
-        self.product_list = yaml.load(yaml_test1, Loader=UnsafeLoader)
+        from yaml import UnsafeLoader
+        self.product_list = read_config(raw_string=yaml_test1, Loader=UnsafeLoader)
 
     def test_resample(self):
         """Test resampling."""
@@ -767,7 +768,7 @@ class TestResample(TestCase):
         scn = mock.MagicMock()
         scn.resample.return_value = "foo"
         job = {"scene": scn, "product_list": self.product_list.copy()}
-        job['product_list']['product_list']['areas'][None] = job['product_list']['product_list']['areas']['germ']
+        job['product_list']['product_list']['areas']['None'] = job['product_list']['product_list']['areas']['germ']
         del job['product_list']['product_list']['areas']['germ']
         resample(job)
         self.assertTrue(mock.call('omerc_bb',
@@ -786,7 +787,7 @@ class TestResample(TestCase):
                                   mask_area=False,
                                   epsilon=0.0) in
                         scn.resample.mock_calls)
-        self.assertTrue(job['resampled_scenes'][None] is scn)
+        self.assertTrue(job['resampled_scenes']['None'] is scn)
         self.assertTrue("resampled_scenes" in job)
         for area in ["omerc_bb", "euron1"]:
             self.assertTrue(area in job["resampled_scenes"])
@@ -798,8 +799,8 @@ class TestResample(TestCase):
         scn = mock.MagicMock()
         scn.resample.return_value = "foo"
         product_list = self.product_list.copy()
-        product_list['product_list']['areas'][None] = product_list['product_list']['areas']['germ']
-        product_list['product_list']['areas'][None]['use_min_area'] = True
+        product_list['product_list']['areas']['None'] = product_list['product_list']['areas']['germ']
+        product_list['product_list']['areas']['None']['use_min_area'] = True
         del product_list['product_list']['areas']['germ']
         del product_list['product_list']['areas']['omerc_bb']
         del product_list['product_list']['areas']['euron1']
@@ -813,8 +814,8 @@ class TestResample(TestCase):
                                   mask_area=False,
                                   epsilon=0.0) in
                         scn.resample.mock_calls)
-        del product_list['product_list']['areas'][None]['use_min_area']
-        product_list['product_list']['areas'][None]['use_max_area'] = True
+        del product_list['product_list']['areas']['None']['use_min_area']
+        product_list['product_list']['areas']['None']['use_max_area'] = True
         job = {"scene": scn, "product_list": product_list.copy()}
         resample(job)
         self.assertTrue(mock.call(scn.max_area(),
@@ -833,8 +834,8 @@ class TestResampleNullArea(TestCase):
     def setUp(self):
         """Set up the test case."""
         super().setUp()
-        from trollflow2.launcher import yaml, UnsafeLoader
-        self.product_list = yaml.load(yaml_test_null_area, Loader=UnsafeLoader)
+        from yaml import UnsafeLoader
+        self.product_list = read_config(raw_string=yaml_test_null_area, Loader=UnsafeLoader)
 
     def test_resample_null_area(self):
         """Test handling a `None` area in resampling."""
@@ -865,8 +866,8 @@ class TestResampleNullArea(TestCase):
         scn.keys.return_value = ['abc']
         scn.wishlist = {'abc'}
         resample(job)
-        self.assertTrue(mock.call(resampler='native') in
-                        scn.resample.mock_calls)
+        self.assertTrue("resampler='native'" in
+                        str(scn.resample.mock_calls))
 
 
 class TestSunlightCovers(TestCase):
@@ -875,8 +876,8 @@ class TestSunlightCovers(TestCase):
     def setUp(self):
         """Set up the test case."""
         super().setUp()
-        from trollflow2.launcher import yaml, UnsafeLoader
-        self.product_list = yaml.load(yaml_test1, Loader=UnsafeLoader)
+        from yaml import UnsafeLoader
+        self.product_list = read_config(raw_string=yaml_test1, Loader=UnsafeLoader)
         self.input_mda = {"platform_name": "NOAA-15",
                           "sensor": "avhrr-3",
                           "start_time": dt.datetime(2019, 4, 7, 20, 52),
@@ -972,8 +973,8 @@ class TestCheckSunlightCoverage(TestCase):
     def setUp(self):
         """Set up the test case."""
         super().setUp()
-        from trollflow2.launcher import yaml, UnsafeLoader
-        self.product_list = yaml.load(yaml_test3, Loader=UnsafeLoader)
+        from yaml import UnsafeLoader
+        self.product_list = read_config(raw_string=yaml_test3, Loader=UnsafeLoader)
         self.input_mda = {"platform_name": "NOAA-15",
                           "sensor": "avhrr-3",
                           "start_time": dt.datetime(2019, 1, 19, 11),
@@ -1055,8 +1056,8 @@ class TestCovers(TestCase):
     def setUp(self):
         """Set up the test case."""
         super().setUp()
-        from trollflow2.launcher import yaml, UnsafeLoader
-        self.product_list = yaml.load(yaml_test1, Loader=UnsafeLoader)
+        from yaml import UnsafeLoader
+        self.product_list = read_config(raw_string=yaml_test1, Loader=UnsafeLoader)
         self.input_mda = {"platform_name": "NOAA-15",
                           "sensor": "avhrr-3",
                           "start_time": dt.datetime(2019, 1, 19, 11),
@@ -1317,8 +1318,8 @@ class TestSZACheck(TestCase):
 
 
 def _get_product_list_and_job(add_sza_limits=False):
-    from trollflow2.launcher import yaml, UnsafeLoader
-    product_list = yaml.load(yaml_test1, Loader=UnsafeLoader)
+    from yaml import UnsafeLoader
+    product_list = read_config(raw_string=yaml_test1, Loader=UnsafeLoader)
     if add_sza_limits:
         _add_sunzen_limits(product_list)
     job = _create_job(product_list)
@@ -1355,8 +1356,8 @@ class TestOverviews(TestCase):
     def setUp(self):
         """Set up the test case."""
         super().setUp()
-        from trollflow2.launcher import yaml, BaseLoader
-        self.product_list = yaml.load(yaml_test1, Loader=BaseLoader)
+        from yaml import BaseLoader
+        self.product_list = read_config(raw_string=yaml_test1, Loader=BaseLoader)
 
     def test_add_overviews(self):
         """Test adding overviews."""
@@ -1384,8 +1385,8 @@ class TestFilePublisher(TestCase):
     def setUp(self):
         """Set up the test case."""
         super().setUp()
-        from trollflow2.launcher import yaml, UnsafeLoader
-        self.product_list = yaml.load(yaml_test_publish, Loader=UnsafeLoader)
+        from yaml import UnsafeLoader
+        self.product_list = read_config(raw_string=yaml_test_publish, Loader=UnsafeLoader)
         # Skip omerc_bb area, there's no fname_pattern
         del self.product_list['product_list']['areas']['omerc_bb']
         self.input_mda = input_mda.copy()
@@ -1494,7 +1495,7 @@ class TestFilePublisher(TestCase):
 
         scn = mock.MagicMock()
         job = {"scene": scn, "product_list": self.product_list, 'input_mda': self.input_mda,
-               'resampled_scenes': {None: resampled_scene}}
+               'resampled_scenes': {'None': resampled_scene}}
 
         with mock.patch('trollflow2.plugins.Message') as message, mock.patch('trollflow2.plugins.NoisyPublisher'):
             self._run_publisher_on_job(job)
@@ -1535,7 +1536,7 @@ class TestFilePublisher(TestCase):
 
     def test_filepublisher_kwargs(self):
         """Test filepublisher keyword argument usage."""
-        import yaml
+        from yaml import UnsafeLoader
         from trollflow2.plugins import FilePublisher
 
         # Direct instantiation
@@ -1573,7 +1574,7 @@ class TestFilePublisher(TestCase):
             NoisyPublisher = mocks['NoisyPublisher']
             Publisher = mocks['Publisher']
 
-            fpub = yaml.load(YAML_FILE_PUBLISHER, Loader=yaml.UnsafeLoader)
+            fpub = read_config(raw_string=YAML_FILE_PUBLISHER, Loader=UnsafeLoader)
             assert mock.call('l2processor', port=40002,
                              nameservers=['localhost']) in NoisyPublisher.mock_calls
             Publisher.assert_not_called()

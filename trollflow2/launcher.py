@@ -51,11 +51,7 @@ try:
 except ImportError:
     ListenerContainer = None
 
-try:
-    from yaml import UnsafeLoader, BaseLoader
-except ImportError:
-    from yaml import Loader as UnsafeLoader
-    from yaml import BaseLoader
+from yaml import UnsafeLoader, SafeLoader, BaseLoader
 
 
 LOG = getLogger(__name__)
@@ -349,13 +345,7 @@ def print_traces(signum, frame):
 
 def process(msg, prod_list, produced_files):
     """Process a message."""
-    try:
-        with open(prod_list) as fid:
-            config = yaml.load(fid.read(), Loader=UnsafeLoader)
-    except (IOError, yaml.YAMLError):
-        # Either open() or yaml.load() failed
-        LOG.exception("Process crashed, check YAML file.")
-        raise
+    config = read_config(prod_list)
 
     # Get distributed client
     client = get_dask_client(config)
@@ -409,6 +399,26 @@ def process(msg, prod_list, produced_files):
         except AttributeError:
             pass
         gc.collect()
+
+
+def read_config(fname=None, raw_string=None, Loader=SafeLoader):
+    """Read the configuration file."""
+    try:
+        if fname:
+            with open(fname) as fid:
+                raw_config = fid.read()
+        elif raw_string:
+            raw_config = raw_string
+        config = yaml.load(_remove_null_keys(raw_config), Loader=Loader)
+    except (IOError, yaml.YAMLError):
+        # Either open() or yaml.load() failed
+        LOG.exception("Process crashed, check YAML file.")
+        raise
+    return config
+
+
+def _remove_null_keys(raw_config):
+    return raw_config.replace('null:', 'None:')
 
 
 def sendmail(config, trace):
