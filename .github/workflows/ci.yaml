@@ -39,6 +39,7 @@ jobs:
 
       - name: Install unstable dependencies
         if: matrix.experimental == true
+        shell: bash -l {0}
         run: |
           python -m pip install \
           --no-deps --upgdate \
@@ -57,10 +58,12 @@ jobs:
           git+https://github.com/pytroll/pyorbital
 
       - name: Install trollflow2
+        shell: bash -l {0}
         run: |
           pip install --no-deps -e .
 
       - name: Run unit tests
+        shell: bash -l {0}
         run: |
           pytest --cov=trollflow2 trollflow2/tests --cov-report=xml
 
