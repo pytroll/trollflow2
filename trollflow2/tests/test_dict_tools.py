@@ -85,7 +85,7 @@ product_list:
                 writer: geotiff
 
       null:
-        areaname: germ_in_fname
+        areaname: null_in_fname
         fname_pattern: "{start_time:%Y%m%d_%H%M}_{areaname:s}_{productname}.{format}"
         products:
           cloudtype:
