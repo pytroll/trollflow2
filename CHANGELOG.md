@@ -1,3 +1,20 @@
+## Version 0.13.0 (2022/01/18)
+
+### Issues Closed
+
+* [Issue 130](https://github.com/pytroll/trollflow2/issues/130) - Improve logging for sunlight filter
+
+In this release 1 issue was closed.
+
+### Pull Requests Merged
+
+#### Features added
+
+* [PR 134](https://github.com/pytroll/trollflow2/pull/134) - Remove dpath version restriction and fix the import
+* [PR 127](https://github.com/pytroll/trollflow2/pull/127) - Change tested Python versions to 3.8, 3.9 and 3.10
+
+In this release 2 pull requests were closed.
+
 ## Version 0.12.0 (2021/12/20)
 
 ### Issues Closed
