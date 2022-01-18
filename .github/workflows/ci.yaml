@@ -10,10 +10,10 @@ jobs:
       fail-fast: true
       matrix:
         os: ["ubuntu-latest", "macos-latest"]
-        python-version: ["3.7", "3.8", "3.9"]
+        python-version: ["3.8", "3.9", "3.10"]
         experimental: [false]
         include:
-          - python-version: "3.9"
+          - python-version: "3.10"
             os: "ubuntu-latest"
             experimental: true
 
@@ -27,28 +27,43 @@ jobs:
       - name: Checkout source
         uses: actions/checkout@v2
 
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
+      - name: Setup Conda Environment
+        uses: conda-incubator/setup-miniconda@v2
         with:
+          miniforge-variant: Mambaforge
+          miniforge-version: latest
+          use-mamba: true
           python-version: ${{ matrix.python-version }}
-
-      - name: Install dependencies
-        run: |
-          pip install -U codecov pytest pytest-cov pyyaml dpath trollsift six numpy satpy rasterio posttroll pyorbital
+          environment-file: continuous_integration/environment.yaml
+          activate-environment: test-environment
 
       - name: Install unstable dependencies
         if: matrix.experimental == true
+        shell: bash -l {0}
         run: |
           python -m pip install \
           --no-deps --upgrade \
+          --index-url https://pypi.anaconda.org/scipy-wheels-nightly/simple/ \
+          --trusted-host pypi.anaconda.org \
+          --no-deps --pre --upgrade \
+          numpy; \
+          python -m pip install \
+          --no-deps --upgrade \
+          git+https://github.com/yaml/pyyaml \
+          git+https://github.com/dpath-maintainers/dpath-python \
+          git+https://github.com/pytroll/trollsift \
+          git+https://github.com/pytroll/pyresample \
           git+https://github.com/pytroll/satpy \
-          git+https://github.com/pytroll/pyresample;
+          git+https://github.com/pytroll/posttroll \
+          git+https://github.com/pytroll/pyorbital
 
       - name: Install trollflow2
+        shell: bash -l {0}
         run: |
           pip install --no-deps -e .
 
       - name: Run unit tests
+        shell: bash -l {0}
         run: |
           pytest --cov=trollflow2 trollflow2/tests --cov-report=xml
 
@@ -58,4 +73,3 @@ jobs:
           flags: unittests
           file: ./coverage.xml
           env_vars: OS,PYTHON_VERSION,UNSTABLE
-

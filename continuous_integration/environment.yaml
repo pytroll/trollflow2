@@ -1,0 +1,16 @@
+name: test-environment
+channels:
+  - conda-forge
+dependencies:
+  - codecov
+  - pytest
+  - pytest-cov
+  - pyyaml
+  - dpath
+  - trollsift
+  - numpy
+  - satpy
+  - rasterio
+  - pyorbital
+  - pip:
+    - posttroll
