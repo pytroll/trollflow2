@@ -580,6 +580,7 @@ class TestProcess(TestCase):
         # wait a little to ensure alarm is not raised later
         time.sleep(0.11)
 
+
 def test_workers_initialized():
     """Test that the config loading works when workers are defined."""
     from tempfile import NamedTemporaryFile
