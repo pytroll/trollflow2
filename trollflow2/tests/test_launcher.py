@@ -601,8 +601,6 @@ def test_workers_initialized():
                     process("msg", fname, queue)
                 except StopIteration:
                     pass
-                else:
-                    raise
         finally:
             os.remove(fname)
 
