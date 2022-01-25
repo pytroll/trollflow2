@@ -119,12 +119,12 @@ product_list:
           night_fog:
             productname: night_fog
 
-# workers:
-#   - fun: !!python/name:trollflow2.create_scene
-#   - fun: !!python/name:trollflow2.load_composites
-#   - fun: !!python/name:trollflow2.resample
-#   - fun: !!python/name:trollflow2.save_datasets
-#   - fun: !!python/object:trollflow2.FilePublisher {}
+workers:
+  - fun: !!python/name:trollflow2.plugins.create_scene
+  - fun: !!python/name:trollflow2.plugins.load_composites
+  - fun: !!python/name:trollflow2.plugins.resample
+  - fun: !!python/name:trollflow2.plugins.save_datasets
+#  - fun: !!python/object:trollflow2.FilePublisher {}
 """
 
 
@@ -579,6 +579,30 @@ class TestProcess(TestCase):
             process("msg", "prod_list", self.queue)
         # wait a little to ensure alarm is not raised later
         time.sleep(0.11)
+
+
+def test_workers_initialized():
+    """Test that the config loading works when workers are defined."""
+    from tempfile import NamedTemporaryFile
+    import os
+
+    queue = mock.MagicMock()
+
+    with NamedTemporaryFile(mode='w+t', delete=False) as tmp_file:
+        fname = tmp_file.name
+        tmp_file.write(yaml_test_minimal)
+        tmp_file.close()
+
+        try:
+            with mock.patch("trollflow2.launcher.get_dask_client") as gdc:
+                # `get_dask_client()` is called just after config reading, so if we get there loading worked
+                gdc.side_effect = StopIteration
+                try:
+                    process("msg", fname, queue)
+                except StopIteration:
+                    pass
+        finally:
+            os.remove(fname)
 
 
 def test_get_dask_client(caplog):

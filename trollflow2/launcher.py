@@ -345,7 +345,7 @@ def print_traces(signum, frame):
 
 def process(msg, prod_list, produced_files):
     """Process a message."""
-    config = read_config(prod_list)
+    config = read_config(prod_list, Loader=UnsafeLoader)
 
     # Get distributed client
     client = get_dask_client(config)
