@@ -1,3 +1,15 @@
+## Version 0.13.1 (2022/01/25)
+
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR 135](https://github.com/pytroll/trollflow2/pull/135) - Use UnsafeLoader when reading product list for process()
+
+In this release 1 pull request was closed.
+
+
 ## Version 0.13.0 (2022/01/18)
 
 ### Issues Closed
