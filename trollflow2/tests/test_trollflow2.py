@@ -995,13 +995,14 @@ class TestCheckSunlightCoverage(TestCase):
             scene.attrs = {}
             scene.start_time = 42
             scene.end_time = 43
-            scene.platform_name = 'platform'
-            job = {"scene": scene, "product_list": self.product_list.copy(), "input_mda": {"sensor": "sensor"}}
+            scene.sensors = {'sensor'}
+            job = {"scene": scene, "product_list": self.product_list.copy(),
+                   "input_mda": {"platform_name": "platform"}}
             job['product_list']['product_list']['sunlight_coverage'] = {'min': 10, 'max': 40, 'check_pass': True}
             # job["product_list"]["product_list"]["use_pass"] = True
             check_sunlight_coverage(job)
-            ts_pass.assert_called_with(scene.platform_name, scene.start_time, scene.end_time,
-                                       instrument=job["input_mda"]["sensor"])
+            ts_pass.assert_called_with(job["input_mda"]["platform_name"], scene.start_time, scene.end_time,
+                                       instrument=list(scene.sensors)[0])
 
     def test_product_not_loaded(self):
         """Test that product isn't loaded when sunlight coverage is too low."""
@@ -1113,12 +1114,11 @@ class TestCovers(TestCase):
             scn.attrs = {}
             scn.start_time = 42
             scn.end_time = 43
-            scn.platform_name = 'platform'
             job = {"product_list": self.product_list,
-                   "input_mda": {"sensor": "avhrr-3"},
+                   "input_mda": {"sensor": "avhrr-3", "platform_name": "platform"},
                    "scene": scn}
             covers(job)
-            get_scene_coverage.assert_called_with(scn.platform_name,
+            get_scene_coverage.assert_called_with(job["input_mda"]["platform_name"],
                                                   scn.start_time,
                                                   scn.end_time,
                                                   "avhrr-3",
