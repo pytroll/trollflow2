@@ -415,7 +415,7 @@ def covers(job):
 
     scn_mda = {"start_time": job['scene'].start_time,
                "end_time": job['scene'].end_time,
-               "sensor": job['scene'].sensors}
+               "sensor": job['scene'].sensor_names}
     scn_mda.update(job['input_mda'])
 
     platform_name = scn_mda['platform_name']
@@ -594,7 +594,7 @@ def check_sunlight_coverage(job):
 
     scn_mda = {"start_time": job['scene'].start_time,
                "end_time": job['scene'].end_time,
-               "sensor": job['scene'].sensors}
+               "sensor": job['scene'].sensor_names}
     scn_mda.update(job['input_mda'])
     platform_name = scn_mda['platform_name']
     start_time = scn_mda['start_time']
