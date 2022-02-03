@@ -1114,14 +1114,15 @@ class TestCovers(TestCase):
             scn.attrs = {}
             scn.start_time = 42
             scn.end_time = 43
+            scn.sensors = {"sensor"}
             job = {"product_list": self.product_list,
-                   "input_mda": {"sensor": "avhrr-3", "platform_name": "platform"},
+                   "input_mda": {"platform_name": "platform"},
                    "scene": scn}
             covers(job)
             get_scene_coverage.assert_called_with(job["input_mda"]["platform_name"],
                                                   scn.start_time,
                                                   scn.end_time,
-                                                  "avhrr-3",
+                                                  list(scn.sensors)[0],
                                                   "omerc_bb")
 
     def test_covers(self):
