@@ -413,7 +413,9 @@ def covers(job):
 
     product_list = job['product_list'].copy()
 
-    scn_mda = job['scene'].attrs.copy()
+    scn_mda = {"start_time": job['scene'].start_time,
+               "end_time": job['scene'].end_time,
+               "platform_name": job['scene'].platform_name}
     scn_mda.update(job['input_mda'])
 
     platform_name = scn_mda['platform_name']
@@ -528,7 +530,7 @@ def metadata_alias(job):
 
 def sza_check(job):
     """Remove products which are not valid for the current Sun zenith angle."""
-    scn_mda = job['scene'].attrs.copy()
+    scn_mda = {"start_time": job['scene'].start_time}
     scn_mda.update(job['input_mda'])
     start_time = scn_mda['start_time']
     product_list = job['product_list']
@@ -590,7 +592,9 @@ def check_sunlight_coverage(job):
         LOG.info("Keeping all products")
         return
 
-    scn_mda = job['scene'].attrs.copy()
+    scn_mda = {"start_time": job['scene'].start_time,
+               "end_time": job['scene'].end_time,
+               "platform_name": job['scene'].platform_name}
     scn_mda.update(job['input_mda'])
     platform_name = scn_mda['platform_name']
     start_time = scn_mda['start_time']

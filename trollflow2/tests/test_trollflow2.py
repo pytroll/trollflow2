@@ -982,8 +982,29 @@ class TestCheckSunlightCoverage(TestCase):
                           'not_changed': True,
                           }
 
+    def test_metadata_is_read_from_scene(self):
+        """Test that the scene and message metadata are merged correctly."""
+        from trollflow2.plugins import check_sunlight_coverage
+
+        with mock.patch('trollflow2.plugins.Pass') as ts_pass,\
+                mock.patch('trollflow2.plugins.get_twilight_poly'),\
+                mock.patch('trollflow2.plugins.get_area_def'),\
+                mock.patch("trollflow2.plugins._get_sunlight_coverage") as _get_sunlight_coverage:
+            _get_sunlight_coverage.return_value = .3
+            scene = mock.MagicMock()
+            scene.attrs = {}
+            scene.start_time = 42
+            scene.end_time = 43
+            scene.platform_name = 'platform'
+            job = {"scene": scene, "product_list": self.product_list.copy(), "input_mda": {"sensor": "sensor"}}
+            job['product_list']['product_list']['sunlight_coverage'] = {'min': 10, 'max': 40, 'check_pass': True}
+            # job["product_list"]["product_list"]["use_pass"] = True
+            check_sunlight_coverage(job)
+            ts_pass.assert_called_with(scene.platform_name, scene.start_time, scene.end_time,
+                                       instrument=job["input_mda"]["sensor"])
+
     def test_product_not_loaded(self):
-        """Test that product isn't loaded when sunlight coverage is to low."""
+        """Test that product isn't loaded when sunlight coverage is too low."""
         from trollflow2.plugins import check_sunlight_coverage
         from trollflow2.plugins import metadata_alias
         with mock.patch('trollflow2.plugins.Pass') as ts_pass,\
@@ -992,7 +1013,7 @@ class TestCheckSunlightCoverage(TestCase):
                 mock.patch("trollflow2.plugins._get_sunlight_coverage") as _get_sunlight_coverage:
             job = {}
             scene = mock.MagicMock()
-            scene.attrs = {'start_time': 42}
+            scene.start_time = 42
             job['scene'] = scene
             job['product_list'] = self.product_list.copy()
             job['input_mda'] = self.input_mda.copy()
@@ -1017,7 +1038,7 @@ class TestCheckSunlightCoverage(TestCase):
                 mock.patch("trollflow2.plugins._get_sunlight_coverage") as _get_sunlight_coverage:
             job = {}
             scene = mock.MagicMock()
-            scene.attrs = {'start_time': 42}
+            scene.start_time = 42
             job['scene'] = scene
             job['product_list'] = self.product_list.copy()
             job['input_mda'] = self.input_mda.copy()
@@ -1081,6 +1102,28 @@ class TestCovers(TestCase):
         covers(job)
         self.assertEqual(job, job_orig)
 
+    def test_metadata_is_read_from_scene(self):
+        """Test that the scene and message metadata are merged correctly."""
+        from trollflow2.plugins import covers
+
+        with mock.patch('trollflow2.plugins.get_scene_coverage') as get_scene_coverage, \
+                mock.patch('trollflow2.plugins.Pass'):
+            get_scene_coverage.return_value = 10.0
+            scn = mock.MagicMock()
+            scn.attrs = {}
+            scn.start_time = 42
+            scn.end_time = 43
+            scn.platform_name = 'platform'
+            job = {"product_list": self.product_list,
+                   "input_mda": {"sensor": "avhrr-3"},
+                   "scene": scn}
+            covers(job)
+            get_scene_coverage.assert_called_with(scn.platform_name,
+                                                  scn.start_time,
+                                                  scn.end_time,
+                                                  "avhrr-3",
+                                                  "omerc_bb")
+
     def test_covers(self):
         """Test coverage."""
         from trollflow2.plugins import covers
@@ -1089,6 +1132,8 @@ class TestCovers(TestCase):
             get_scene_coverage.return_value = 10.0
             scn = mock.MagicMock()
             scn.attrs = {}
+            scn.start_time = 42
+            scn.end_time = 43
             job = {"product_list": self.product_list,
                    "input_mda": self.input_mda,
                    "scene": scn}
@@ -1148,6 +1193,8 @@ class TestCovers(TestCase):
             get_scene_coverage.return_value = 100.0
             scn = mock.MagicMock()
             scn.attrs = {}
+            scn.start_time = 42
+            scn.end_time = 43
             job = {"product_list": self.product_list,
                    "input_mda": self.input_mda,
                    "scene": scn}
@@ -1287,6 +1334,20 @@ class TestSZACheck(TestCase):
             sza_check(self.job_no_sza)
             sun_zenith_angle.assert_not_called()
 
+    def test_metadata_is_read_from_scene(self):
+        """Test that the scene and message metadata are merged correctly."""
+        from trollflow2.plugins import sza_check
+
+        with mock.patch("trollflow2.plugins.sun_zenith_angle") as sun_zenith_angle:
+            sun_zenith_angle.return_value = 90.
+            scn = mock.MagicMock()
+            scn.attrs = {}
+            scn.start_time = 42
+            job = self.job_with_sza.copy()
+            job["scene"] = scn
+            sza_check(job)
+            sun_zenith_angle.assert_called_with(scn.start_time, 25., 60.)
+
     def test_sza_check_with_ok_sza(self):
         """Test the SZA check with SZA that is ok for all the products."""
         from trollflow2.plugins import sza_check
@@ -1339,6 +1400,7 @@ def _create_job(product_list):
     job = {}
     scene = mock.MagicMock()
     scene.attrs = {}
+    scene.start_time = 43
     job['input_mda'] = {'start_time': 42, 'another_message_item': 'coconut'}
     job['scene'] = scene
     job['product_list'] = product_list.copy()
