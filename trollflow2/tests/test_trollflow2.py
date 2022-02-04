@@ -275,6 +275,10 @@ YAML_FILE_PUBLISHER = """
 !!python/object:trollflow2.plugins.FilePublisher {port: 40002, nameservers: [localhost]}
 """
 
+SCENE_START_TIME = dt.datetime.utcnow()
+SCENE_END_TIME = SCENE_START_TIME + dt.timedelta(minutes=15)
+JOB_INPUT_MDA_START_TIME = SCENE_START_TIME + dt.timedelta(seconds=10)
+
 
 class TestSaveDatasets(TestCase):
     """Test case for saving datasets."""
@@ -637,7 +641,7 @@ class TestLoadComposites(TestCase):
     def test_load_composites(self):
         """Test loading composites."""
         from trollflow2.plugins import load_composites, DEFAULT
-        scn = mock.MagicMock()
+        scn = _get_mocked_scene_with_properties()
         job = {"product_list": self.product_list, "scene": scn}
         load_composites(job)
         scn.load.assert_called_with({'ct', 'cloudtype', 'cloud_top_height'}, resolution=DEFAULT, generate=False)
@@ -645,7 +649,7 @@ class TestLoadComposites(TestCase):
     def test_load_composites_with_config(self):
         """Test loading composites with a config."""
         from trollflow2.plugins import load_composites
-        scn = mock.MagicMock()
+        scn = _get_mocked_scene_with_properties()
         self.product_list['product_list']['resolution'] = 1000
         self.product_list['product_list']['delay_composites'] = False
         job = {"product_list": self.product_list, "scene": scn}
@@ -655,7 +659,7 @@ class TestLoadComposites(TestCase):
     def test_load_composites_with_different_resolutions(self):
         """Test loading composites with different resolutions."""
         from trollflow2.plugins import load_composites
-        scn = mock.MagicMock()
+        scn = _get_mocked_scene_with_properties()
         self.product_list['product_list']['resolution'] = 1000
         self.product_list['product_list']['areas']['euron1']['resolution'] = 500
         self.product_list['product_list']['delay_composites'] = False
@@ -677,7 +681,7 @@ class TestAggregate(TestCase):
     def test_aggregate_returns_aggregated_scene(self):
         """Test aggregating."""
         from trollflow2.plugins import aggregate
-        scn = mock.MagicMock()
+        scn = _get_mocked_scene_with_properties()
         assert 'aggregate' in self.product_list['product_list']
         job = {"scene": scn, "product_list": self.product_list}
         aggregate(job)
@@ -686,7 +690,7 @@ class TestAggregate(TestCase):
     def test_aggregate_is_called_with_right_params(self):
         """Test aggregating."""
         from trollflow2.plugins import aggregate
-        scn = mock.MagicMock()
+        scn = _get_mocked_scene_with_properties()
         assert 'aggregate' in self.product_list['product_list']
         self.product_list['product_list']['aggregate'] = dict(x=4, y=4)
         job = {"scene": scn, "product_list": self.product_list}
@@ -696,7 +700,7 @@ class TestAggregate(TestCase):
     def test_aggregate_returns_original_scene_when_not_needed(self):
         """Test aggregating."""
         from trollflow2.plugins import aggregate
-        scn = mock.MagicMock()
+        scn = _get_mocked_scene_with_properties()
         del self.product_list['product_list']['aggregate']
         job = {"scene": scn, "product_list": self.product_list}
         aggregate(job)
@@ -715,7 +719,7 @@ class TestResample(TestCase):
     def test_resample(self):
         """Test resampling."""
         from trollflow2.plugins import resample
-        scn = mock.MagicMock()
+        scn = _get_mocked_scene_with_properties()
         scn.resample.return_value = "foo"
         job = {"scene": scn, "product_list": self.product_list}
         resample(job)
@@ -796,7 +800,7 @@ class TestResample(TestCase):
     def test_minmax_area(self):
         """Test the min and max areas."""
         from trollflow2.plugins import resample
-        scn = mock.MagicMock()
+        scn = _get_mocked_scene_with_properties()
         scn.resample.return_value = "foo"
         product_list = self.product_list.copy()
         product_list['product_list']['areas']['None'] = product_list['product_list']['areas']['germ']
@@ -840,7 +844,7 @@ class TestResampleNullArea(TestCase):
     def test_resample_null_area(self):
         """Test handling a `None` area in resampling."""
         from trollflow2.plugins import resample
-        scn = mock.MagicMock()
+        scn = _get_mocked_scene_with_properties()
         product_list = self.product_list.copy()
         job = {"scene": scn, "product_list": product_list.copy()}
         # The composites have been generated
@@ -858,7 +862,7 @@ class TestResampleNullArea(TestCase):
     def test_resample_native_null_area(self):
         """Test using `native` resampler with `None` area."""
         from trollflow2.plugins import resample
-        scn = mock.MagicMock()
+        scn = _get_mocked_scene_with_properties()
         product_list = self.product_list.copy()
         product_list["common"] = {"resampler": "native"}
         job = {"scene": scn, "product_list": product_list.copy()}
@@ -991,15 +995,10 @@ class TestCheckSunlightCoverage(TestCase):
                 mock.patch('trollflow2.plugins.get_area_def'),\
                 mock.patch("trollflow2.plugins._get_sunlight_coverage") as _get_sunlight_coverage:
             _get_sunlight_coverage.return_value = .3
-            scene = mock.MagicMock()
-            scene.attrs = {}
-            scene.start_time = 42
-            scene.end_time = 43
-            scene.sensor_names = {'sensor'}
+            scene = _get_mocked_scene_with_properties()
             job = {"scene": scene, "product_list": self.product_list.copy(),
                    "input_mda": {"platform_name": "platform"}}
             job['product_list']['product_list']['sunlight_coverage'] = {'min': 10, 'max': 40, 'check_pass': True}
-            # job["product_list"]["product_list"]["use_pass"] = True
             check_sunlight_coverage(job)
             ts_pass.assert_called_with(job["input_mda"]["platform_name"], scene.start_time, scene.end_time,
                                        instrument=list(scene.sensor_names)[0])
@@ -1013,8 +1012,7 @@ class TestCheckSunlightCoverage(TestCase):
                 mock.patch('trollflow2.plugins.get_area_def'),\
                 mock.patch("trollflow2.plugins._get_sunlight_coverage") as _get_sunlight_coverage:
             job = {}
-            scene = mock.MagicMock()
-            scene.start_time = 42
+            scene = _get_mocked_scene_with_properties()
             job['scene'] = scene
             job['product_list'] = self.product_list.copy()
             job['input_mda'] = self.input_mda.copy()
@@ -1038,8 +1036,7 @@ class TestCheckSunlightCoverage(TestCase):
                 mock.patch('trollflow2.plugins.get_area_def'),\
                 mock.patch("trollflow2.plugins._get_sunlight_coverage") as _get_sunlight_coverage:
             job = {}
-            scene = mock.MagicMock()
-            scene.start_time = 42
+            scene = _get_mocked_scene_with_properties()
             job['scene'] = scene
             job['product_list'] = self.product_list.copy()
             job['input_mda'] = self.input_mda.copy()
@@ -1080,6 +1077,16 @@ class TestCheckSunlightCoverage(TestCase):
                           "100.0%.", cm.output[0])
 
 
+def _get_mocked_scene_with_properties():
+    scene = mock.MagicMock()
+    scene.attrs = {}
+    scene.start_time = SCENE_START_TIME
+    scene.end_time = SCENE_END_TIME
+    scene.sensor_names = {'sensor'}
+
+    return scene
+
+
 class TestCovers(TestCase):
     """Test case for coverage checks."""
 
@@ -1110,11 +1117,7 @@ class TestCovers(TestCase):
         with mock.patch('trollflow2.plugins.get_scene_coverage') as get_scene_coverage, \
                 mock.patch('trollflow2.plugins.Pass'):
             get_scene_coverage.return_value = 10.0
-            scn = mock.MagicMock()
-            scn.attrs = {}
-            scn.start_time = 42
-            scn.end_time = 43
-            scn.sensor_names = {"sensor"}
+            scn = _get_mocked_scene_with_properties()
             job = {"product_list": self.product_list,
                    "input_mda": {"platform_name": "platform"},
                    "scene": scn}
@@ -1131,10 +1134,7 @@ class TestCovers(TestCase):
         with mock.patch('trollflow2.plugins.get_scene_coverage') as get_scene_coverage,\
                 mock.patch('trollflow2.plugins.Pass'):
             get_scene_coverage.return_value = 10.0
-            scn = mock.MagicMock()
-            scn.attrs = {}
-            scn.start_time = 42
-            scn.end_time = 43
+            scn = _get_mocked_scene_with_properties()
             job = {"product_list": self.product_list,
                    "input_mda": self.input_mda,
                    "scene": scn}
@@ -1192,10 +1192,7 @@ class TestCovers(TestCase):
         with mock.patch('trollflow2.plugins.get_scene_coverage') as get_scene_coverage,\
                 mock.patch('trollflow2.plugins.Pass'):
             get_scene_coverage.return_value = 100.0
-            scn = mock.MagicMock()
-            scn.attrs = {}
-            scn.start_time = 42
-            scn.end_time = 43
+            scn = _get_mocked_scene_with_properties()
             job = {"product_list": self.product_list,
                    "input_mda": self.input_mda,
                    "scene": scn}
@@ -1341,10 +1338,9 @@ class TestSZACheck(TestCase):
 
         with mock.patch("trollflow2.plugins.sun_zenith_angle") as sun_zenith_angle:
             sun_zenith_angle.return_value = 90.
-            scn = mock.MagicMock()
-            scn.attrs = {}
-            scn.start_time = 42
+            scn = _get_mocked_scene_with_properties()
             job = self.job_with_sza.copy()
+            del job["input_mda"]["start_time"]
             job["scene"] = scn
             sza_check(job)
             sun_zenith_angle.assert_called_with(scn.start_time, 25., 60.)
@@ -1358,7 +1354,7 @@ class TestSZACheck(TestCase):
 
             sza_check(self.job_with_sza)
 
-            sun_zenith_angle.assert_called_with(42, 25., 60.)
+            sun_zenith_angle.assert_called_with(JOB_INPUT_MDA_START_TIME, 25., 60.)
             self.assertDictEqual(self.job_with_sza['product_list'], self.product_list_with_sza)
 
     def test_sza_check_removes_day_products(self):
@@ -1399,10 +1395,8 @@ def _get_product_list_and_job(add_sza_limits=False):
 
 def _create_job(product_list):
     job = {}
-    scene = mock.MagicMock()
-    scene.attrs = {}
-    scene.start_time = 43
-    job['input_mda'] = {'start_time': 42, 'another_message_item': 'coconut'}
+    scene = _get_mocked_scene_with_properties()
+    job['input_mda'] = {'start_time': JOB_INPUT_MDA_START_TIME, 'another_message_item': 'coconut'}
     job['scene'] = scene
     job['product_list'] = product_list.copy()
 
@@ -1547,7 +1541,7 @@ class TestFilePublisher(TestCase):
         """Test that non existing products are not published."""
         from satpy import Scene
 
-        scn = mock.MagicMock()
+        scn = _get_mocked_scene_with_properties()
         job = {"scene": scn, "product_list": self.product_list, 'input_mda': self.input_mda,
                'resampled_scenes': dict(euron1=Scene(), germ=Scene())}
 
@@ -1564,7 +1558,7 @@ class TestFilePublisher(TestCase):
         resampled_scene = Scene()
         resampled_scene[make_dataid(name='latitude')] = np.ones((4, 4))
 
-        scn = mock.MagicMock()
+        scn = _get_mocked_scene_with_properties()
         job = {"scene": scn, "product_list": self.product_list, 'input_mda': self.input_mda,
                'resampled_scenes': {'None': resampled_scene}}
 
