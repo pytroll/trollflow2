@@ -38,7 +38,7 @@ except ImportError:
 install_requires = ['pyyaml', 'dpath', 'trollsift']
 
 if "test" not in sys.argv:
-    install_requires += ['posttroll', 'satpy', 'pyorbital']
+    install_requires += ['posttroll', 'satpy>=0.32.0', 'pyorbital']
 
 NAME = 'trollflow2'
 README = open('README.md', 'r').read()

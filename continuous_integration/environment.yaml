@@ -9,7 +9,7 @@ dependencies:
   - dpath
   - trollsift
   - numpy
-  - satpy
+  - satpy>=0.32.0
   - rasterio
   - pyorbital
   - pip:
