@@ -1,3 +1,24 @@
+## Version 0.13.2 (2022/02/22)
+
+### Issues Closed
+
+* [Issue 136](https://github.com/pytroll/trollflow2/issues/136) - For newer Satpy, check_sunlight_coverage fails if posttroll message has no end time  ([PR 137](https://github.com/pytroll/trollflow2/pull/137) by [@pnuu](https://github.com/pnuu))
+
+In this release 1 issue was closed.
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR 137](https://github.com/pytroll/trollflow2/pull/137) - Use scene properties instead of .attrs where needed ([136](https://github.com/pytroll/trollflow2/issues/136))
+
+#### Features added
+
+* [PR 137](https://github.com/pytroll/trollflow2/pull/137) - Use scene properties instead of .attrs where needed ([136](https://github.com/pytroll/trollflow2/issues/136))
+
+In this release 2 pull requests were closed.
+
+
 ## Version 0.13.1 (2022/01/25)
 
 
