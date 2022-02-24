@@ -57,6 +57,9 @@ product_list: &product_list
   # min_coverage: 20  # at least 20% coverage
   # use_tmp_file: False  # create temporary filename first
   # staging_zone: "/data/pytroll/tmp/staging_zone"  # create files here first
+  # Force eager writing and computation of datasets.
+  #   Required when saving several datasets to a single CF/NetCDF4 file.
+  # eager_writing: True
 
   areas:
     omerc_bb:

@@ -206,8 +206,11 @@ def prepared_filename(fmat, renames):
         yield orig_filename
 
 
-def save_dataset(scns, fmat, fmat_config, renames):
-    """Save one dataset to file, not doing the actual computation."""
+def save_dataset(scns, fmat, fmat_config, renames, compute=False):
+    """Save one dataset to file.
+
+    If `compute=False` the saving is delayed and done lazily.
+    """
     obj = None
     try:
         with prepared_filename(fmat, renames) as filename:
@@ -222,12 +225,12 @@ def save_dataset(scns, fmat, fmat_config, renames):
                     dsids.append(_create_data_query(prod, res))
                 obj = scns[fmat['area']].save_datasets(datasets=dsids,
                                                        filename=filename,
-                                                       compute=False, **kwargs)
+                                                       compute=compute, **kwargs)
             else:
                 dsid = _create_data_query(fmat['product'], res)
                 obj = scns[fmat['area']].save_dataset(dsid,
                                                       filename=filename,
-                                                      compute=False, **kwargs)
+                                                      compute=compute, **kwargs)
     except KeyError as err:
         LOG.warning('Skipping %s: %s', fmat['product'], str(err))
     else:
@@ -274,15 +277,15 @@ def save_datasets(job):
     objs = []
     base_config = job['input_mda'].copy()
     base_config.pop('dataset', None)
-
+    eager_writing = job['product_list']['product_list'].get("eager_writing", False)
     with renamed_files() as renames:
         for fmat, fmat_config in plist_iter(job['product_list']['product_list'], base_config):
-            obj = save_dataset(scns, fmat, fmat_config, renames)
+            obj = save_dataset(scns, fmat, fmat_config, renames, compute=eager_writing)
             if obj is not None:
                 objs.append(obj)
                 job['produced_files'].put(fmat_config['filename'])
-
-        compute_writer_results(objs)
+        if not eager_writing:
+            compute_writer_results(objs)
 
 
 def product_missing_from_scene(product, scene):
