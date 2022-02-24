@@ -546,6 +546,25 @@ class TestSaveDatasets(TestCase):
         for fname, efname in zip(the_queue.put.mock_calls, filenames):
             self.assertEqual(fname, mock.call(efname))
 
+    def test_save_datasets_eager(self):
+        """Test saving datasets in eager manner."""
+        from trollflow2.plugins import save_datasets
+
+        job = _create_job_for_save_datasets()
+        job['product_list']['product_list']['eager_writing'] = True
+        with mock.patch('trollflow2.plugins.compute_writer_results') as compute_writer_results,\
+                mock.patch('trollflow2.plugins.DataQuery'),\
+                mock.patch('os.rename'):
+            save_datasets(job)
+            sd_calls = (job['resampled_scenes']['euron1'].save_dataset.mock_calls
+                        + job['resampled_scenes']['omerc_bb'].save_dataset.mock_calls)
+            for sd in sd_calls:
+                assert "compute=True" in str(sd)
+            sds_calls = job['resampled_scenes']['euron1'].save_datasets.mock_calls
+            for sds in sds_calls:
+                assert "compute=True" in str(sds)
+            compute_writer_results.assert_not_called()
+
 
 def _create_job_for_save_datasets():
     from yaml import UnsafeLoader
@@ -555,6 +574,7 @@ def _create_job_for_save_datasets():
         'product_list': read_config(raw_string=yaml_test_save, Loader=UnsafeLoader)['product_list'],
     }
     job['resampled_scenes'] = {}
+    job['produced_files'] = mock.Mock()
     for area in job['product_list']['product_list']['areas']:
         job['resampled_scenes'][area] = mock.Mock()
     return job
