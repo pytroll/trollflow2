@@ -1110,6 +1110,41 @@ class TestCovers(TestCase):
         covers(job)
         self.assertEqual(job, job_orig)
 
+    def test_covers_complains_when_multiple_sensors_are_provided(self):
+        """Test that the plugin complains when multiple sensors are provided."""
+        from trollflow2.plugins import covers
+
+        with mock.patch('trollflow2.plugins.get_scene_coverage') as get_scene_coverage, \
+                mock.patch('trollflow2.plugins.Pass'):
+            get_scene_coverage.return_value = 10.0
+            scn = _get_mocked_scene_with_properties()
+            job = {"product_list": self.product_list,
+                   "input_mda": {"platform_name": "platform",
+                                 "sensor": ["avhrr-3", "mhs"]},
+                   "scene": scn}
+            with self.assertLogs("trollflow2.plugins", logging.WARNING) as log:
+                covers(job)
+            assert len(log.output) == 1
+            assert ("Multiple sensors given, taking the first one for coverage calculations" in log.output[0])
+
+    def test_covers_does_not_complain_when_one_sensor_is_provided_as_a_sequence(self):
+        """Test that the plugin complains when multiple sensors are provided."""
+        from trollflow2.plugins import covers
+
+        with mock.patch('trollflow2.plugins.get_scene_coverage') as get_scene_coverage, \
+                mock.patch('trollflow2.plugins.Pass'):
+            get_scene_coverage.return_value = 10.0
+            scn = _get_mocked_scene_with_properties()
+            job = {"product_list": self.product_list,
+                   "input_mda": {"platform_name": "platform",
+                                 "sensor": ["avhrr-3"]},
+                   "scene": scn}
+            with self.assertLogs("trollflow2.plugins", logging.WARNING) as log:
+                covers(job)
+                logger = logging.getLogger("trollflow2.plugins")
+                logger.warning("Dummy warning")
+            assert len(log.output) == 1
+
     def test_metadata_is_read_from_scene(self):
         """Test that the scene and message metadata are merged correctly."""
         from trollflow2.plugins import covers
