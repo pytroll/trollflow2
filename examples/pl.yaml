@@ -58,7 +58,10 @@ product_list: &product_list
   # use_tmp_file: False  # create temporary filename first
   # staging_zone: "/data/pytroll/tmp/staging_zone"  # create files here first
   # Force eager writing and computation of datasets.
-  #   Required when saving several datasets to a single CF/NetCDF4 file.
+  #   Required when saving several datasets to a single CF/NetCDF4 file until
+  #   the bug in XArray NetCDF4 handling has been fixed. This option will most
+  #   likely increase the required processing time.
+  #   Issue on the XArray bug: https://github.com/pydata/xarray/issues/6300
   # eager_writing: True
 
   areas:
