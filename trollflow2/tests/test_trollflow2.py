@@ -1003,6 +1003,22 @@ class TestCheckSunlightCoverage(TestCase):
             ts_pass.assert_called_with(job["input_mda"]["platform_name"], scene.start_time, scene.end_time,
                                        instrument=list(scene.sensor_names)[0])
 
+    def test_fully_sunlit_scene_returns_full_coverage(self):
+        """Test that a fully sunlit scene returns 100% coverage."""
+        from trollflow2.plugins import check_sunlight_coverage
+        from pyresample.spherical import SphPolygon
+        import numpy as np
+        with mock.patch('trollflow2.plugins.Pass') as tst_pass,\
+                mock.patch('trollflow2.plugins.get_twilight_poly') as twilight:
+            tst_pass.return_value.boundary.contour_poly = SphPolygon(np.array([(0, 0), (0, 90), (45, 0)]))
+            twilight.return_value = SphPolygon(np.array([(0, 0), (0, 90), (90, 0)]))
+            scene = _get_mocked_scene_with_properties()
+            job = {"scene": scene, "product_list": self.product_list.copy(),
+                   "input_mda": {"platform_name": "platform"}}
+            job['product_list']['product_list']['sunlight_coverage'] = {'min': 10, 'max': 40, 'check_pass': True}
+            check_sunlight_coverage(job)
+            assert job['product_list']['product_list']['areas']['euron1']['area_sunlight_coverage_percent'] == 100
+
     def test_product_not_loaded(self):
         """Test that product isn't loaded when sunlight coverage is too low."""
         from trollflow2.plugins import check_sunlight_coverage
