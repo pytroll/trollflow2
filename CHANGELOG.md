@@ -1,3 +1,20 @@
+## Version 0.13.3 (2022/03/10)
+
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR 140](https://github.com/pytroll/trollflow2/pull/140) - Fix sunlight coverage check to return 100% when the data is fully lit
+
+#### Features added
+
+* [PR 139](https://github.com/pytroll/trollflow2/pull/139) - Fix warning issued when multiple sensors are provided
+* [PR 138](https://github.com/pytroll/trollflow2/pull/138) - Make it possible to do eager saving
+
+In this release 3 pull requests were closed.
+
+
 ## Version 0.13.2 (2022/02/22)
 
 ### Issues Closed
