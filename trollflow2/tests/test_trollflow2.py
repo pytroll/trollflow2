@@ -1029,6 +1029,22 @@ class TestCheckSunlightCoverage(TestCase):
             ts_pass.assert_called_with(job["input_mda"]["platform_name"], scene.start_time, scene.end_time,
                                        instrument=list(scene.sensor_names)[0])
 
+    def test_fully_sunlit_scene_returns_full_coverage(self):
+        """Test that a fully sunlit scene returns 100% coverage."""
+        from trollflow2.plugins import check_sunlight_coverage
+        from pyresample.spherical import SphPolygon
+        import numpy as np
+        with mock.patch('trollflow2.plugins.Pass') as tst_pass,\
+                mock.patch('trollflow2.plugins.get_twilight_poly') as twilight:
+            tst_pass.return_value.boundary.contour_poly = SphPolygon(np.array([(0, 0), (0, 90), (45, 0)]))
+            twilight.return_value = SphPolygon(np.array([(0, 0), (0, 90), (90, 0)]))
+            scene = _get_mocked_scene_with_properties()
+            job = {"scene": scene, "product_list": self.product_list.copy(),
+                   "input_mda": {"platform_name": "platform"}}
+            job['product_list']['product_list']['sunlight_coverage'] = {'min': 10, 'max': 40, 'check_pass': True}
+            check_sunlight_coverage(job)
+            assert job['product_list']['product_list']['areas']['euron1']['area_sunlight_coverage_percent'] == 100
+
     def test_product_not_loaded(self):
         """Test that product isn't loaded when sunlight coverage is too low."""
         from trollflow2.plugins import check_sunlight_coverage
@@ -1135,6 +1151,41 @@ class TestCovers(TestCase):
         job = job_orig.copy()
         covers(job)
         self.assertEqual(job, job_orig)
+
+    def test_covers_complains_when_multiple_sensors_are_provided(self):
+        """Test that the plugin complains when multiple sensors are provided."""
+        from trollflow2.plugins import covers
+
+        with mock.patch('trollflow2.plugins.get_scene_coverage') as get_scene_coverage, \
+                mock.patch('trollflow2.plugins.Pass'):
+            get_scene_coverage.return_value = 10.0
+            scn = _get_mocked_scene_with_properties()
+            job = {"product_list": self.product_list,
+                   "input_mda": {"platform_name": "platform",
+                                 "sensor": ["avhrr-3", "mhs"]},
+                   "scene": scn}
+            with self.assertLogs("trollflow2.plugins", logging.WARNING) as log:
+                covers(job)
+            assert len(log.output) == 1
+            assert ("Multiple sensors given, taking the first one for coverage calculations" in log.output[0])
+
+    def test_covers_does_not_complain_when_one_sensor_is_provided_as_a_sequence(self):
+        """Test that the plugin complains when multiple sensors are provided."""
+        from trollflow2.plugins import covers
+
+        with mock.patch('trollflow2.plugins.get_scene_coverage') as get_scene_coverage, \
+                mock.patch('trollflow2.plugins.Pass'):
+            get_scene_coverage.return_value = 10.0
+            scn = _get_mocked_scene_with_properties()
+            job = {"product_list": self.product_list,
+                   "input_mda": {"platform_name": "platform",
+                                 "sensor": ["avhrr-3"]},
+                   "scene": scn}
+            with self.assertLogs("trollflow2.plugins", logging.WARNING) as log:
+                covers(job)
+                logger = logging.getLogger("trollflow2.plugins")
+                logger.warning("Dummy warning")
+            assert len(log.output) == 1
 
     def test_metadata_is_read_from_scene(self):
         """Test that the scene and message metadata are merged correctly."""
