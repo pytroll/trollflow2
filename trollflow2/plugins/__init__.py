@@ -275,6 +275,11 @@ def save_datasets(job):
     it is recommended to set ``use_tmp_file`` to `False` when using a
     ``staging_zone`` directory, such that the filename written to the
     headers remains meaningful.
+
+    Other arguments defined in the job list (either directly under
+    ``product_list``, or under ``formats``) are passed on to the satpy writer.  The
+    arguments ``use_tmp_file``, ``staging_zone``, ``output_dir``,
+    ``fname_pattern``, and ``dispatch`` are never passed to the reader.
     """
     scns = job['resampled_scenes']
     objs = []

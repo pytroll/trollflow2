@@ -572,7 +572,7 @@ class TestSaveDatasets(TestCase):
         product_list = {
             "fname_pattern": "name.tif",
             "use_tmp_file": True,
-            "staging_zone": "/tmp/a",
+            "staging_zone": "értékesítési szakember",
             "areas": {
                 "euron1": {
                     "products": {
