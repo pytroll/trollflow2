@@ -600,7 +600,7 @@ class TestSaveDatasets(TestCase):
         job["product_list"] = {"product_list": product_list}
 
         with mock.patch('trollflow2.plugins.compute_writer_results'), \
-             mock.patch("os.rename"):
+                mock.patch("os.rename"):
             save_datasets(job)
 
         assert "PhysicUnit" in job["resampled_scenes"]["euron1"].mock_calls[0].kwargs.keys()
