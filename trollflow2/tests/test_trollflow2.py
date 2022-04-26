@@ -565,6 +565,49 @@ class TestSaveDatasets(TestCase):
                 assert "compute=True" in str(sds)
             compute_writer_results.assert_not_called()
 
+    def test_pop_unknown_args(self):
+        from trollflow2.plugins import save_datasets
+        job = _create_job_for_save_datasets()
+
+        product_list = {
+            "fname_pattern": "name.tif",
+            "use_tmp_file": True,
+            "staging_zone": "/tmp/a",
+            "areas": {
+                "euron1": {
+                    "products": {
+                        "IR_108": {
+                            "productname": "IR108",
+                            "formats": [
+                                {"writer": "ninjogeotiff",
+                                 "ChannelID": 0,
+                                 "DataType": 0,
+                                 "PhysicUnit": "no",
+                                 "PhysicValue": "yes",
+                                 "SatelliteNameID": 0,
+                                 "output_dir": "örülök, hogy megismerhetem",
+                                 "fname_pattern": "viszontlátásra",
+                                 "dispatch": {},
+                                 "use_tmp_file": False,
+                                 "staging_zone": "értékesítési szakember",
+                                 }
+                            ]
+                        }
+                    }
+                }
+            }
+        }
+        job["product_list"] = {"product_list": product_list}
+
+        with mock.patch('trollflow2.plugins.compute_writer_results'), \
+             mock.patch("os.rename"):
+            save_datasets(job)
+
+        assert "PhysicUnit" in job["resampled_scenes"]["euron1"].mock_calls[0].kwargs.keys()
+        for absent in {"use_tmp_file", "staging_zone", "output_dir",
+                       "fname_pattern", "dispatch"}:
+            assert absent not in job["resampled_scenes"]["euron1"].mock_calls[0].kwargs.keys()
+
 
 def _create_job_for_save_datasets():
     from yaml import UnsafeLoader
