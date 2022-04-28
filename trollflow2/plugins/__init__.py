@@ -128,30 +128,32 @@ def resample(job):
                                      conf)
         LOG.debug('Resampling to %s', str(area))
         if area == 'None':
-            minarea = get_config_value(product_list,
-                                       '/product_list/areas/' + str(area),
-                                       'use_min_area')
-            maxarea = get_config_value(product_list,
-                                       '/product_list/areas/' + str(area),
-                                       'use_max_area')
-            native = conf.get('resampler') == 'native'
-            if minarea is True:
-                job['resampled_scenes'][area] = scn.resample(scn.min_area(),
-                                                             **area_conf)
-            elif maxarea is True:
-                job['resampled_scenes'][area] = scn.resample(scn.max_area(),
-                                                             **area_conf)
-            elif native:
-                job['resampled_scenes'][area] = scn.resample(resampler='native')
-            else:
-                # The composites need to be created for the saving to work
-                if not set(scn.keys()).issuperset(scn.wishlist):
-                    LOG.debug("Generating composites for 'null' area (satellite projection).")
-                    scn.load(scn.wishlist, generate=True)
-                job['resampled_scenes'][area] = scn
+            job['resampled_scenes'][area] = _resample_null_area(product_list, scn, conf, area_conf)
         else:
             LOG.debug("area: %s, area_conf: %s", area, str(area_conf))
             job['resampled_scenes'][area] = scn.resample(area, **area_conf)
+
+
+def _resample_null_area(product_list, scn, conf, area_conf):
+    minarea = get_config_value(product_list,
+                               '/product_list/areas/None',
+                               'use_min_area')
+    maxarea = get_config_value(product_list,
+                               '/product_list/areas/None',
+                               'use_max_area')
+    native = conf.get('resampler') == 'native'
+    if minarea is True:
+        return scn.resample(scn.min_area(), **area_conf)
+    elif maxarea is True:
+        return scn.resample(scn.max_area(), **area_conf)
+    elif native:
+        return scn.resample(resampler='native')
+
+    # The composites need to be created for the saving to work
+    if not set(scn.keys()).issuperset(scn.wishlist):
+        LOG.debug("Generating composites for 'null' area (satellite projection).")
+        scn.load(scn.wishlist, generate=True)
+    return scn
 
 
 # Datasets saving
