@@ -140,9 +140,9 @@ def _resample_null_area(product_list, scn, conf, area_conf):
     native = conf.get('resampler') == 'native'
     if use_coarsest_area is True:
         return scn.resample(scn.coarsest_area(), **area_conf)
-    elif use_finest_area is True:
+    if use_finest_area is True:
         return scn.resample(scn.finest_area(), **area_conf)
-    elif native:
+    if native:
         return scn.resample(resampler='native')
 
     # The composites need to be created for the saving to work
