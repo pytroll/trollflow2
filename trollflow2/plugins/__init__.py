@@ -139,9 +139,9 @@ def _resample_null_area(product_list, scn, conf, area_conf):
     use_finest_area = _get_native_area(product_list, 'use_finest_area', legacy='use_max_area')
     native = conf.get('resampler') == 'native'
     if use_coarsest_area is True:
-        return scn.resample(scn.min_area(), **area_conf)
+        return scn.resample(scn.coarsest_area(), **area_conf)
     elif use_finest_area is True:
-        return scn.resample(scn.max_area(), **area_conf)
+        return scn.resample(scn.finest_area(), **area_conf)
     elif native:
         return scn.resample(resampler='native')
 
