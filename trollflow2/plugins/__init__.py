@@ -135,16 +135,12 @@ def resample(job):
 
 
 def _resample_null_area(product_list, scn, conf, area_conf):
-    minarea = get_config_value(product_list,
-                               '/product_list/areas/None',
-                               'use_min_area')
-    maxarea = get_config_value(product_list,
-                               '/product_list/areas/None',
-                               'use_max_area')
+    use_coarsest_area = _get_native_area(product_list, 'use_coarsest_area', legacy='use_min_area')
+    use_finest_area = _get_native_area(product_list, 'use_finest_area', legacy='use_max_area')
     native = conf.get('resampler') == 'native'
-    if minarea is True:
+    if use_coarsest_area is True:
         return scn.resample(scn.min_area(), **area_conf)
-    elif maxarea is True:
+    elif use_finest_area is True:
         return scn.resample(scn.max_area(), **area_conf)
     elif native:
         return scn.resample(resampler='native')
@@ -154,6 +150,22 @@ def _resample_null_area(product_list, scn, conf, area_conf):
         LOG.debug("Generating composites for 'null' area (satellite projection).")
         scn.load(scn.wishlist, generate=True)
     return scn
+
+
+def _get_native_area(product_list, area_name, legacy='use_min_area'):
+    use_legacy_area = get_config_value(
+        product_list,
+        '/product_list/areas/None',
+        legacy)
+    if use_legacy_area is not None:
+        from warnings import warn
+        warning_text = f"Use of '{legacy}' config item is deprecated in favor of '{area_name}'"
+        warn(warning_text)
+    use_area = get_config_value(
+        product_list,
+        '/product_list/areas/None',
+        area_name)
+    return use_area or use_legacy_area
 
 
 # Datasets saving
