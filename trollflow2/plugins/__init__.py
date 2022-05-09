@@ -216,7 +216,7 @@ def save_dataset(scns, fmat, fmat_config, renames, compute=False):
         with prepared_filename(fmat, renames) as filename:
             res = fmat.get('resolution', DEFAULT)
             kwargs = fmat_config.copy()
-            # those keyword arguments are used by the trollflow2 plugin but not
+            # these keyword arguments are used by the trollflow2 plugin but not
             # by satpy writers
             for name in {"fname_pattern", "dispatch", "output_dir",
                          "use_tmp_file", "staging_zone"}:
