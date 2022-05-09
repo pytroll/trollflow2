@@ -279,7 +279,7 @@ def save_datasets(job):
     Other arguments defined in the job list (either directly under
     ``product_list``, or under ``formats``) are passed on to the satpy writer.  The
     arguments ``use_tmp_file``, ``staging_zone``, ``output_dir``,
-    ``fname_pattern``, and ``dispatch`` are never passed to the reader.
+    ``fname_pattern``, and ``dispatch`` are never passed to the writer.
     """
     scns = job['resampled_scenes']
     objs = []
