@@ -216,8 +216,11 @@ def save_dataset(scns, fmat, fmat_config, renames, compute=False):
         with prepared_filename(fmat, renames) as filename:
             res = fmat.get('resolution', DEFAULT)
             kwargs = fmat_config.copy()
-            kwargs.pop('fname_pattern', None)
-            kwargs.pop('dispatch', None)
+            # these keyword arguments are used by the trollflow2 plugin but not
+            # by satpy writers
+            for name in {"fname_pattern", "dispatch", "output_dir",
+                         "use_tmp_file", "staging_zone"}:
+                kwargs.pop(name, None)
             if isinstance(fmat['product'], (tuple, list, set)):
                 kwargs.pop('format')
                 dsids = []
@@ -272,6 +275,11 @@ def save_datasets(job):
     it is recommended to set ``use_tmp_file`` to `False` when using a
     ``staging_zone`` directory, such that the filename written to the
     headers remains meaningful.
+
+    Other arguments defined in the job list (either directly under
+    ``product_list``, or under ``formats``) are passed on to the satpy writer.  The
+    arguments ``use_tmp_file``, ``staging_zone``, ``output_dir``,
+    ``fname_pattern``, and ``dispatch`` are never passed to the writer.
     """
     scns = job['resampled_scenes']
     objs = []
