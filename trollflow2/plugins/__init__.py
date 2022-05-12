@@ -28,6 +28,10 @@ from logging import getLogger
 from tempfile import NamedTemporaryFile
 from urllib.parse import urlunsplit
 
+try:
+    import hdf5plugin  # noqa
+except ImportError:
+    pass
 import dpath.util
 import rasterio
 import dask
