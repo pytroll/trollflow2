@@ -15,25 +15,6 @@ Trollflow2 is an operational generation chain runner for Satpy.
 
 See the example playlist (``pl.yaml``) for inspiration.
 
-Installation
-------------
-
-Installing dependencies is simplest by using `Mambaforge <https://github.com/conda-forge/miniforge#mambaforge>`_::
-
-  mamba create -n trollflow2 satpy pyresample pyyaml dpath trollsift pyorbital
-
-For support of specific satellite data, see `Satpy documentation <https://satpy.readthedocs.io/en/stable/>`_ for the
-necessary packages that need to be installed.
-
-The Trollflow2 package isn't available via Conda, so it needs to be installed with ``pip``::
-
-  pip install trollflow2
-
-For decompression of MTG/FCI L1 files that have been compressed with CharLS compression ``hdf5plugin`` is needed::
-
-  mamba install hdf5plugin
-
-
 The launcher
 ------------
 
