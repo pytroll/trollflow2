@@ -23,15 +23,13 @@
 
 import os
 import pathlib
-from contextlib import contextmanager
+from contextlib import contextmanager, suppress
 from logging import getLogger
 from tempfile import NamedTemporaryFile
 from urllib.parse import urlunsplit
 
-try:
+with suppress(ImportError):
     import hdf5plugin  # noqa
-except ImportError:
-    pass
 import dpath.util
 import rasterio
 import dask
