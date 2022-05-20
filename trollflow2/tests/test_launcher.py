@@ -220,7 +220,7 @@ class TestMessageToJobs(TestCase):
             from trollflow2.launcher import message_to_jobs
             import json
 
-            filename = "/S3A_OL_2_WFR____20201210T080758_20201210T080936_20201210T103707_0097_066_078_1980_MAR_O_NR_002.SEN3/Oa01_reflectance.nc"  # noqa
+            filename = "zip:///S3A_OL_2_WFR____20201210T080758_20201210T080936_20201210T103707_0097_066_078_1980_MAR_O_NR_002.SEN3/Oa01_reflectance.nc"  # noqa
             fs = {"cls": "fsspec.implementations.zip.ZipFileSystem",
                   "protocol": "abstract",
                   "args": ["sentinel-s3-ol2wfr-zips/2020/12/10/S3A_OL_2_WFR____20201210T080758_20201210T080936_20201210T103707_0097_066_078_1980_MAR_O_NR_002.zip"],  # noqa
@@ -228,8 +228,8 @@ class TestMessageToJobs(TestCase):
                   "target_options": {"anon": False,
                                      "client_kwargs": {"endpoint_url": "https://my.dismi.se"}}}
             msg_data = {"dataset": [{"filesystem": fs,
-                                     "uid": "zip:///S3A_OL_2_WFR____20201210T080758_20201210T080936_20201210T103707_0097_066_078_1980_MAR_O_NR_002.SEN3/Oa01_reflectance.nc::s3:///sentinel-s3-ol2wfr-zips/2020/12/10/S3A_OL_2_WFR____20201210T080758_20201210T080936_20201210T103707_0097_066_078_1980_MAR_O_NR_002.zip",  # noqa
-                                     "uri": "zip://" + filename
+                                     "uid": filename,
+                                     "uri": filename + "::s3:///sentinel-s3-ol2wfr-zips/2020/12/10/S3A_OL_2_WFR____20201210T080758_20201210T080936_20201210T103707_0097_066_078_1980_MAR_O_NR_002.zip",  # noqa
                                      }]
                         }
 

@@ -39,7 +39,6 @@ from contextlib import suppress
 from datetime import datetime
 from logging import getLogger
 from queue import Empty
-from urllib.parse import urlparse
 
 import yaml
 from trollflow2.dict_tools import gen_dict_extract, plist_iter
@@ -266,7 +265,7 @@ def _extract_filenames(msg):
 
     If the message contains a `filesystem` item, use fsspec to decode it.
     """
-    filenames = [urlparse(uri).path for uri in gen_dict_extract(msg.data, 'uri')]
+    filenames = [uri.split("::")[0] for uri in gen_dict_extract(msg.data, 'uri')]
     filenames = _create_fs_file_instances(filenames, msg)
     return filenames
 
