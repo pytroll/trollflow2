@@ -566,6 +566,7 @@ class TestSaveDatasets(TestCase):
             compute_writer_results.assert_not_called()
 
     def test_pop_unknown_args(self):
+        """Test removing unknown arguments."""
         from trollflow2.plugins import save_datasets
         job = _create_job_for_save_datasets()
 
@@ -1374,6 +1375,20 @@ class TestCheckMetadata(TestCase):
             # Platform doesn't match -> abort
             get_config_value.return_value = {'sensor': ['foo'],
                                              'platform_name': ['not-bar']}
+            with self.assertRaises(AbortProcessing):
+                check_metadata(job)
+
+    def test_old_data(self):
+        """Test that old data are discarded."""
+        from trollflow2.plugins import check_metadata
+        from trollflow2.plugins import AbortProcessing
+        with mock.patch('trollflow2.plugins.get_config_value') as get_config_value:
+            get_config_value.return_value = None
+            job = {'product_list': None, 'input_mda': {'start_time': dt.datetime(2020, 3, 18)}}
+            self.assertIsNone(check_metadata(job))
+            get_config_value.return_value = {'start_time': -2e6}
+            self.assertIsNone(check_metadata(job))
+            get_config_value.return_value = {'start_time': -60}
             with self.assertRaises(AbortProcessing):
                 check_metadata(job)
 

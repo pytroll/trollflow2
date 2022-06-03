@@ -27,6 +27,7 @@ from contextlib import contextmanager
 from logging import getLogger
 from tempfile import NamedTemporaryFile
 from urllib.parse import urlunsplit
+import datetime as dt
 
 import dpath.util
 import rasterio
@@ -521,7 +522,12 @@ def check_metadata(job):
             LOG.warning("Metadata item '%s' not in the input message.",
                         key)
             continue
-        if mda[key] not in val:
+        if key == 'start_time':
+            if mda[key] - dt.datetime.utcnow() < dt.timedelta(minutes=val):
+                raise AbortProcessing(
+                    "Data are older than the defined threshold. Skipping processing."
+                )
+        elif mda[key] not in val:
             raise AbortProcessing("Metadata '%s' item '%s' not in '%s'" %
                                   (key, mda[key], str(val)))
 

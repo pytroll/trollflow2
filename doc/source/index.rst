@@ -283,6 +283,11 @@ discarded.  If the configured item isn't in the input message
 metadata, a warning is printed and the processing continues.  The best
 place for this plugin is before any data handling is done.
 
+In addition to equality checks, a negative integer ``start_time`` can be
+defined to denote the maximum age of the accepted data. For example
+``start_time: -60`` means that all data older than 60 minutes will be
+discarded.
+
 Options:
  - ``check_metadata: null`` - A dictionary of metadata names and list(s)
    of values that need to match.  By default (``null``) all scenes are
