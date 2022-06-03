@@ -1392,6 +1392,18 @@ class TestCheckMetadata(TestCase):
             with self.assertRaises(AbortProcessing):
                 check_metadata(job)
 
+    def test_discard_new_data(self):
+        """Test that new data are discarded."""
+        from trollflow2.plugins import check_metadata
+        from trollflow2.plugins import AbortProcessing
+        with mock.patch('trollflow2.plugins.get_config_value') as get_config_value:
+            job = {'product_list': None, 'input_mda': {'start_time': dt.datetime.utcnow() - dt.timedelta(minutes=90)}}
+            get_config_value.return_value = {'start_time': +60}
+            with self.assertRaises(AbortProcessing):
+                check_metadata(job)
+            get_config_value.return_value = {'start_time': +100}
+            self.assertIsNone(check_metadata(job))
+
 
 class TestMetadataAlias(TestCase):
     """Test case for metadata alias."""

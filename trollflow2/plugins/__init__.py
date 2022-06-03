@@ -523,9 +523,11 @@ def check_metadata(job):
                         key)
             continue
         if key == 'start_time':
-            if mda[key] - dt.datetime.utcnow() < dt.timedelta(minutes=val):
+            time_diff = dt.datetime.utcnow() - mda[key]
+            if time_diff > abs(dt.timedelta(minutes=val)):
+                age = "older" if val < 0 else "newer"
                 raise AbortProcessing(
-                    "Data are older than the defined threshold. Skipping processing."
+                    f"Data are {age} than the defined threshold. Skipping processing."
                 )
         elif mda[key] not in val:
             raise AbortProcessing("Metadata '%s' item '%s' not in '%s'" %

@@ -283,10 +283,11 @@ discarded.  If the configured item isn't in the input message
 metadata, a warning is printed and the processing continues.  The best
 place for this plugin is before any data handling is done.
 
-In addition to equality checks, a negative integer ``start_time`` can be
-defined to denote the maximum age of the accepted data. For example
-``start_time: -60`` means that all data older than 60 minutes will be
-discarded.
+In addition to equality checks, ``start_time`` can be used to check
+for data that are either too old or too new to be processed. To skip
+the maximum age (in minutes) of the accepted data, use a negative integer:
+``start_time: -60``. Similarly positive integer skips the processing of
+data newer than than the defined time.
 
 Options:
  - ``check_metadata: null`` - A dictionary of metadata names and list(s)
