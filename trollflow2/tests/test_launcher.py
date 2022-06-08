@@ -244,6 +244,34 @@ class TestMessageToJobs(TestCase):
             fsfile.assert_called_once_with(filename, abs_fs.from_json.return_value)
             abs_fs.from_json.assert_called_once_with(json.dumps(fs))
 
+    def test_message_to_jobs_non_fsspec_uri(self):
+        """Test transforming a message containing a url without fsspec specification."""
+        with mock.patch.dict('sys.modules', {'fsspec': mock.MagicMock(),
+                                             'fsspec.spec': mock.MagicMock(),
+                                             'satpy': mock.MagicMock(),
+                                             'satpy.readers': mock.MagicMock(),
+                                             'satpy.resample': mock.MagicMock(),
+                                             'satpy.writers': mock.MagicMock(),
+                                             'satpy.dataset': mock.MagicMock(),
+                                             'satpy.version': mock.MagicMock()}):
+            from trollflow2.launcher import message_to_jobs
+
+            filename = "/S3A_OL_2_WFR____20201210T080758_20201210T080936_20201210T103707_0097_066_078_1980_MAR_O_NR_002.SEN3/Oa01_reflectance.nc"  # noqa
+
+            msg_data = {"dataset": [{"uid": filename,
+                                     "uri": "ssh://someserver.example.com" + filename,
+                                     }]
+                        }
+
+            msg = mock.MagicMock()
+            msg.data = msg_data
+
+            prodlist = yaml.load(yaml_test_minimal, Loader=UnsafeLoader)
+            jobs = message_to_jobs(msg, prodlist)
+            extracted_filename = jobs[999]['input_filenames'][0]
+
+            assert extracted_filename == filename
+
 
 class TestRun(TestCase):
     """Test case for running the plugins."""
