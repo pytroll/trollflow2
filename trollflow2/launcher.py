@@ -39,6 +39,7 @@ from contextlib import suppress
 from datetime import datetime
 from logging import getLogger
 from queue import Empty
+from urllib.parse import urlparse
 
 import yaml
 from trollflow2.dict_tools import gen_dict_extract, plist_iter
@@ -279,6 +280,8 @@ def _create_fs_file_instances(filenames, msg):
         import json
         filenames = [FSFile(filename, AbstractFileSystem.from_json(json.dumps(filesystem)))
                      for filename, filesystem in zip(filenames, filesystems)]
+    else:
+        filenames = [urlparse(uri).path for uri in gen_dict_extract(msg.data, 'uri')]
     return filenames
 
 
