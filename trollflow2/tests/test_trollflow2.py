@@ -740,6 +740,18 @@ class TestLoadComposites(TestCase):
         scn.load.assert_any_call({'cloudtype', 'ct', 'cloud_top_height'}, resolution=1000, generate=True)
         scn.load.assert_any_call({'cloud_top_height'}, resolution=500, generate=True)
 
+    def test_load_composites_with_custom_args(self):
+        """Test loading with arbitrary additional arguments."""
+        """Test loading composites with different resolutions."""
+        from trollflow2.plugins import load_composites, DEFAULT
+        scn = _get_mocked_scene_with_properties()
+        self.product_list['product_list']['scene_load_kwargs'] = {"upper_right_corner": "NE"}
+        job = {"product_list": self.product_list, "scene": scn}
+        load_composites(job)
+        scn.load.assert_called_with(
+                {'ct', 'cloudtype', 'cloud_top_height'},
+                resolution=DEFAULT, generate=False, upper_right_corner="NE")
+
 
 class TestAggregate(TestCase):
     """Test case for aggregating."""
