@@ -501,7 +501,10 @@ def get_scene_coverage(platform_name, start_time, end_time, sensor, area_id):
     overpass = Pass(platform_name, start_time, end_time, instrument=sensor)
     area_def = get_area_def(area_id)
 
-    return 100 * overpass.area_coverage(area_def)
+    try:
+        return 100 * overpass.area_coverage(area_def)
+    except AttributeError:
+        return 100
 
 
 def check_metadata(job):
