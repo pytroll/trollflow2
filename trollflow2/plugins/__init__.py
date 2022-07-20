@@ -97,9 +97,10 @@ def load_composites(job):
             composites_by_res.setdefault(res, set()).add(flat_prod_cfg['product'])
     scn = job['scene']
     generate = job['product_list']['product_list'].get('delay_composites', True) is False
+    extra_args = job["product_list"]["product_list"].get("scene_load_kwargs", {})
     for resolution, composites in composites_by_res.items():
         LOG.info('Loading %s at resolution %s', str(composites), str(resolution))
-        scn.load(composites, resolution=resolution, generate=generate)
+        scn.load(composites, resolution=resolution, generate=generate, **extra_args)
     job['scene'] = scn
 
 
