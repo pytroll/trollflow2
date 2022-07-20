@@ -1,3 +1,32 @@
+## Version 0.14.0 (2022/07/20)
+
+### Issues Closed
+
+* [Issue 153](https://github.com/pytroll/trollflow2/issues/153) - Pass parameters to Scene.load ([PR 154](https://github.com/pytroll/trollflow2/pull/154) by [@gerritholl](https://github.com/gerritholl))
+* [Issue 145](https://github.com/pytroll/trollflow2/issues/145) - save_dataset plugin mixes arguments for itself and for the writer ([PR 146](https://github.com/pytroll/trollflow2/pull/146) by [@gerritholl](https://github.com/gerritholl))
+
+In this release 2 issues were closed.
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR 152](https://github.com/pytroll/trollflow2/pull/152) - Do not crash when computing coverage of a dynamic area def
+* [PR 146](https://github.com/pytroll/trollflow2/pull/146) - Pop unknown keyword arguments in save_dataset ([145](https://github.com/pytroll/trollflow2/issues/145))
+
+#### Features added
+
+* [PR 154](https://github.com/pytroll/trollflow2/pull/154) - Pass arbitrary params to Scene.load ([153](https://github.com/pytroll/trollflow2/issues/153))
+
+#### Documentation changes
+
+* [PR 143](https://github.com/pytroll/trollflow2/pull/143) - Add installation method in the .readthedocs.yaml file
+* [PR 142](https://github.com/pytroll/trollflow2/pull/142) - Add os in the .readthedocs.yaml file
+* [PR 141](https://github.com/pytroll/trollflow2/pull/141) - Add a .readthedocs.yaml file
+
+In this release 6 pull requests were closed.
+
+
 ## Version 0.13.4 (2022/03/10)
 
 No changes, raised version to make PyPI upload possible.
