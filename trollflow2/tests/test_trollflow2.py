@@ -748,8 +748,8 @@ class TestLoadComposites(TestCase):
         job = {"product_list": self.product_list, "scene": scn}
         load_composites(job)
         scn.load.assert_called_with(
-                {'ct', 'cloudtype', 'cloud_top_height'},
-                resolution=DEFAULT, generate=False, upper_right_corner="NE")
+            {'ct', 'cloudtype', 'cloud_top_height'},
+            resolution=DEFAULT, generate=False, upper_right_corner="NE")
 
 
 class TestAggregate(TestCase):
