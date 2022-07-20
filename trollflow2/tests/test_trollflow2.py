@@ -742,7 +742,6 @@ class TestLoadComposites(TestCase):
 
     def test_load_composites_with_custom_args(self):
         """Test loading with arbitrary additional arguments."""
-        """Test loading composites with different resolutions."""
         from trollflow2.plugins import load_composites, DEFAULT
         scn = _get_mocked_scene_with_properties()
         self.product_list['product_list']['scene_load_kwargs'] = {"upper_right_corner": "NE"}
