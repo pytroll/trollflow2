@@ -129,8 +129,8 @@ The default values are:
 
 For dynamic area definitions, which are not named, one can define the area as ``null`` and define one of
 
- - ``use_min_area: True`` or
- - ``use_max_area: True``
+ - ``use_coarsest_area: True`` or
+ - ``use_finest_area: True``
 
 The ``null`` area is also used when saving data without reprojecting.
 If the composites need matching of different resolutions, the native
