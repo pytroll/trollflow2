@@ -39,7 +39,6 @@ from contextlib import suppress
 from datetime import datetime
 from logging import getLogger
 from queue import Empty
-from urllib.parse import urlparse
 
 import yaml
 from trollflow2.dict_tools import gen_dict_extract, plist_iter
@@ -266,23 +265,24 @@ def _extract_filenames(msg):
 
     If the message contains a `filesystem` item, use fsspec to decode it.
     """
-    filenames = [uri.split("::")[0] for uri in gen_dict_extract(msg.data, 'uri')]
-    filenames = _create_fs_file_instances(filenames, msg)
-    return filenames
-
-
-def _create_fs_file_instances(filenames, msg):
-    """Create FSFile instances when filesystem is provided."""
     filesystems = list(gen_dict_extract(msg.data, 'filesystem'))
     if filesystems:
-        from satpy.readers import FSFile
-        from fsspec.spec import AbstractFileSystem
-        import json
-        filenames = [FSFile(filename, AbstractFileSystem.from_json(json.dumps(filesystem)))
-                     for filename, filesystem in zip(filenames, filesystems)]
+        filenames = [filename for filename in gen_dict_extract(msg.data, 'uid')]
+        to_open = _create_fs_files(filenames, filesystems)
     else:
-        filenames = [urlparse(uri).path for uri in gen_dict_extract(msg.data, 'uri')]
-    return filenames
+        to_open = [uri for uri in gen_dict_extract(msg.data, 'uri')]
+
+    return to_open
+
+
+def _create_fs_files(filenames, filesystems):
+    """Create FSFile instances when filesystem is provided."""
+    from satpy.readers import FSFile
+    from fsspec.spec import AbstractFileSystem
+    import json
+    fsfiles = [FSFile(filename, AbstractFileSystem.from_json(json.dumps(filesystem)))
+               for filename, filesystem in zip(filenames, filesystems)]
+    return fsfiles
 
 
 def expand(yml):
