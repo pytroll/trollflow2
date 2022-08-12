@@ -90,6 +90,10 @@ special keyword arguments:
    resampling.  This can save a lot of time if the same channels are
    used in several composites.  Default: ``True``.
 
+In addition, arbitrary keyword arguments can be configured with the
+``scene_load_kwargs`` parameter.  This is a dictionary with key/value
+pairs that will all be passed on every call to ``Scene.load``.
+
 Aggregate
 *********
 
