@@ -220,7 +220,7 @@ class TestMessageToJobs(TestCase):
             from trollflow2.launcher import message_to_jobs
             import json
 
-            filename = "/S3A_OL_2_WFR____20201210T080758_20201210T080936_20201210T103707_0097_066_078_1980_MAR_O_NR_002.SEN3/Oa01_reflectance.nc"  # noqa
+            filename = "zip:///S3A_OL_2_WFR____20201210T080758_20201210T080936_20201210T103707_0097_066_078_1980_MAR_O_NR_002.SEN3/Oa01_reflectance.nc"  # noqa
             fs = {"cls": "fsspec.implementations.zip.ZipFileSystem",
                   "protocol": "abstract",
                   "args": ["sentinel-s3-ol2wfr-zips/2020/12/10/S3A_OL_2_WFR____20201210T080758_20201210T080936_20201210T103707_0097_066_078_1980_MAR_O_NR_002.zip"],  # noqa
@@ -228,8 +228,8 @@ class TestMessageToJobs(TestCase):
                   "target_options": {"anon": False,
                                      "client_kwargs": {"endpoint_url": "https://my.dismi.se"}}}
             msg_data = {"dataset": [{"filesystem": fs,
-                                     "uid": "zip:///S3A_OL_2_WFR____20201210T080758_20201210T080936_20201210T103707_0097_066_078_1980_MAR_O_NR_002.SEN3/Oa01_reflectance.nc::s3:///sentinel-s3-ol2wfr-zips/2020/12/10/S3A_OL_2_WFR____20201210T080758_20201210T080936_20201210T103707_0097_066_078_1980_MAR_O_NR_002.zip",  # noqa
-                                     "uri": "zip://" + filename
+                                     "uid": filename,
+                                     "uri": filename + "::s3:///sentinel-s3-ol2wfr-zips/2020/12/10/S3A_OL_2_WFR____20201210T080758_20201210T080936_20201210T103707_0097_066_078_1980_MAR_O_NR_002.zip",  # noqa
                                      }]
                         }
 
@@ -243,6 +243,64 @@ class TestMessageToJobs(TestCase):
             assert filesystemfile == fsfile.return_value
             fsfile.assert_called_once_with(filename, abs_fs.from_json.return_value)
             abs_fs.from_json.assert_called_once_with(json.dumps(fs))
+
+    def test_message_to_jobs_with_fsspec_uri_without_fs_info(self):
+        """Test transforming a message containing a url without fsspec specification."""
+        with mock.patch.dict('sys.modules', {'fsspec': mock.MagicMock(),
+                                             'fsspec.spec': mock.MagicMock(),
+                                             'satpy': mock.MagicMock(),
+                                             'satpy.readers': mock.MagicMock(),
+                                             'satpy.resample': mock.MagicMock(),
+                                             'satpy.writers': mock.MagicMock(),
+                                             'satpy.dataset': mock.MagicMock(),
+                                             'satpy.version': mock.MagicMock()}):
+            from trollflow2.launcher import message_to_jobs
+
+            filename = "/S3A_OL_2_WFR____20201210T080758_20201210T080936_20201210T103707_0097_066_078_1980_MAR_O_NR_002.SEN3/Oa01_reflectance.nc"  # noqa
+            uri = "simplecache::ssh://someserver.example.com" + filename
+
+            msg_data = {"dataset": [{"uid": filename,
+                                     "uri": uri,
+                                     }]
+                        }
+
+            msg = mock.MagicMock()
+            msg.data = msg_data
+
+            prodlist = yaml.load(yaml_test_minimal, Loader=UnsafeLoader)
+            jobs = message_to_jobs(msg, prodlist)
+            extracted_filename = jobs[999]['input_filenames'][0]
+
+            assert extracted_filename == uri
+
+    def test_message_to_jobs_non_fsspec_uri(self):
+        """Test transforming a message containing a url without fsspec specification."""
+        with mock.patch.dict('sys.modules', {'fsspec': mock.MagicMock(),
+                                             'fsspec.spec': mock.MagicMock(),
+                                             'satpy': mock.MagicMock(),
+                                             'satpy.readers': mock.MagicMock(),
+                                             'satpy.resample': mock.MagicMock(),
+                                             'satpy.writers': mock.MagicMock(),
+                                             'satpy.dataset': mock.MagicMock(),
+                                             'satpy.version': mock.MagicMock()}):
+            from trollflow2.launcher import message_to_jobs
+
+            filename = "/S3A_OL_2_WFR____20201210T080758_20201210T080936_20201210T103707_0097_066_078_1980_MAR_O_NR_002.SEN3/Oa01_reflectance.nc"  # noqa
+            uri = "ssh://someserver.example.com" + filename
+
+            msg_data = {"dataset": [{"uid": filename,
+                                     "uri": uri
+                                     }]
+                        }
+
+            msg = mock.MagicMock()
+            msg.data = msg_data
+
+            prodlist = yaml.load(yaml_test_minimal, Loader=UnsafeLoader)
+            jobs = message_to_jobs(msg, prodlist)
+            extracted_filename = jobs[999]['input_filenames'][0]
+
+            assert extracted_filename == uri
 
 
 class TestRun(TestCase):
