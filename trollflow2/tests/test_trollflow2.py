@@ -1407,7 +1407,7 @@ class TestCheckMetadata(TestCase):
             with self.assertRaises(AbortProcessing):
                 check_metadata(job)
 
-    def test_old_data(self):
+    def test_discard_old_data(self):
         """Test that old data are discarded."""
         from trollflow2.plugins import check_metadata
         from trollflow2.plugins import AbortProcessing
