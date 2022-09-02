@@ -740,6 +740,17 @@ class TestLoadComposites(TestCase):
         scn.load.assert_any_call({'cloudtype', 'ct', 'cloud_top_height'}, resolution=1000, generate=True)
         scn.load.assert_any_call({'cloud_top_height'}, resolution=500, generate=True)
 
+    def test_load_composites_with_custom_args(self):
+        """Test loading with arbitrary additional arguments."""
+        from trollflow2.plugins import load_composites, DEFAULT
+        scn = _get_mocked_scene_with_properties()
+        self.product_list['product_list']['scene_load_kwargs'] = {"upper_right_corner": "NE"}
+        job = {"product_list": self.product_list, "scene": scn}
+        load_composites(job)
+        scn.load.assert_called_with(
+            {'ct', 'cloudtype', 'cloud_top_height'},
+            resolution=DEFAULT, generate=False, upper_right_corner="NE")
+
 
 class TestAggregate(TestCase):
     """Test case for aggregating."""
@@ -876,13 +887,13 @@ class TestResample(TestCase):
         scn.resample.return_value = "foo"
         product_list = self.product_list.copy()
         product_list['product_list']['areas']['None'] = product_list['product_list']['areas']['germ']
-        product_list['product_list']['areas']['None']['use_min_area'] = True
+        product_list['product_list']['areas']['None']['use_coarsest_area'] = True
         del product_list['product_list']['areas']['germ']
         del product_list['product_list']['areas']['omerc_bb']
         del product_list['product_list']['areas']['euron1']
         job = {"scene": scn, "product_list": product_list.copy()}
         resample(job)
-        self.assertTrue(mock.call(scn.min_area(),
+        self.assertTrue(mock.call(scn.coarsest_area(),
                                   radius_of_influence=None,
                                   resampler="nearest",
                                   reduce_data=True,
@@ -890,11 +901,11 @@ class TestResample(TestCase):
                                   mask_area=False,
                                   epsilon=0.0) in
                         scn.resample.mock_calls)
-        del product_list['product_list']['areas']['None']['use_min_area']
-        product_list['product_list']['areas']['None']['use_max_area'] = True
+        del product_list['product_list']['areas']['None']['use_coarsest_area']
+        product_list['product_list']['areas']['None']['use_finest_area'] = True
         job = {"scene": scn, "product_list": product_list.copy()}
         resample(job)
-        self.assertTrue(mock.call(scn.max_area(),
+        self.assertTrue(mock.call(scn.finest_area(),
                                   radius_of_influence=None,
                                   resampler="nearest",
                                   reduce_data=True,

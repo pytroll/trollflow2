@@ -98,9 +98,10 @@ def load_composites(job):
             composites_by_res.setdefault(res, set()).add(flat_prod_cfg['product'])
     scn = job['scene']
     generate = job['product_list']['product_list'].get('delay_composites', True) is False
+    extra_args = job["product_list"]["product_list"].get("scene_load_kwargs", {})
     for resolution, composites in composites_by_res.items():
         LOG.info('Loading %s at resolution %s', str(composites), str(resolution))
-        scn.load(composites, resolution=resolution, generate=generate)
+        scn.load(composites, resolution=resolution, generate=generate, **extra_args)
     job['scene'] = scn
 
 
@@ -129,18 +130,24 @@ def resample(job):
                                      conf)
         LOG.debug('Resampling to %s', str(area))
         if area == 'None':
-            minarea = get_config_value(product_list,
+            coarsest = (get_config_value(product_list,
+                                         '/product_list/areas/' + str(area),
+                                         'use_coarsest_area') or
+                        get_config_value(product_list,
+                                         '/product_list/areas/' + str(area),
+                                         'use_min_area'))
+            finest = (get_config_value(product_list,
                                        '/product_list/areas/' + str(area),
-                                       'use_min_area')
-            maxarea = get_config_value(product_list,
+                                       'use_finest_area') or
+                      get_config_value(product_list,
                                        '/product_list/areas/' + str(area),
-                                       'use_max_area')
+                                       'use_max_area'))
             native = conf.get('resampler') == 'native'
-            if minarea is True:
-                job['resampled_scenes'][area] = scn.resample(scn.min_area(),
+            if coarsest is True:
+                job['resampled_scenes'][area] = scn.resample(scn.coarsest_area(),
                                                              **area_conf)
-            elif maxarea is True:
-                job['resampled_scenes'][area] = scn.resample(scn.max_area(),
+            elif finest is True:
+                job['resampled_scenes'][area] = scn.resample(scn.finest_area(),
                                                              **area_conf)
             elif native:
                 job['resampled_scenes'][area] = scn.resample(resampler='native')
