@@ -291,7 +291,7 @@ In addition to equality checks, ``start_time`` can be used to check
 for data that are either too old or too new to be processed. To skip
 accepted data older than a maximum age (in minutes) , use a negative integer:
 ``start_time: -60``. Similarly positive integer skips the processing of
-data newer than than the defined time.
+data newer than the defined time.
 
 Options:
  - ``check_metadata: null`` - A dictionary of metadata names and list(s)
