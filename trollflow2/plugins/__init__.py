@@ -27,6 +27,7 @@ from contextlib import contextmanager, suppress
 from logging import getLogger
 from tempfile import NamedTemporaryFile
 from urllib.parse import urlunsplit
+import datetime as dt
 
 with suppress(ImportError):
     import hdf5plugin  # noqa
@@ -533,7 +534,14 @@ def check_metadata(job):
             LOG.warning("Metadata item '%s' not in the input message.",
                         key)
             continue
-        if mda[key] not in val:
+        if key == 'start_time':
+            time_diff = dt.datetime.utcnow() - mda[key]
+            if time_diff > abs(dt.timedelta(minutes=val)):
+                age = "older" if val < 0 else "newer"
+                raise AbortProcessing(
+                    f"Data are {age} than the defined threshold. Skipping processing."
+                )
+        elif mda[key] not in val:
             raise AbortProcessing("Metadata '%s' item '%s' not in '%s'" %
                                   (key, mda[key], str(val)))
 
