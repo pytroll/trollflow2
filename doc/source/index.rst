@@ -90,6 +90,10 @@ special keyword arguments:
    resampling.  This can save a lot of time if the same channels are
    used in several composites.  Default: ``True``.
 
+In addition, arbitrary keyword arguments can be configured with the
+``scene_load_kwargs`` parameter.  This is a dictionary with key/value
+pairs that will all be passed on every call to ``Scene.load``.
+
 Aggregate
 *********
 
@@ -125,8 +129,8 @@ The default values are:
 
 For dynamic area definitions, which are not named, one can define the area as ``null`` and define one of
 
- - ``use_min_area: True`` or
- - ``use_max_area: True``
+ - ``use_coarsest_area: True`` or
+ - ``use_finest_area: True``
 
 The ``null`` area is also used when saving data without reprojecting.
 If the composites need matching of different resolutions, the native

@@ -63,6 +63,9 @@ product_list: &product_list
   #   likely increase the required processing time.
   #   Issue on the XArray bug: https://github.com/pydata/xarray/issues/6300
   # eager_writing: True
+  # # pass extra keyword arguments to Scene.load
+  # scene_load_kwargs:
+  #   upper_right_corner: "NE"
 
   areas:
     omerc_bb:

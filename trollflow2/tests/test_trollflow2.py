@@ -28,8 +28,10 @@ import os
 import unittest
 import copy
 from unittest import mock
+from functools import partial
 
 import pytest
+from pyresample.geometry import DynamicAreaDefinition
 
 from trollflow2.tests.utils import TestCase
 from trollflow2.launcher import read_config
@@ -566,6 +568,7 @@ class TestSaveDatasets(TestCase):
             compute_writer_results.assert_not_called()
 
     def test_pop_unknown_args(self):
+        """Test pop unknown kwargs."""
         from trollflow2.plugins import save_datasets
         job = _create_job_for_save_datasets()
 
@@ -737,6 +740,17 @@ class TestLoadComposites(TestCase):
         scn.load.assert_any_call({'cloudtype', 'ct', 'cloud_top_height'}, resolution=1000, generate=True)
         scn.load.assert_any_call({'cloud_top_height'}, resolution=500, generate=True)
 
+    def test_load_composites_with_custom_args(self):
+        """Test loading with arbitrary additional arguments."""
+        from trollflow2.plugins import load_composites, DEFAULT
+        scn = _get_mocked_scene_with_properties()
+        self.product_list['product_list']['scene_load_kwargs'] = {"upper_right_corner": "NE"}
+        job = {"product_list": self.product_list, "scene": scn}
+        load_composites(job)
+        scn.load.assert_called_with(
+            {'ct', 'cloudtype', 'cloud_top_height'},
+            resolution=DEFAULT, generate=False, upper_right_corner="NE")
+
 
 class TestAggregate(TestCase):
     """Test case for aggregating."""
@@ -873,13 +887,13 @@ class TestResample(TestCase):
         scn.resample.return_value = "foo"
         product_list = self.product_list.copy()
         product_list['product_list']['areas']['None'] = product_list['product_list']['areas']['germ']
-        product_list['product_list']['areas']['None']['use_min_area'] = True
+        product_list['product_list']['areas']['None']['use_coarsest_area'] = True
         del product_list['product_list']['areas']['germ']
         del product_list['product_list']['areas']['omerc_bb']
         del product_list['product_list']['areas']['euron1']
         job = {"scene": scn, "product_list": product_list.copy()}
         resample(job)
-        self.assertTrue(mock.call(scn.min_area(),
+        self.assertTrue(mock.call(scn.coarsest_area(),
                                   radius_of_influence=None,
                                   resampler="nearest",
                                   reduce_data=True,
@@ -887,11 +901,11 @@ class TestResample(TestCase):
                                   mask_area=False,
                                   epsilon=0.0) in
                         scn.resample.mock_calls)
-        del product_list['product_list']['areas']['None']['use_min_area']
-        product_list['product_list']['areas']['None']['use_max_area'] = True
+        del product_list['product_list']['areas']['None']['use_coarsest_area']
+        product_list['product_list']['areas']['None']['use_finest_area'] = True
         job = {"scene": scn, "product_list": product_list.copy()}
         resample(job)
-        self.assertTrue(mock.call(scn.max_area(),
+        self.assertTrue(mock.call(scn.finest_area(),
                                   radius_of_influence=None,
                                   resampler="nearest",
                                   reduce_data=True,
@@ -1251,31 +1265,38 @@ class TestCovers(TestCase):
     def test_covers(self):
         """Test coverage."""
         from trollflow2.plugins import covers
-        with mock.patch('trollflow2.plugins.get_scene_coverage') as get_scene_coverage,\
-                mock.patch('trollflow2.plugins.Pass'):
-            get_scene_coverage.return_value = 10.0
+        with mock.patch('trollflow2.plugins.Pass', spec=True) as pass_obj:
+            fake_area_coverage_10 = partial(fake_area_coverage, result=.1)
+            pass_obj.return_value.area_coverage.side_effect = fake_area_coverage_10
             scn = _get_mocked_scene_with_properties()
             job = {"product_list": self.product_list,
                    "input_mda": self.input_mda,
                    "scene": scn}
-            job2 = copy.deepcopy(job)
             with self.assertLogs("trollflow2.plugins", logging.DEBUG) as log:
                 covers(job)
-            assert ("DEBUG:trollflow2.plugins:Area coverage 10.00% "
+            assert ("DEBUG:trollflow2.plugins:Area coverage 100.00% "
                     "above threshold 5.00% - Carry on with omerc_bb" in log.output)
             # Area "euron1" should be removed
-            self.assertFalse("euron1" in job['product_list']['product_list']['areas'])
+            assert "euron1" not in job['product_list']['product_list']['areas']
             # Other areas should stay in the list
-            self.assertTrue("germ" in job['product_list']['product_list']['areas'])
-            self.assertTrue("omerc_bb" in job['product_list']['product_list']['areas'])
+            assert "germ" in job['product_list']['product_list']['areas']
+            assert "omerc_bb" in job['product_list']['product_list']['areas']
 
-            # Test that only one sensor is used
-            input_mda = self.input_mda.copy()
-            input_mda['sensor'] = {'avhrr-4'}
-            job = {"product_list": self.product_list,
-                   "input_mda": input_mda,
-                   "scene": scn}
-            get_scene_coverage.reset_mock()
+    def test_covers_uses_only_one_sensor(self):
+        """Test that only one sensor is used."""
+        from trollflow2.plugins import covers
+        input_mda = self.input_mda.copy()
+        input_mda['sensor'] = {'avhrr-4'}
+        scn = _get_mocked_scene_with_properties()
+
+        job = {"product_list": self.product_list,
+               "input_mda": input_mda,
+               "scene": scn}
+        job2 = copy.deepcopy(job)
+
+        with mock.patch('trollflow2.plugins.get_scene_coverage') as get_scene_coverage,\
+                mock.patch('trollflow2.plugins.Pass'):
+            get_scene_coverage.return_value = 10.0
             covers(job)
             get_scene_coverage.assert_called_with(input_mda['platform_name'],
                                                   input_mda['start_time'],
@@ -1309,9 +1330,9 @@ class TestCovers(TestCase):
         """Test the coverage of a collection area id."""
         from trollflow2.plugins import covers
         from trollflow2.plugins import AbortProcessing
-        with mock.patch('trollflow2.plugins.get_scene_coverage') as get_scene_coverage,\
-                mock.patch('trollflow2.plugins.Pass'):
-            get_scene_coverage.return_value = 100.0
+        with mock.patch('trollflow2.plugins.Pass', spec=True) as pass_obj:
+            fake_area_coverage_100 = partial(fake_area_coverage, result=1)
+            pass_obj.return_value.area_coverage.side_effect = fake_area_coverage_100
             scn = _get_mocked_scene_with_properties()
             job = {"product_list": self.product_list,
                    "input_mda": self.input_mda,
@@ -1333,6 +1354,26 @@ class TestCovers(TestCase):
             # And with existing area there shouldn't be an exception
             job['input_mda']['collection_area_id'] = 'euron1'
             covers(job)
+
+    def test_covers_returns_100_when_area_def_is_dynamic(self):
+        """Test that covers return 100% when area def is dynamic."""
+        from trollflow2.plugins import covers
+        with mock.patch('trollflow2.plugins.Pass', spec=True) as pass_obj:
+            pass_obj.return_value.area_coverage.side_effect = partial(fake_area_coverage, result=.1)
+            scn = _get_mocked_scene_with_properties()
+            job = {"product_list": self.product_list,
+                   "input_mda": self.input_mda,
+                   "scene": scn}
+            covers(job)
+            assert job["product_list"]["product_list"]["areas"]["omerc_bb"]["area_coverage_percent"] == 100
+
+
+def fake_area_coverage(areadef, result=.1):
+    """Fake area coverage."""
+    if isinstance(areadef, DynamicAreaDefinition):
+        raise AttributeError
+    else:
+        return result
 
 
 class TestCheckMetadata(TestCase):
