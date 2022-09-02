@@ -887,13 +887,13 @@ class TestResample(TestCase):
         scn.resample.return_value = "foo"
         product_list = self.product_list.copy()
         product_list['product_list']['areas']['None'] = product_list['product_list']['areas']['germ']
-        product_list['product_list']['areas']['None']['use_min_area'] = True
+        product_list['product_list']['areas']['None']['use_coarsest_area'] = True
         del product_list['product_list']['areas']['germ']
         del product_list['product_list']['areas']['omerc_bb']
         del product_list['product_list']['areas']['euron1']
         job = {"scene": scn, "product_list": product_list.copy()}
         resample(job)
-        self.assertTrue(mock.call(scn.min_area(),
+        self.assertTrue(mock.call(scn.coarsest_area(),
                                   radius_of_influence=None,
                                   resampler="nearest",
                                   reduce_data=True,
@@ -901,11 +901,11 @@ class TestResample(TestCase):
                                   mask_area=False,
                                   epsilon=0.0) in
                         scn.resample.mock_calls)
-        del product_list['product_list']['areas']['None']['use_min_area']
-        product_list['product_list']['areas']['None']['use_max_area'] = True
+        del product_list['product_list']['areas']['None']['use_coarsest_area']
+        product_list['product_list']['areas']['None']['use_finest_area'] = True
         job = {"scene": scn, "product_list": product_list.copy()}
         resample(job)
-        self.assertTrue(mock.call(scn.max_area(),
+        self.assertTrue(mock.call(scn.finest_area(),
                                   radius_of_influence=None,
                                   resampler="nearest",
                                   reduce_data=True,
