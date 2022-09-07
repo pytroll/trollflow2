@@ -1679,7 +1679,7 @@ class TestFilePublisher(TestCase):
             pub = FilePublisher()
             product_list = self.product_list.copy()
             product_list['product_list']['publish_topic'] = '/{areaname}/{productname}'
-            topics = self._create_filenames_and_topics(job)
+            topics = _create_filenames_and_topics(job)
 
             pub(job)
             message.assert_called()
@@ -1761,30 +1761,9 @@ class TestFilePublisher(TestCase):
         pub = FilePublisher()
         product_list = self.product_list.copy()
         product_list['product_list']['publish_topic'] = '/static_topic'
-        topics = self._create_filenames_and_topics(job)
+        topics = _create_filenames_and_topics(job)
         pub(job)
         return pub, topics
-
-    @staticmethod
-    def _create_filenames_and_topics(job):
-        """Create the filenames and topics for *job*."""
-        from trollflow2.dict_tools import plist_iter
-        from trollsift import compose
-        import os.path
-
-        topic_pattern = job['product_list']['product_list']['publish_topic']
-        topics = []
-
-        for fmat, fmat_config in plist_iter(job['product_list']['product_list'],
-                                            job['input_mda'].copy()):
-            fname_pattern = fmat['fname_pattern']
-            filename = compose(os.path.join(fmat['output_dir'],
-                                            fname_pattern), fmat)
-            fmat.pop('format', None)
-            fmat_config['filename'] = filename
-            topics.append(compose(topic_pattern, fmat))
-
-        return topics
 
     def test_filepublisher_kwargs(self):
         """Test filepublisher keyword argument usage."""
@@ -1907,6 +1886,27 @@ class TestFilePublisher(TestCase):
         nb_.stop.assert_not_called()
         pub.stop()
         nb_.stop.assert_called_once()
+
+
+def _create_filenames_and_topics(job):
+    """Create the filenames and topics for *job*."""
+    from trollflow2.dict_tools import plist_iter
+    from trollsift import compose
+    import os.path
+
+    topic_pattern = job['product_list']['product_list']['publish_topic']
+    topics = []
+
+    for fmat, fmat_config in plist_iter(job['product_list']['product_list'],
+                                        job['input_mda'].copy()):
+        fname_pattern = fmat['fname_pattern']
+        filename = compose(os.path.join(fmat['output_dir'],
+                                        fname_pattern), fmat)
+        fmat.pop('format', None)
+        fmat_config['filename'] = filename
+        topics.append(compose(topic_pattern, fmat))
+
+    return topics
 
 
 class FakeScene(dict):
