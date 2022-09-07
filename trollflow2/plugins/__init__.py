@@ -892,3 +892,32 @@ def _product_meets_min_valid_data_fraction(
     LOG.debug(f"Found {rel_valid:%}>{min_frac:%}, keeping "
               f"{prod_name:s} for area {area_name:s} in the worklist")
     return True
+
+
+def s3_uploader(job):
+    """Upload data to S3 and update the filenames.
+
+    Optionally also delete the files after the upload.
+    """
+    s3_config = job['product_list']['product_list'].get('s3_config', {}).copy()
+    delete_files = s3_config.pop('delete_files', False)
+    s3 = _get_s3_connection(s3_config)
+
+    for fmt, fmt_config in plist_iter(job['product_list']['product_list']):
+        local_fname = fmt_config['filename']
+        s3_uri = fmt['filename'].replace(fmt['output_dir'], fmt['s3_config']['target'])
+        _s3_upload(s3, local_fname, s3_uri)
+        fmt_config['filename'] = s3_uri
+        if delete_files:
+            os.remove(local_fname)
+
+
+def _get_s3_connection(s3_config):
+    from s3fs import S3FileSystem
+
+    _ = s3_config.pop('target')
+    return S3FileSystem(**s3_config)
+
+
+def _s3_upload(s3, local_fname, s3_uri):
+    s3.put(local_fname, s3_uri)
