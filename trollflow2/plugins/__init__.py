@@ -913,6 +913,7 @@ def s3_uploader(job):
         _s3_upload(s3, local_fname, s3_uri)
         fmt_config['filename'] = s3_uri
         if delete_files:
+            LOG.info("Deleting local file %s", local_fname)
             os.remove(local_fname)
 
 
