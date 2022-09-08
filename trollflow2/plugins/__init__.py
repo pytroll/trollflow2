@@ -344,11 +344,16 @@ class FilePublisher:
     @staticmethod
     def create_message(fmat, mda):
         """Create a message topic and mda."""
+        from urllib.parse import urlparse
+
         topic_pattern = fmat["publish_topic"]
         file_mda = mda.copy()
         file_mda.update(fmat.get('extra_metadata', {}))
 
-        file_mda['uri'] = os.path.abspath(fmat['filename'])
+        if urlparse(fmat['filename']).scheme != '':
+            file_mda['uri'] = fmat['filename']
+        else:
+            file_mda['uri'] = os.path.abspath(fmat['filename'])
 
         file_mda['uid'] = os.path.basename(fmat['filename'])
         file_mda['product'] = fmat['product']
