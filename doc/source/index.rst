@@ -396,7 +396,7 @@ Example
       delete_files: true
       anon: False
       client_kwargs:
-        - endpoint_url: https://the-s3-host.example.com
+        endpoint_url: https://the-s3-host.example.com
       key: access-key
       secret: access-secret
     areas:
