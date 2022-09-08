@@ -2064,7 +2064,7 @@ def test_s3_uploader_update_filenames():
     job = {"product_list": product_list, "input_mda": input_mda.copy()}
     _ = _create_filenames_and_topics(job)
 
-    with mock.patch('s3fs.S3FileSystem'):
+    with mock.patch('trollflow2.plugins.S3FileSystem'):
         s3_uploader(job)
     for fmt, _ in plist_iter(job['product_list']['product_list']):
         assert fmt['filename'].startswith('s3://bucket-name/')
@@ -2077,7 +2077,7 @@ def test_s3_uploader_plain_connection():
     job = {"product_list": product_list, "input_mda": input_mda.copy()}
     _ = _create_filenames_and_topics(job)
 
-    with mock.patch('s3fs.S3FileSystem') as s3filesystem:
+    with mock.patch('trollflow2.plugins.S3FileSystem') as s3filesystem:
         from trollflow2.plugins import s3_uploader
 
         s3_uploader(job)
@@ -2092,7 +2092,7 @@ def test_s3_uploader_anon_connection():
     job = {"product_list": product_list, "input_mda": input_mda.copy()}
     _ = _create_filenames_and_topics(job)
 
-    with mock.patch('s3fs.S3FileSystem') as s3filesystem:
+    with mock.patch('trollflow2.plugins.S3FileSystem') as s3filesystem:
         from trollflow2.plugins import s3_uploader
 
         s3_uploader(job)
@@ -2107,7 +2107,7 @@ def test_s3_uploader_complex_connection():
     job = {"product_list": product_list, "input_mda": input_mda.copy()}
     _ = _create_filenames_and_topics(job)
 
-    with mock.patch('s3fs.S3FileSystem') as s3filesystem:
+    with mock.patch('trollflow2.plugins.S3FileSystem') as s3filesystem:
         from trollflow2.plugins import s3_uploader
 
         s3_uploader(job)
@@ -2121,7 +2121,7 @@ def test_s3_uploader_put():
     job = {"product_list": product_list, "input_mda": input_mda.copy()}
     _ = _create_filenames_and_topics(job)
 
-    with mock.patch('s3fs.S3FileSystem') as s3filesystem:
+    with mock.patch('trollflow2.plugins.S3FileSystem') as s3filesystem:
         from trollflow2.plugins import s3_uploader
 
         s3_uploader(job)
@@ -2144,7 +2144,7 @@ def test_s3_uploader_delete_files():
     job = {"product_list": product_list, "input_mda": input_mda.copy()}
     _ = _create_filenames_and_topics(job)
 
-    with mock.patch('s3fs.S3FileSystem'):
+    with mock.patch('trollflow2.plugins.S3FileSystem'):
         with mock.patch('os.remove') as os_remove:
             from trollflow2.plugins import s3_uploader
 

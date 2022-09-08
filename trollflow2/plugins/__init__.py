@@ -40,6 +40,10 @@ from pyorbital.astronomy import sun_zenith_angle
 from pyresample.boundary import AreaDefBoundary, Boundary
 from pyresample.area_config import AreaNotFound
 from rasterio.enums import Resampling
+try:
+    from s3fs import S3FileSystem
+except ImportError:
+    S3FileSystem = None
 from satpy import Scene
 from satpy.resample import get_area_def
 from satpy.writers import compute_writer_results
@@ -913,8 +917,8 @@ def s3_uploader(job):
 
 
 def _get_s3_connection(s3_config):
-    from s3fs import S3FileSystem
-
+    if S3FileSystem is None:
+        raise ImportError("S3 uploading requires 's3fs' to be installed.")
     _ = s3_config.pop('target')
     return S3FileSystem(**s3_config)
 
