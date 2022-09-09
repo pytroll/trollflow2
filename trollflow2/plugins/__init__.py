@@ -41,9 +41,9 @@ from pyresample.boundary import AreaDefBoundary, Boundary
 from pyresample.area_config import AreaNotFound
 from rasterio.enums import Resampling
 try:
-    from s3fs import S3FileSystem
+    from trollmoves.movers import S3Mover
 except ImportError:
-    S3FileSystem = None
+    S3Mover = None
 from satpy import Scene
 from satpy.resample import get_area_def
 from satpy.writers import compute_writer_results
@@ -910,24 +910,13 @@ def s3_uploader(job):
     """
     s3_config = job['product_list']['product_list'].get('s3_config', {}).copy()
     delete_files = s3_config.pop('delete_files', False)
-    s3 = _get_s3_connection(s3_config)
 
     for fmt, fmt_config in plist_iter(job['product_list']['product_list']):
         local_fname = fmt_config['filename']
         s3_uri = fmt['filename'].replace(fmt['output_dir'], fmt['s3_config']['target'])
-        _s3_upload(s3, local_fname, s3_uri)
-        fmt_config['filename'] = s3_uri
+        mover = S3Mover(local_fname, s3_uri)
         if delete_files:
-            LOG.info("Deleting local file %s", local_fname)
-            os.remove(local_fname)
-
-
-def _get_s3_connection(s3_config):
-    if S3FileSystem is None:
-        raise ImportError("S3 uploading requires 's3fs' to be installed.")
-    _ = s3_config.pop('target')
-    return S3FileSystem(**s3_config)
-
-
-def _s3_upload(s3, local_fname, s3_uri):
-    s3.put(local_fname, s3_uri)
+            mover.move()
+        else:
+            mover.copy()
+        fmt_config['filename'] = s3_uri

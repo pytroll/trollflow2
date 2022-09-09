@@ -333,10 +333,11 @@ Uploading produced data to S3
 The ``s3_uploader`` plugin can upload the produced imagery to a S3 object storage.
 The plugin also updates the filenames so that the messaging plugin will announce
 the files at the correct location. Optionally, the locally saved files are removed
-after the transfers
+after the transfer. The plugin requires ``trollmoves`` and ``s3fs`` Python
+packages.
 
 Options are given in the main body of the product list within a ``s3_config`` dictionary.
-The connection options can be given in the product list, or the user can rely on the
+The connection options are handled by the
 `fsspec <https://filesystem-spec.readthedocs.io/en/latest/features.html#configuration>`_
 configuration mechanism.
 
@@ -345,9 +346,6 @@ Options:
     is defined with a tailing directory separator, the same should be done here.
   - ``delete_files`` - boolean defining whether the locally saved files should be deleted or not.
     Default: ``False``
-
-All other options are passed directly to ``s3fs.S3FileSystem`` initialization. See the product
-list example below for a full example.
 
 
 Product list
@@ -394,11 +392,7 @@ Example
     s3_config:
       target: s3://name-of-the-bucket/
       delete_files: true
-      anon: False
-      client_kwargs:
-        endpoint_url: https://the-s3-host.example.com
-      key: access-key
-      secret: access-secret
+
     areas:
       baws:
         areaname: baws

@@ -2075,18 +2075,6 @@ product_list:
 
 """
 
-s3_config_public = {
-    "target": "public-bucket-name",
-    "anon": True,
-}
-s3_config_more_settings = {
-    "client_kwargs": {
-        "endpoint_url": "https://server.url",
-    },
-    "key": "accesskey",
-    "secret": "secretkey",
-}
-
 
 def test_s3_uploader_update_filenames():
     """Ensure that filenames are updated when transfer is made to S3."""
@@ -2098,64 +2086,20 @@ def test_s3_uploader_update_filenames():
     job = {"product_list": product_list, "input_mda": input_mda.copy()}
     _ = _create_filenames_and_topics(job)
 
-    with mock.patch('trollflow2.plugins.S3FileSystem'):
+    with mock.patch('trollflow2.plugins.S3Mover'):
         s3_uploader(job)
     for fmt, _ in plist_iter(job['product_list']['product_list']):
         assert fmt['filename'].startswith('s3://bucket-name/')
 
 
-def test_s3_uploader_plain_connection():
-    """Test that S3 connection is initialized correctly for plain config file."""
+def test_s3_uploader_copy():
+    """Test that S3 mover is only copying the file."""
     from yaml import UnsafeLoader
     product_list = read_config(raw_string=yaml_test_s3_uploader_plain, Loader=UnsafeLoader)
     job = {"product_list": product_list, "input_mda": input_mda.copy()}
     _ = _create_filenames_and_topics(job)
 
-    with mock.patch('trollflow2.plugins.S3FileSystem') as s3filesystem:
-        from trollflow2.plugins import s3_uploader
-
-        s3_uploader(job)
-        s3filesystem.assert_called_once_with()
-
-
-def test_s3_uploader_anon_connection():
-    """Test that S3 connection is initialized correctly for anonymous target."""
-    from yaml import UnsafeLoader
-    product_list = read_config(raw_string=yaml_test_s3_uploader_plain, Loader=UnsafeLoader)
-    product_list['product_list']['s3_config'] = s3_config_public.copy()
-    job = {"product_list": product_list, "input_mda": input_mda.copy()}
-    _ = _create_filenames_and_topics(job)
-
-    with mock.patch('trollflow2.plugins.S3FileSystem') as s3filesystem:
-        from trollflow2.plugins import s3_uploader
-
-        s3_uploader(job)
-        s3filesystem.assert_called_once_with(anon=True)
-
-
-def test_s3_uploader_complex_connection():
-    """Test that S3 connection is initialized correctly for more connection options."""
-    from yaml import UnsafeLoader
-    product_list = read_config(raw_string=yaml_test_s3_uploader_plain, Loader=UnsafeLoader)
-    product_list['product_list']['s3_config'].update(s3_config_more_settings)
-    job = {"product_list": product_list, "input_mda": input_mda.copy()}
-    _ = _create_filenames_and_topics(job)
-
-    with mock.patch('trollflow2.plugins.S3FileSystem') as s3filesystem:
-        from trollflow2.plugins import s3_uploader
-
-        s3_uploader(job)
-        s3filesystem.assert_called_once_with(**s3_config_more_settings)
-
-
-def test_s3_uploader_put():
-    """Test that S3 upload is called correctly."""
-    from yaml import UnsafeLoader
-    product_list = read_config(raw_string=yaml_test_s3_uploader_plain, Loader=UnsafeLoader)
-    job = {"product_list": product_list, "input_mda": input_mda.copy()}
-    _ = _create_filenames_and_topics(job)
-
-    with mock.patch('trollflow2.plugins.S3FileSystem') as s3filesystem:
+    with mock.patch('trollflow2.plugins.S3Mover') as S3Mover:
         from trollflow2.plugins import s3_uploader
 
         s3_uploader(job)
@@ -2163,14 +2107,16 @@ def test_s3_uploader_put():
         assert mock.call(
             "/tmp/20190217_0600_NOAA-15_euro4_airmass.tif",
             "s3://bucket-name/20190217_0600_NOAA-15_euro4_airmass.tif"
-        ) in s3filesystem.return_value.put.mock_calls
+        ) in S3Mover.mock_calls
         assert mock.call(
             "/tmp/20190217_0600_NOAA-15_euro4_natural_with_colorized_ir_clouds.tif",
             "s3://bucket-name/20190217_0600_NOAA-15_euro4_natural_with_colorized_ir_clouds.tif"
-        ) in s3filesystem.return_value.put.mock_calls
+        ) in S3Mover.mock_calls
+        assert S3Mover.return_value.copy.call_count == 2
+        S3Mover.return_value.move.assert_not_called()
 
 
-def test_s3_uploader_delete_files():
+def test_s3_uploader_move():
     """Test that files are deleted after S3 transfer."""
     from yaml import UnsafeLoader
     product_list = read_config(raw_string=yaml_test_s3_uploader_plain, Loader=UnsafeLoader)
@@ -2178,15 +2124,12 @@ def test_s3_uploader_delete_files():
     job = {"product_list": product_list, "input_mda": input_mda.copy()}
     _ = _create_filenames_and_topics(job)
 
-    with mock.patch('trollflow2.plugins.S3FileSystem'):
-        with mock.patch('os.remove') as os_remove:
-            from trollflow2.plugins import s3_uploader
+    with mock.patch('trollflow2.plugins.S3Mover') as S3Mover:
+        from trollflow2.plugins import s3_uploader
 
-            s3_uploader(job)
+        s3_uploader(job)
 
-            assert mock.call("/tmp/20190217_0600_NOAA-15_euro4_airmass.tif") in os_remove.mock_calls
-            assert mock.call(
-                "/tmp/20190217_0600_NOAA-15_euro4_natural_with_colorized_ir_clouds.tif") in os_remove.mock_calls
+        assert S3Mover.return_value.move.call_count == 2
 
 
 if __name__ == '__main__':
