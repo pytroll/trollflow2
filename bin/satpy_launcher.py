@@ -22,67 +22,12 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 """The satpy launcher."""
 
-import argparse
-import logging
-
-from trollflow2.logging import logging_on
-from trollflow2.launcher import Runner
-from multiprocessing import Manager
-
-
-def parse_args():
-    """Parse commandline arguments."""
-    parser = argparse.ArgumentParser(
-        description='Launch trollflow2 processing with Satpy listening on the specified Posttroll topic(s)')
-    parser.add_argument("topic", nargs='*',
-                        help="Topic to listen to",
-                        type=str)
-    parser.add_argument("product_list",
-                        help="The yaml file with the product list",
-                        type=str)
-    parser.add_argument("-m", "--test_message",
-                        help="File path with the message used for testing offline. This implies threaded running.",
-                        type=str, required=False)
-    parser.add_argument("-t", "--threaded",
-                        help="Run the product generation in threads instead of processes.",
-                        action='store_true')
-
-    parser.add_argument("-c", "--log-config",
-                        help="Log config file (yaml) to use",
-                        type=str, required=False)
-    parser.add_argument('-n', "--nameserver", required=False, type=str,
-                        help="Nameserver to connect to", default='localhost')
-    parser.add_argument('-a', "--addresses", required=False, type=str,
-                        help=("Add direct TCP port connection.  Can be used several times: "
-                              "'-a tcp://127.0.0.1:12345 -a tcp://123.456.789.0:9013'"),
-                        action="append")
-
-    return parser.parse_args()
+from trollflow2.launcher import launch
 
 
 def main():
     """Launch trollflow2."""
-    args = vars(parse_args())
-
-    log_config = args.pop("log_config", None)
-    if log_config is not None:
-        with open(log_config) as fd:
-            import yaml
-            log_config = yaml.safe_load(fd.read())
-
-    logger = logging.getLogger("satpy_launcher")
-
-    log_queue = Manager().Queue()
-
-    with logging_on(log_queue, log_config):
-        logger.warning("Launching Satpy-based runner.")
-        product_list = args.pop("product_list")
-        test_message = args.pop("test_message")
-        threaded = args.pop("threaded")
-        connection_parameters = args
-
-        runner = Runner(product_list, log_queue, connection_parameters, test_message, threaded)
-        runner.run()
+    launch()
 
 
 if __name__ == "__main__":

@@ -26,7 +26,7 @@ This delegate the actual running of the plugins to a subprocess to avoid any
 memory buildup.
 """
 
-
+import argparse
 import ast
 import copy
 import gc
@@ -37,23 +37,25 @@ import traceback
 from collections import OrderedDict
 from contextlib import suppress
 from datetime import datetime
-from logging import getLogger
+import logging
 from queue import Empty
+from multiprocessing import Manager
 
 import yaml
-from trollflow2.dict_tools import gen_dict_extract, plist_iter
-from trollflow2.logging import setup_queued_logging
-from trollflow2.plugins import AbortProcessing
+from yaml import UnsafeLoader, SafeLoader, BaseLoader
 
 try:
     from posttroll.listener import ListenerContainer
 except ImportError:
     ListenerContainer = None
 
-from yaml import UnsafeLoader, SafeLoader, BaseLoader
+from trollflow2.dict_tools import gen_dict_extract, plist_iter
+from trollflow2.logging import logging_on
+from trollflow2.logging import setup_queued_logging
+from trollflow2.plugins import AbortProcessing
 
 
-LOG = getLogger(__name__)
+LOG = logging.getLogger(__name__)
 DEFAULT_PRIORITY = 999
 
 
@@ -438,3 +440,57 @@ def sendmail(config, trace):
     pid = Popen([sendmail, "-t", "-oi"], stdin=PIPE)
     pid.communicate(msg.as_bytes())
     pid.terminate()
+
+
+def launch():
+    """Launch the processing."""
+    args = vars(parse_args())
+
+    log_config = args.pop("log_config", None)
+    if log_config is not None:
+        with open(log_config) as fd:
+            log_config = yaml.safe_load(fd.read())
+
+    logger = logging.getLogger("satpy_launcher")
+
+    log_queue = Manager().Queue()
+
+    with logging_on(log_queue, log_config):
+        logger.warning("Launching Satpy-based runner.")
+        product_list = args.pop("product_list")
+        test_message = args.pop("test_message")
+        threaded = args.pop("threaded")
+        connection_parameters = args
+
+        runner = Runner(product_list, log_queue, connection_parameters, test_message, threaded)
+        runner.run()
+
+
+def parse_args():
+    """Parse commandline arguments."""
+    parser = argparse.ArgumentParser(
+        description='Launch trollflow2 processing with Satpy listening on the specified Posttroll topic(s)')
+    parser.add_argument("topic", nargs='*',
+                        help="Topic to listen to",
+                        type=str)
+    parser.add_argument("product_list",
+                        help="The yaml file with the product list",
+                        type=str)
+    parser.add_argument("-m", "--test_message",
+                        help="File path with the message used for testing offline. This implies threaded running.",
+                        type=str, required=False)
+    parser.add_argument("-t", "--threaded",
+                        help="Run the product generation in threads instead of processes.",
+                        action='store_true')
+
+    parser.add_argument("-c", "--log-config",
+                        help="Log config file (yaml) to use",
+                        type=str, required=False)
+    parser.add_argument('-n', "--nameserver", required=False, type=str,
+                        help="Nameserver to connect to", default='localhost')
+    parser.add_argument('-a', "--addresses", required=False, type=str,
+                        help=("Add direct TCP port connection.  Can be used several times: "
+                              "'-a tcp://127.0.0.1:12345 -a tcp://123.456.789.0:9013'"),
+                        action="append")
+
+    return parser.parse_args()
