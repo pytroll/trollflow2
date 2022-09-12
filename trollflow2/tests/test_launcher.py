@@ -774,5 +774,13 @@ def test_check_results(tmp_path, caplog):
     assert "Process killed with signal 1" in caplog.text
 
 
+def test_argparse_nameserver_is_none():
+    """Test that '-n false' is sets nameserver as False."""
+    from trollflow2.launcher import parse_args
+
+    res = parse_args(['-n', 'false', 'product_list.yaml'])
+    assert res['nameserver'] is False
+
+
 if __name__ == '__main__':
     unittest.main()

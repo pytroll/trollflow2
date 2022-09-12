@@ -442,9 +442,9 @@ def sendmail(config, trace):
     pid.terminate()
 
 
-def launch():
+def launch(args_in):
     """Launch the processing."""
-    args = vars(parse_args())
+    args = parse_args(args_in)
 
     log_config = args.pop("log_config", None)
     if log_config is not None:
@@ -466,7 +466,7 @@ def launch():
         runner.run()
 
 
-def parse_args():
+def parse_args(args_in):
     """Parse commandline arguments."""
     parser = argparse.ArgumentParser(
         description='Launch trollflow2 processing with Satpy listening on the specified Posttroll topic(s)')
@@ -493,4 +493,8 @@ def parse_args():
                               "'-a tcp://127.0.0.1:12345 -a tcp://123.456.789.0:9013'"),
                         action="append")
 
-    return parser.parse_args()
+    args = vars(parser.parse_args(args_in))
+    if args['nameserver'].lower() in ('false', 'off', '0'):
+        args['nameserver'] = False
+
+    return args

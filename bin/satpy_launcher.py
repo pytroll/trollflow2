@@ -22,12 +22,14 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 """The satpy launcher."""
 
+import sys
+
 from trollflow2.launcher import launch
 
 
 def main():
     """Launch trollflow2."""
-    launch()
+    launch(sys.argv[1:])
 
 
 if __name__ == "__main__":
