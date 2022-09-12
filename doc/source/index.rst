@@ -13,7 +13,7 @@ Welcome to Trollflow2's documentation!
 
 Trollflow2 is an operational generation chain runner for Satpy.
 
-See the example playlist (``pl.yaml``) for inspiration.
+See the bottom of this page and the example playlist (``pl.yaml``) for inspiration.
 
 The launcher
 ------------
