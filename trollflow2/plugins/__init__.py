@@ -913,10 +913,11 @@ def s3_uploader(job):
 
     for fmt, fmt_config in plist_iter(job['product_list']['product_list']):
         local_fname = fmt_config['filename']
-        s3_uri = fmt['filename'].replace(fmt['output_dir'], fmt['s3_config']['target'])
-        mover = S3Mover(local_fname, s3_uri)
+        s3_target = fmt['s3_config']['target']
+        mover = S3Mover(local_fname, s3_target)
         if delete_files:
             mover.move()
         else:
             mover.copy()
+        s3_uri = fmt['filename'].replace(fmt['output_dir'], s3_target)
         fmt_config['filename'] = s3_uri

@@ -2051,10 +2051,10 @@ def test_persisted(sc_3a_3b):
 
 yaml_test_s3_uploader_plain = """
 product_list:
-  output_dir: /tmp
+  output_dir: /tmp/
   publish_topic: /topic
   s3_config:
-    target: s3://bucket-name
+    target: s3://bucket-name/
   fname_pattern:
     "{start_time:%Y%m%d_%H%M}_{platform_name}_{areaname}_{productname}.{format}"
 
@@ -2106,11 +2106,11 @@ def test_s3_uploader_copy():
 
         assert mock.call(
             "/tmp/20190217_0600_NOAA-15_euro4_airmass.tif",
-            "s3://bucket-name/20190217_0600_NOAA-15_euro4_airmass.tif"
+            "s3://bucket-name/"
         ) in S3Mover.mock_calls
         assert mock.call(
             "/tmp/20190217_0600_NOAA-15_euro4_natural_with_colorized_ir_clouds.tif",
-            "s3://bucket-name/20190217_0600_NOAA-15_euro4_natural_with_colorized_ir_clouds.tif"
+            "s3://bucket-name/"
         ) in S3Mover.mock_calls
         assert S3Mover.return_value.copy.call_count == 2
         S3Mover.return_value.move.assert_not_called()
