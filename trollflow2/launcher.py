@@ -84,7 +84,7 @@ def get_test_message(test_message_file):
     return msg
 
 
-def check_results(produced_files, start_time, exitcode):
+def check_results(produced_files, start_time, exitcode, remote_filesystem=None):
     """Make sure the composites have been saved."""
     end_time = datetime.now()
     error_detected = False
@@ -96,11 +96,12 @@ def check_results(produced_files, start_time, exitcode):
         try:
             saved_file = produced_files.get(block=False)
             try:
-                if os.path.getsize(saved_file) == 0:
-                    LOG.error("Empty file detected: %s", saved_file)
-                    error_detected = True
+                error_detected = _check_file(saved_file, remote_filesystem)
             except FileNotFoundError:
                 LOG.error("Missing file: %s", saved_file)
+                error_detected = True
+            except NotImplementedError as err:
+                LOG.error(err)
                 error_detected = True
         except Empty:
             break
@@ -118,6 +119,32 @@ def check_results(produced_files, start_time, exitcode):
         else:
             LOG.info(f'All files produced nominally in '
                      f"{elapsed!s}", extra={"time": elapsed})
+
+
+def _check_file(saved_file, remote_filesystem):
+    if remote_filesystem is None:
+        return _check_local_file(saved_file)
+    if remote_filesystem.startswith('s3'):
+        return _check_s3_file(saved_file, remote_filesystem)
+    raise NotImplementedError("File check not impleneted for remote filesystem %s" % remote_filesystem)
+
+
+def _check_local_file(saved_file):
+    if os.path.getsize(saved_file) == 0:
+        LOG.error("Empty file detected: %s", saved_file)
+        return True
+    return False
+
+
+def _check_s3_file(saved_file, remote_filesystem):
+    from s3fs import S3FileSystem
+
+    s3 = S3FileSystem()
+    remote_file = os.path.join(remote_filesystem, os.path.basename(saved_file))
+    if s3.stat(remote_file)['size'] == 0:
+        LOG.error("Empty file detected: %s", remote_file)
+        return True
+    return False
 
 
 def generate_messages(connection_parameters):
@@ -200,6 +227,7 @@ class Runner:
 
     def _run_product_list_on_messages(self, messages, target_fun, process_class):
         """Run the product list on the messages."""
+        remote_filesystem = self._get_remote_filesystem()
         for msg in messages:
             produced_files_queue = self.log_queue._manager.Queue()
             kwargs = dict(produced_files=produced_files_queue, prod_list=self.product_list)
@@ -213,7 +241,14 @@ class Runner:
                 exitcode = proc.exitcode
             except AttributeError:
                 exitcode = 0
-            check_results(produced_files_queue, start_time, exitcode)
+            check_results(produced_files_queue, start_time, exitcode,
+                          remote_filesystem=remote_filesystem)
+
+    def _get_remote_filesystem(self):
+        remote_filesystem = None
+        if 's3_config' in self.product_list:
+            remote_filesystem = self.product_list['s3_config']['target']
+        return remote_filesystem
 
 
 def get_area_priorities(product_list):
