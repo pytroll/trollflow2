@@ -246,8 +246,8 @@ class Runner:
 
     def _get_remote_filesystem(self):
         remote_filesystem = None
-        if 's3_config' in self.product_list:
-            remote_filesystem = self.product_list['s3_config']['target']
+        if 's3_config' in self.product_list['product_list']:
+            remote_filesystem = self.product_list['product_list']['s3_config']['target']
         return remote_filesystem
 
 
