@@ -103,6 +103,8 @@ def check_results(produced_files, start_time, exitcode, remote_filesystem=None):
             except NotImplementedError as err:
                 LOG.error(err)
                 error_detected = True
+            if error_detected:
+                break
         except Empty:
             break
     if exitcode != 0:
