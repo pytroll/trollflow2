@@ -778,7 +778,7 @@ def test_check_results(tmp_path, caplog):
 
     produced_files = FakeQueue(0, 3)
     with caplog.at_level(logging.DEBUG):
-        with mock.patch("s3fs.S3FileSystem") as S3FileSystem:
+        with mock.patch("trollflow2.launcher.S3FileSystem") as S3FileSystem:
             S3FileSystem.return_value.stat.return_value = {'size': 0}
             check_results(produced_files, start_time, 0, remote_filesystem=remote_filesystem)
     assert "Empty file detected" in caplog.text
@@ -786,14 +786,14 @@ def test_check_results(tmp_path, caplog):
 
     produced_files = FakeQueue(5, 8, skip=[6])
     with caplog.at_level(logging.DEBUG):
-        with mock.patch("s3fs.S3FileSystem") as S3FileSystem:
+        with mock.patch("trollflow2.launcher.S3FileSystem") as S3FileSystem:
             S3FileSystem.return_value.stat.side_effect = FileNotFoundError
             check_results(produced_files, start_time, 0, remote_filesystem=remote_filesystem)
     assert "Missing file" in caplog.text
     assert "files produced nominally" not in caplog.text
 
     produced_files = FakeQueue(10, 13)
-    with mock.patch("s3fs.S3FileSystem") as S3FileSystem:
+    with mock.patch("trollflow2.launcher.S3FileSystem") as S3FileSystem:
         check_results(produced_files, start_time, 0, remote_filesystem=remote_filesystem)
     assert mock.call('s3://bucket-name/file10') in S3FileSystem.return_value.stat.mock_calls
     assert mock.call('s3://bucket-name/file11') in S3FileSystem.return_value.stat.mock_calls

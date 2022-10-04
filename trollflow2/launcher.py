@@ -44,6 +44,10 @@ import yaml
 from trollflow2.dict_tools import gen_dict_extract, plist_iter
 from trollflow2.logging import setup_queued_logging
 from trollflow2.plugins import AbortProcessing
+try:
+    from s3fs import S3FileSystem
+except ImportError:
+    S3FileSystem = None
 
 try:
     from posttroll.listener import ListenerContainer
@@ -139,8 +143,8 @@ def _check_local_file(saved_file):
 
 
 def _check_s3_file(saved_file, remote_filesystem):
-    from s3fs import S3FileSystem
-
+    if S3FileSystem is None:
+        raise ImportError("'s3fs' is required for S3 file check.")
     s3 = S3FileSystem()
     remote_file = os.path.join(remote_filesystem, os.path.basename(saved_file))
     if s3.stat(remote_file)['size'] == 0:
