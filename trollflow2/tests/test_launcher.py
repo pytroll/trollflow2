@@ -322,7 +322,7 @@ class TestRun(TestCase):
                 mock.patch('trollflow2.launcher.check_results'),\
                 mock.patch('multiprocessing.get_context'):
             generate_messages.side_effect = ['foo', KeyboardInterrupt]
-            prod_list = 'bar'
+            prod_list = {'product_list': {}}
             try:
                 runner = Runner(prod_list, self.queue)
                 runner.run()
@@ -345,7 +345,7 @@ class TestRun(TestCase):
                 raise KeyboardInterrupt
             generate_messages.side_effect = gen_messages
             get_context.return_value.Process.side_effect = Thread
-            prod_list = 'bar'
+            prod_list = {'product_list': {}}
             try:
                 runner = Runner(prod_list, self.queue)
                 runner.run()
@@ -368,7 +368,7 @@ class TestRun(TestCase):
             # stop looping
             proc_ret.join.side_effect = KeyboardInterrupt
             yaml_load.return_value = self.config
-            prod_list = 'bar'
+            prod_list = {'product_list': {}}
             try:
                 runner = Runner(prod_list, self.queue)
                 runner.run()
@@ -417,7 +417,7 @@ def run_on_a_simple_product_list(config, log_queue):
         # stop looping
         proc_ret.join.side_effect = KeyboardInterrupt
         yaml_load.return_value = config
-        prod_list = 'bar'
+        prod_list = {'product_list': {}}
         try:
             runner = Runner(prod_list, log_queue)
             runner.run()
@@ -446,7 +446,7 @@ class TestInterruptRun(TestCase):
             get.side_effect = KeyboardInterrupt
             listener.output_queue.get = get
             lc_.return_value = listener
-            runner = Runner(0, self.queue)
+            runner = Runner({'product_list': {}}, self.queue)
             runner.run()
             listener.stop.assert_called_once()
 
@@ -475,7 +475,7 @@ class TestRunLogging(TestCase):
                 mock.patch('trollflow2.launcher.check_results'), \
                 mock.patch('multiprocessing.get_context'):
             generate_messages.side_effect = ['foo', KeyboardInterrupt]
-            prod_list = 'bar'
+            prod_list = {'product_list': {}}
             try:
                 runner = Runner(prod_list, self.queue)
                 runner.run()
