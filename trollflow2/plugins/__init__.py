@@ -222,16 +222,16 @@ def format_decoration(fmat,  fmat_config):
     Format decoration in fmt_config according to fmat.
     """
     fmat_config_local = copy.deepcopy(fmat_config)
-    if  "decorate" in fmat_config:     
+    if "decorate" in fmat_config:
         for deco in fmat_config_local["decorate"]["decorate"]:
             if "text" in deco and "txt" in deco["text"]:
                 try:
                     deco["text"]["txt"] = deco["text"]["txt"].format(**fmat)
                 except KeyError:
-                    LOG.debug('Could not formate: %s.', str(deco["text"]["txt"]))                        
+                    LOG.debug('Could not formate: %s.', str(deco["text"]["txt"]))
         return fmat_config_local
     else:
-        return  fmat_config_local
+        return fmat_config_local
 
 
 def save_dataset(scns, fmat, fmat_config, renames, compute=False):
