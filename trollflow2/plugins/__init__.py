@@ -21,6 +21,7 @@
 
 """Trollflow2 plugins."""
 
+import copy
 import os
 import pathlib
 from contextlib import contextmanager, suppress
@@ -216,6 +217,23 @@ def prepared_filename(fmat, renames):
         yield orig_filename
 
 
+def format_decoration(fmat,  fmat_config):
+    """
+    Format decoration in fmt_config according to fmat.
+    """
+    fmat_config_local = copy.deepcopy(fmat_config)
+    if  "decorate" in fmat_config:     
+        for deco in fmat_config_local["decorate"]["decorate"]:
+            if "text" in deco and "txt" in deco["text"]:
+                try:
+                    deco["text"]["txt"] = deco["text"]["txt"].format(**fmat)
+                except KeyError:
+                    LOG.debug('Could not formate: %s.', str(deco["text"]["txt"]))                        
+        return fmat_config_local
+    else:
+        return  fmat_config_local
+
+
 def save_dataset(scns, fmat, fmat_config, renames, compute=False):
     """Save one dataset to file.
 
@@ -226,6 +244,7 @@ def save_dataset(scns, fmat, fmat_config, renames, compute=False):
         with prepared_filename(fmat, renames) as filename:
             res = fmat.get('resolution', DEFAULT)
             kwargs = fmat_config.copy()
+            kwargs = format_decoration(fmat, fmat_config)
             # these keyword arguments are used by the trollflow2 plugin but not
             # by satpy writers
             for name in {"fname_pattern", "dispatch", "output_dir",
