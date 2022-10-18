@@ -2015,5 +2015,21 @@ def test_persisted(sc_3a_3b):
     assert not sc_3a_3b["another"].attrs.get("persisted")
 
 
+def test_format_decoration():
+    """Test that decoration text in fmt_config is formated based on fmat."""
+    import datetime
+    from trollflow2.plugins import format_decoration
+    fmat = {'orig_platform_name': 'npp', 
+    'start_time': datetime.datetime(2022, 5, 3, 12, 7, 52)}
+    fmat_config =  {'format': 'png', 'writer': 'simple_image', 
+    'decorate': {'decorate': [{'text': {'txt': '{start_time:%Y-%m-%d %H:%M}',
+    'align': {'top_bottom': 'top', 'left_right': 'right'}}}]}}
+    formated = {'format': 'png', 'writer': 'simple_image',
+    'decorate': {'decorate': [{'text': {'txt': '2022-05-03 12:07',
+    'align': {'top_bottom': 'top', 'left_right': 'right'}}}]}}
+    
+    assert format_decoration(fmat, fmat_config) == formated
+
+
 if __name__ == '__main__':
     unittest.main()
