@@ -228,7 +228,7 @@ def format_decoration(fmat,  fmat_config):
                 try:
                     deco["text"]["txt"] = deco["text"]["txt"].format(**fmat)
                 except KeyError:
-                    LOG.debug('Could not formate: %s.', str(deco["text"]["txt"]))
+                    LOG.warning('Could not format: %s.', str(deco["text"]["txt"]))
         return fmat_config_local
     else:
         return fmat_config_local
