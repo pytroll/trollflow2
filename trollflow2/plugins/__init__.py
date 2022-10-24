@@ -229,9 +229,7 @@ def format_decoration(fmat,  fmat_config):
                     deco["text"]["txt"] = deco["text"]["txt"].format(**fmat)
                 except KeyError:
                     LOG.warning('Could not format: %s.', str(deco["text"]["txt"]))
-        return fmat_config_local
-    else:
-        return fmat_config_local
+    return fmat_config_local
 
 
 def save_dataset(scns, fmat, fmat_config, renames, compute=False):
