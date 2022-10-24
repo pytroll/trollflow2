@@ -218,9 +218,7 @@ def prepared_filename(fmat, renames):
 
 
 def format_decoration(fmat,  fmat_config):
-    """
-    Format decoration in fmt_config according to fmat.
-    """
+    """Format decoration text using template given in fmt_config with key-value pairs in fmat."""
     fmat_config_local = copy.deepcopy(fmat_config)
     if "decorate" in fmat_config:
         for deco in fmat_config_local["decorate"]["decorate"]:
