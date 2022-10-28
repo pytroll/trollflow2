@@ -782,5 +782,19 @@ def test_argparse_nameserver_is_none():
     assert res['nameserver'] is False
 
 
+def test_launch():
+    """Test launcher.launch()."""
+    with mock.patch("trollflow2.launcher.Runner") as Runner:
+        from trollflow2.launcher import launch
+
+        args_in = ['-n', 'localhost', '-a', 'localhost:12345', 'product_list.yaml']
+        launch(args_in)
+        # See that the commandline arguments are passed to Runner
+        assert "'nameserver': 'localhost'" in str(Runner.mock_calls)
+        assert "'addresses': ['localhost:12345']" in str(Runner.mock_calls)
+        assert "product_list.yaml" in str(Runner.mock_calls)
+        Runner.return_value.run.assert_called_once()
+
+
 if __name__ == '__main__':
     unittest.main()
