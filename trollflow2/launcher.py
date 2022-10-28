@@ -237,10 +237,10 @@ class Runner:
                           remote_filesystem=remote_filesystem)
 
     def _get_remote_filesystem(self):
-        remote_filesystem = None
-        if 's3_config' in self.product_list['product_list']:
-            remote_filesystem = self.product_list['product_list']['s3_config']['target']
-        return remote_filesystem
+        try:
+            return self.product_list['product_list']['s3_config']['target']
+        except KeyError:
+            return None
 
 
 def get_area_priorities(product_list):
