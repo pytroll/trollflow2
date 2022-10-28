@@ -132,7 +132,7 @@ def _check_file(saved_file, remote_filesystem):
         return _check_local_file(saved_file)
     if remote_filesystem.startswith('s3'):
         return _check_s3_file(saved_file, remote_filesystem)
-    raise NotImplementedError("File check not impleneted for remote filesystem %s" % remote_filesystem)
+    raise NotImplementedError("File check not implemented for remote filesystem %s" % remote_filesystem)
 
 
 def _check_local_file(saved_file):
