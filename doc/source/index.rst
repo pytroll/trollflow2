@@ -448,7 +448,7 @@ Example
     - fun: !!python/name:trollflow2.plugins.resample
     - fun: !!python/name:trollflow2.plugins.save_datasets
     - fun: !!python/name:trollflow2.plugins.add_overviews
-    - fun: !!python/name:trollflow2.plugnis.s3_uploader
+    - fun: !!python/name:trollflow2.plugins.s3_uploader
     - fun: !!python/object:trollflow2.plugins.FilePublisher {port: 40004, nameservers: [localhost]}
 
 
