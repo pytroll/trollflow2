@@ -44,10 +44,6 @@ import yaml
 from trollflow2.dict_tools import gen_dict_extract, plist_iter
 from trollflow2.logging import setup_queued_logging
 from trollflow2.plugins import AbortProcessing
-try:
-    from s3fs import S3FileSystem
-except ImportError:
-    S3FileSystem = None
 
 try:
     from posttroll.listener import ListenerContainer
@@ -131,24 +127,14 @@ def _check_file(saved_file, remote_filesystem):
     if remote_filesystem is None:
         return _check_local_file(saved_file)
     if remote_filesystem.startswith('s3'):
-        return _check_s3_file(saved_file, remote_filesystem)
+        from trollflow2.s3_utils import check_s3_file
+        return check_s3_file(saved_file, remote_filesystem)
     raise NotImplementedError("File check not impleneted for remote filesystem %s" % remote_filesystem)
 
 
 def _check_local_file(saved_file):
     if os.path.getsize(saved_file) == 0:
         LOG.error("Empty file detected: %s", saved_file)
-        return True
-    return False
-
-
-def _check_s3_file(saved_file, remote_filesystem):
-    if S3FileSystem is None:
-        raise ImportError("'s3fs' is required for S3 file check.")
-    s3 = S3FileSystem()
-    remote_file = os.path.join(remote_filesystem, os.path.basename(saved_file))
-    if s3.stat(remote_file)['size'] == 0:
-        LOG.error("Empty file detected: %s", remote_file)
         return True
     return False
 
