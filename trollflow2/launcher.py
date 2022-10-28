@@ -487,7 +487,7 @@ def parse_args(args_in):
                         help="Log config file (yaml) to use",
                         type=str, required=False)
     parser.add_argument('-n', "--nameserver", required=False, type=str,
-                        help="Nameserver to connect to", default='localhost')
+                        help="Nameserver to connect to. Disable by setting to False", default='localhost')
     parser.add_argument('-a', "--addresses", required=False, type=str,
                         help=("Add direct TCP port connection.  Can be used several times: "
                               "'-a tcp://127.0.0.1:12345 -a tcp://123.456.789.0:9013'"),
