@@ -456,7 +456,7 @@ def launch(args_in):
     log_queue = Manager().Queue()
 
     with logging_on(log_queue, log_config):
-        logger.warning("Launching Satpy-based runner.")
+        logger.info("Launching Satpy-based runner.")
         product_list = args.pop("product_list")
         test_message = args.pop("test_message")
         threaded = args.pop("threaded")
