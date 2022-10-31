@@ -149,9 +149,10 @@ are several options:
   - ``format: tif``
   - ``writer: geotiff``
   - ``fname_pattern: '{platform_name}_{start_time:%Y%m%d_%H%M}_{areaname}_{productname}.{format}'``
-It is possible to add decoration to image. For text added as a decoration, string substitution will be applied based on the attributes of the dataset, for example:
+  
+   It is possible to add decoration to image. For text added as a decoration, string substitution will be applied based on the attributes of the dataset, for example:
         
-        - .. code-block::
+       .. code-block::
 
             decorate: 'decorate': {
 
@@ -177,7 +178,8 @@ It is possible to add decoration to image. For text added as a decoration, strin
 
                     'bg_opacity': 255,
 
-                    'line': 'white'}}]}   
+                    'line': 'white'}}]} 
+                      
  - ``use_tmp_file: bool`` - First save the data to a temporary filename
    and then rename to the final version.
 
