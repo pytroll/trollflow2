@@ -149,6 +149,35 @@ are several options:
   - ``format: tif``
   - ``writer: geotiff``
   - ``fname_pattern: '{platform_name}_{start_time:%Y%m%d_%H%M}_{areaname}_{productname}.{format}'``
+It is possible to add decoration to image. For text added as a decoration, string substitution will be applied based on the attributes of the dataset, for example:
+        
+        - .. code-block::
+
+            decorate: 'decorate': {
+
+            'decorate': [
+
+                {'text': {
+
+                    'txt': 'Time {start_time:%Y-%m-%d %H:%M}',
+
+                    'align': {
+
+                        'top_bottom': 'top',
+
+                        'left_right': 'right'},
+
+                    'font': '/usr/share/fonts/truetype/arial.ttf',
+
+                    'font_size': 20,
+
+                    'height': 30,
+
+                    'bg': 'black',
+
+                    'bg_opacity': 255,
+
+                    'line': 'white'}}]}   
  - ``use_tmp_file: bool`` - First save the data to a temporary filename
    and then rename to the final version.
 
@@ -412,6 +441,19 @@ Example
               - format: tif
                 writer: geotiff
                 fname_pattern: "{start_time:%Y%m%d_%H%M}_{platform_name:s}_{productname:s}_{variant:s}.{format}"
+                decorate:  
+                  decorate: 
+                    - text:
+                        txt: "Time {start_time:%Y-%m-%d %H:%M}"
+                        align: 
+                          top_bottom: top
+                          left_right: right
+                        font: /usr/share/fonts/truetype/arial.ttf
+                        font_size: 20
+                        height: 30
+                        bg: black
+                        bg_opacity: 255
+                        line: white
 
   workers:
     - fun: !!python/name:trollflow2.plugins.check_platform
