@@ -2086,7 +2086,7 @@ def test_s3_uploader_update_filenames():
     job = {"product_list": product_list, "input_mda": input_mda.copy()}
     _ = _create_filenames_and_topics(job)
 
-    with mock.patch('trollflow2.plugins.S3Mover'):
+    with mock.patch('trollmoves.movers.S3Mover'):
         s3_uploader(job)
     for fmt, _ in plist_iter(job['product_list']['product_list']):
         assert fmt['filename'].startswith('s3://bucket-name/')
@@ -2099,7 +2099,7 @@ def test_s3_uploader_copy():
     job = {"product_list": product_list, "input_mda": input_mda.copy()}
     _ = _create_filenames_and_topics(job)
 
-    with mock.patch('trollflow2.plugins.S3Mover') as S3Mover:
+    with mock.patch('trollmoves.movers.S3Mover') as S3Mover:
         from trollflow2.plugins import s3_uploader
 
         s3_uploader(job)
@@ -2124,7 +2124,7 @@ def test_s3_uploader_move():
     job = {"product_list": product_list, "input_mda": input_mda.copy()}
     _ = _create_filenames_and_topics(job)
 
-    with mock.patch('trollflow2.plugins.S3Mover') as S3Mover:
+    with mock.patch('trollmoves.movers.S3Mover') as S3Mover:
         from trollflow2.plugins import s3_uploader
 
         s3_uploader(job)
