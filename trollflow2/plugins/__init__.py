@@ -40,10 +40,6 @@ from pyorbital.astronomy import sun_zenith_angle
 from pyresample.boundary import AreaDefBoundary, Boundary
 from pyresample.area_config import AreaNotFound
 from rasterio.enums import Resampling
-try:
-    from trollmoves.movers import S3Mover
-except ImportError:
-    S3Mover = None
 from satpy import Scene
 from satpy.resample import get_area_def
 from satpy.writers import compute_writer_results
@@ -908,6 +904,8 @@ def s3_uploader(job):
 
     Optionally also delete the files after the upload.
     """
+    from trollmoves.movers import S3Mover
+
     s3_config = job['product_list']['product_list'].get('s3_config', {}).copy()
     delete_files = s3_config.pop('delete_files', False)
 
