@@ -84,7 +84,7 @@ def get_test_message(test_message_file):
     return msg
 
 
-def check_results(produced_files, start_time, exitcode, remote_filesystem=None):
+def check_results(produced_files, start_time, exitcode, remote_filesystem_uri=None):
     """Make sure the composites have been saved."""
     end_time = datetime.now()
     error_detected = False
@@ -96,7 +96,7 @@ def check_results(produced_files, start_time, exitcode, remote_filesystem=None):
         try:
             saved_file = produced_files.get(block=False)
             try:
-                error_detected = _check_file(saved_file, remote_filesystem)
+                error_detected = _check_file(saved_file, remote_filesystem_uri)
             except FileNotFoundError:
                 LOG.error("Missing file: %s", saved_file)
                 error_detected = True
@@ -123,13 +123,13 @@ def check_results(produced_files, start_time, exitcode, remote_filesystem=None):
                      f"{elapsed!s}", extra={"time": elapsed})
 
 
-def _check_file(saved_file, remote_filesystem):
-    if remote_filesystem is None:
+def _check_file(saved_file, remote_filesystem_uri):
+    if remote_filesystem_uri is None:
         return _check_local_file(saved_file)
-    if remote_filesystem.startswith('s3'):
+    if remote_filesystem_uri.startswith('s3'):
         from trollflow2.s3_utils import check_s3_file
-        return check_s3_file(saved_file, remote_filesystem)
-    raise NotImplementedError("File check not impleneted for remote filesystem %s" % remote_filesystem)
+        return check_s3_file(saved_file, remote_filesystem_uri)
+    raise NotImplementedError("File check not impleneted for remote filesystem %s" % remote_filesystem_uri)
 
 
 def _check_local_file(saved_file):
@@ -219,7 +219,7 @@ class Runner:
 
     def _run_product_list_on_messages(self, messages, target_fun, process_class):
         """Run the product list on the messages."""
-        remote_filesystem = self._get_remote_filesystem()
+        remote_filesystem_uri = self._get_remote_filesystem_uri()
         for msg in messages:
             produced_files_queue = self.log_queue._manager.Queue()
             kwargs = dict(produced_files=produced_files_queue, prod_list=self.product_list)
@@ -234,9 +234,9 @@ class Runner:
             except AttributeError:
                 exitcode = 0
             check_results(produced_files_queue, start_time, exitcode,
-                          remote_filesystem=remote_filesystem)
+                          remote_filesystem_uri=remote_filesystem_uri)
 
-    def _get_remote_filesystem(self):
+    def _get_remote_filesystem_uri(self):
         try:
             return self.product_list['product_list']['s3_config']['target']
         except KeyError:
