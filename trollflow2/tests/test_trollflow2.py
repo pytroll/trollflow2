@@ -2093,7 +2093,7 @@ def test_s3_uploader_update_filenames():
 
 
 def test_s3_uploader_copy():
-    """Test that S3 mover is only copying the file."""
+    """Test that S3 mover is copying the file."""
     from yaml import UnsafeLoader
     product_list = read_config(raw_string=yaml_test_s3_uploader_plain, Loader=UnsafeLoader)
     job = {"product_list": product_list, "input_mda": input_mda.copy()}
@@ -2117,7 +2117,7 @@ def test_s3_uploader_copy():
 
 
 def test_s3_uploader_move():
-    """Test that files are deleted after S3 transfer."""
+    """Test that S3 mover is moving the file."""
     from yaml import UnsafeLoader
     product_list = read_config(raw_string=yaml_test_s3_uploader_plain, Loader=UnsafeLoader)
     product_list['product_list']['s3_config']['delete_files'] = True
