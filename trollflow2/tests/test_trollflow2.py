@@ -2099,7 +2099,8 @@ def test_s3_uploader_copy():
     job = {"product_list": product_list, "input_mda": input_mda.copy()}
     _ = _create_filenames_and_topics(job)
 
-    with mock.patch('trollmoves.movers.S3Mover') as S3Mover:
+    movers_mock = mock.MagicMock()
+    with mock.patch.dict('sys.modules', {'trollmoves.movers': movers_mock}):
         from trollflow2.plugins import s3_uploader
 
         s3_uploader(job)
@@ -2107,13 +2108,13 @@ def test_s3_uploader_copy():
         assert mock.call(
             "/tmp/20190217_0600_NOAA-15_euro4_airmass.tif",
             "s3://bucket-name/"
-        ) in S3Mover.mock_calls
+        ) in movers_mock.S3Mover.mock_calls
         assert mock.call(
             "/tmp/20190217_0600_NOAA-15_euro4_natural_with_colorized_ir_clouds.tif",
             "s3://bucket-name/"
-        ) in S3Mover.mock_calls
-        assert S3Mover.return_value.copy.call_count == 2
-        S3Mover.return_value.move.assert_not_called()
+        ) in movers_mock.S3Mover.mock_calls
+        assert movers_mock.S3Mover.return_value.copy.call_count == 2
+        movers_mock.S3Mover.return_value.move.assert_not_called()
 
 
 def test_s3_uploader_move():
@@ -2124,12 +2125,13 @@ def test_s3_uploader_move():
     job = {"product_list": product_list, "input_mda": input_mda.copy()}
     _ = _create_filenames_and_topics(job)
 
-    with mock.patch('trollmoves.movers.S3Mover') as S3Mover:
+    movers_mock = mock.MagicMock()
+    with mock.patch.dict('sys.modules', {'trollmoves.movers': movers_mock}):
         from trollflow2.plugins import s3_uploader
 
         s3_uploader(job)
 
-        assert S3Mover.return_value.move.call_count == 2
+        assert movers_mock.S3Mover.return_value.move.call_count == 2
 
 
 if __name__ == '__main__':
