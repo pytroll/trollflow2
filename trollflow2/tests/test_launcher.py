@@ -721,8 +721,6 @@ def test_get_dask_client(caplog):
 
 def test_check_results(tmp_path, caplog):
     """Test functionality for check_results."""
-    from trollflow2.launcher import check_results
-
     class FakeQueue:
         def __init__(self, lo, hi, skip=None):
             if skip is None:
@@ -744,60 +742,63 @@ def test_check_results(tmp_path, caplog):
         def qsize(self):
             return len(self._files)
 
-    produced_files = FakeQueue(0, 3)
-    start_time = datetime.datetime(1900, 1, 1)
-    exitcode = 0
-    with caplog.at_level(logging.DEBUG):
-        check_results(produced_files, start_time, exitcode)
-    assert "Empty file detected" in caplog.text
-    assert "files produced nominally" not in caplog.text
+    s3fs_mock = mock.MagicMock()
+    with mock.patch.dict("sys.modules", {"s3fs": s3fs_mock}):
+        from trollflow2.launcher import check_results
 
-    produced_files = FakeQueue(5, 8, skip=[6])
-    with caplog.at_level(logging.DEBUG):
-        check_results(produced_files, start_time, exitcode)
-    assert "Missing file" in caplog.text
-    assert "files produced nominally" not in caplog.text
+        produced_files = FakeQueue(0, 3)
+        start_time = datetime.datetime(1900, 1, 1)
+        exitcode = 0
+        with caplog.at_level(logging.DEBUG):
+            check_results(produced_files, start_time, exitcode)
+        assert "Empty file detected" in caplog.text
+        assert "files produced nominally" not in caplog.text
 
-    produced_files = FakeQueue(10, 13)
-    with caplog.at_level(logging.DEBUG), \
-            mock.patch("trollflow2.launcher.datetime") as dd:
-        dd.now.return_value = datetime.datetime(1927, 5, 20, 0, 0)
-        check_results(produced_files, start_time, exitcode)
-    assert "All 3 files produced nominally in 10000 days" in caplog.text
+        produced_files = FakeQueue(5, 8, skip=[6])
+        with caplog.at_level(logging.DEBUG):
+            check_results(produced_files, start_time, exitcode)
+        assert "Missing file" in caplog.text
+        assert "files produced nominally" not in caplog.text
 
-    with caplog.at_level(logging.DEBUG):
-        check_results(produced_files, start_time, 1)
-    assert "Process crashed with exit code 1" in caplog.text
+        produced_files = FakeQueue(10, 13)
+        with caplog.at_level(logging.DEBUG), \
+                mock.patch("trollflow2.launcher.datetime") as dd:
+            dd.now.return_value = datetime.datetime(1927, 5, 20, 0, 0)
+            check_results(produced_files, start_time, exitcode)
+        assert "All 3 files produced nominally in 10000 days" in caplog.text
 
-    with caplog.at_level(logging.DEBUG):
-        check_results(produced_files, start_time, -1)
-    assert "Process killed with signal 1" in caplog.text
+        with caplog.at_level(logging.DEBUG):
+            check_results(produced_files, start_time, 1)
+        assert "Process crashed with exit code 1" in caplog.text
 
-    remote_filesystem_uri = "s3://bucket-name"
-    caplog.clear()
+        with caplog.at_level(logging.DEBUG):
+            check_results(produced_files, start_time, -1)
+        assert "Process killed with signal 1" in caplog.text
 
-    produced_files = FakeQueue(0, 3)
-    with caplog.at_level(logging.DEBUG):
-        with mock.patch("trollflow2.s3_utils.S3FileSystem") as S3FileSystem:
-            S3FileSystem.return_value.stat.return_value = {'size': 0}
+        remote_filesystem_uri = "s3://bucket-name"
+        caplog.clear()
+
+        produced_files = FakeQueue(0, 3)
+        with caplog.at_level(logging.DEBUG):
+            s3fs_mock.S3FileSystem.return_value.stat.return_value = {'size': 0}
             check_results(produced_files, start_time, 0, remote_filesystem_uri=remote_filesystem_uri)
-    assert "Empty file detected" in caplog.text
-    assert "files produced nominally" not in caplog.text
+        assert "Empty file detected" in caplog.text
+        assert "files produced nominally" not in caplog.text
 
-    produced_files = FakeQueue(5, 8, skip=[6])
-    with caplog.at_level(logging.DEBUG):
+        produced_files = FakeQueue(5, 8, skip=[6])
+        with caplog.at_level(logging.DEBUG):
+            with mock.patch("trollflow2.s3_utils.S3FileSystem") as S3FileSystem:
+                S3FileSystem.return_value.stat.side_effect = FileNotFoundError
+                check_results(produced_files, start_time, 0, remote_filesystem_uri=remote_filesystem_uri)
+        assert "Missing file" in caplog.text
+        assert "files produced nominally" not in caplog.text
+
+        produced_files = FakeQueue(10, 13)
         with mock.patch("trollflow2.s3_utils.S3FileSystem") as S3FileSystem:
-            S3FileSystem.return_value.stat.side_effect = FileNotFoundError
             check_results(produced_files, start_time, 0, remote_filesystem_uri=remote_filesystem_uri)
-    assert "Missing file" in caplog.text
-    assert "files produced nominally" not in caplog.text
-
-    produced_files = FakeQueue(10, 13)
-    with mock.patch("trollflow2.s3_utils.S3FileSystem") as S3FileSystem:
-        check_results(produced_files, start_time, 0, remote_filesystem_uri=remote_filesystem_uri)
-    assert mock.call('s3://bucket-name/file10') in S3FileSystem.return_value.stat.mock_calls
-    assert mock.call('s3://bucket-name/file11') in S3FileSystem.return_value.stat.mock_calls
-    assert mock.call('s3://bucket-name/file12') in S3FileSystem.return_value.stat.mock_calls
+        assert mock.call('s3://bucket-name/file10') in S3FileSystem.return_value.stat.mock_calls
+        assert mock.call('s3://bucket-name/file11') in S3FileSystem.return_value.stat.mock_calls
+        assert mock.call('s3://bucket-name/file12') in S3FileSystem.return_value.stat.mock_calls
 
 
 if __name__ == '__main__':
