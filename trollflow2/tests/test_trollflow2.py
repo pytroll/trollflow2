@@ -2086,10 +2086,12 @@ def test_s3_uploader_update_filenames():
     job = {"product_list": product_list, "input_mda": input_mda.copy()}
     _ = _create_filenames_and_topics(job)
 
-    with mock.patch('trollmoves.movers.S3Mover'):
+    movers_mock = mock.MagicMock()
+    trollmoves_mock = mock.MagicMock()
+    with mock.patch.dict('sys.modules', {'trollmoves': trollmoves_mock, 'trollmoves.movers': movers_mock}):
         s3_uploader(job)
-    for fmt, _ in plist_iter(job['product_list']['product_list']):
-        assert fmt['filename'].startswith('s3://bucket-name/')
+        for fmt, _ in plist_iter(job['product_list']['product_list']):
+            assert fmt['filename'].startswith('s3://bucket-name/')
 
 
 def test_s3_uploader_copy():
@@ -2100,7 +2102,8 @@ def test_s3_uploader_copy():
     _ = _create_filenames_and_topics(job)
 
     movers_mock = mock.MagicMock()
-    with mock.patch.dict('sys.modules', {'trollmoves.movers': movers_mock}):
+    trollmoves_mock = mock.MagicMock()
+    with mock.patch.dict('sys.modules', {'trollmoves': trollmoves_mock, 'trollmoves.movers': movers_mock}):
         from trollflow2.plugins import s3_uploader
 
         s3_uploader(job)
@@ -2126,7 +2129,8 @@ def test_s3_uploader_move():
     _ = _create_filenames_and_topics(job)
 
     movers_mock = mock.MagicMock()
-    with mock.patch.dict('sys.modules', {'trollmoves.movers': movers_mock}):
+    trollmoves_mock = mock.MagicMock()
+    with mock.patch.dict('sys.modules', {'trollmoves': trollmoves_mock, 'trollmoves.movers': movers_mock}):
         from trollflow2.plugins import s3_uploader
 
         s3_uploader(job)
