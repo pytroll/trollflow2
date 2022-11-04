@@ -33,7 +33,7 @@ from functools import partial
 import pytest
 from pyresample.geometry import DynamicAreaDefinition
 
-from trollflow2.tests.utils import TestCase
+from trollflow2.tests.utils import TestCase, create_filenames_and_topics
 from trollflow2.launcher import read_config
 
 
@@ -1679,7 +1679,7 @@ class TestFilePublisher(TestCase):
             pub = FilePublisher()
             product_list = self.product_list.copy()
             product_list['product_list']['publish_topic'] = '/{areaname}/{productname}'
-            topics = _create_filenames_and_topics(job)
+            topics = create_filenames_and_topics(job)
 
             pub(job)
             message.assert_called()
@@ -1789,7 +1789,7 @@ class TestFilePublisher(TestCase):
         pub = FilePublisher()
         product_list = self.product_list.copy()
         product_list['product_list']['publish_topic'] = '/static_topic'
-        topics = _create_filenames_and_topics(job)
+        topics = create_filenames_and_topics(job)
         if s3_paths:
             # Replace local directory paths with S3 paths
             for _fmt, fmt_config in plist_iter(job['product_list']['product_list']):
@@ -1922,27 +1922,6 @@ class TestFilePublisher(TestCase):
         nb_.stop.assert_called_once()
 
 
-def _create_filenames_and_topics(job):
-    """Create the filenames and topics for *job*."""
-    from trollflow2.dict_tools import plist_iter
-    from trollsift import compose
-    import os.path
-
-    topic_pattern = job['product_list']['product_list']['publish_topic']
-    topics = []
-
-    for fmat, fmat_config in plist_iter(job['product_list']['product_list'],
-                                        job['input_mda'].copy()):
-        fname_pattern = fmat['fname_pattern']
-        filename = compose(os.path.join(fmat['output_dir'],
-                                        fname_pattern), fmat)
-        fmat.pop('format', None)
-        fmat_config['filename'] = filename
-        topics.append(compose(topic_pattern, fmat))
-
-    return topics
-
-
 class FakeScene(dict):
     """Scene drop-in replacement, just a dict that can have attributes."""
 
@@ -2047,95 +2026,6 @@ def test_persisted(sc_3a_3b):
     # confirm that sc_3a_3b dataset NIR016 is persisted
     assert sc_3a_3b["NIR016"].attrs.get("persisted")
     assert not sc_3a_3b["another"].attrs.get("persisted")
-
-
-yaml_test_s3_uploader_plain = """
-product_list:
-  output_dir: /tmp/
-  publish_topic: /topic
-  s3_config:
-    target: s3://bucket-name/
-  fname_pattern:
-    "{start_time:%Y%m%d_%H%M}_{platform_name}_{areaname}_{productname}.{format}"
-
-  areas:
-    euro4:
-      areaname: euro4
-      products:
-        airmass:
-          productname: airmass
-          formats:
-          - format: tif
-            writer: geotiff
-        natural_with_ir:
-          productname: natural_with_colorized_ir_clouds
-          formats:
-          - format: tif
-            writer: geotiff
-
-"""
-
-
-def test_s3_uploader_update_filenames():
-    """Ensure that filenames are updated when transfer is made to S3."""
-    from yaml import UnsafeLoader
-    from trollflow2.plugins import s3_uploader
-    from trollflow2.dict_tools import plist_iter
-
-    product_list = read_config(raw_string=yaml_test_s3_uploader_plain, Loader=UnsafeLoader)
-    job = {"product_list": product_list, "input_mda": input_mda.copy()}
-    _ = _create_filenames_and_topics(job)
-
-    movers_mock = mock.MagicMock()
-    trollmoves_mock = mock.MagicMock()
-    with mock.patch.dict('sys.modules', {'trollmoves': trollmoves_mock, 'trollmoves.movers': movers_mock}):
-        s3_uploader(job)
-        for fmt, _ in plist_iter(job['product_list']['product_list']):
-            assert fmt['filename'].startswith('s3://bucket-name/')
-
-
-def test_s3_uploader_copy():
-    """Test that S3 mover is copying the file."""
-    from yaml import UnsafeLoader
-    product_list = read_config(raw_string=yaml_test_s3_uploader_plain, Loader=UnsafeLoader)
-    job = {"product_list": product_list, "input_mda": input_mda.copy()}
-    _ = _create_filenames_and_topics(job)
-
-    movers_mock = mock.MagicMock()
-    trollmoves_mock = mock.MagicMock()
-    with mock.patch.dict('sys.modules', {'trollmoves': trollmoves_mock, 'trollmoves.movers': movers_mock}):
-        from trollflow2.plugins import s3_uploader
-
-        s3_uploader(job)
-
-        assert mock.call(
-            "/tmp/20190217_0600_NOAA-15_euro4_airmass.tif",
-            "s3://bucket-name/"
-        ) in movers_mock.S3Mover.mock_calls
-        assert mock.call(
-            "/tmp/20190217_0600_NOAA-15_euro4_natural_with_colorized_ir_clouds.tif",
-            "s3://bucket-name/"
-        ) in movers_mock.S3Mover.mock_calls
-        assert movers_mock.S3Mover.return_value.copy.call_count == 2
-        movers_mock.S3Mover.return_value.move.assert_not_called()
-
-
-def test_s3_uploader_move():
-    """Test that S3 mover is moving the file."""
-    from yaml import UnsafeLoader
-    product_list = read_config(raw_string=yaml_test_s3_uploader_plain, Loader=UnsafeLoader)
-    product_list['product_list']['s3_config']['delete_files'] = True
-    job = {"product_list": product_list, "input_mda": input_mda.copy()}
-    _ = _create_filenames_and_topics(job)
-
-    movers_mock = mock.MagicMock()
-    trollmoves_mock = mock.MagicMock()
-    with mock.patch.dict('sys.modules', {'trollmoves': trollmoves_mock, 'trollmoves.movers': movers_mock}):
-        from trollflow2.plugins import s3_uploader
-
-        s3_uploader(job)
-
-        assert movers_mock.S3Mover.return_value.move.call_count == 2
 
 
 if __name__ == '__main__':

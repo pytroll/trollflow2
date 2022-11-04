@@ -67,3 +67,24 @@ class TestCase(unittest.TestCase):
         if module_patcher is not None:
             module_patcher.start()
             self.addCleanup(module_patcher.stop)
+
+
+def create_filenames_and_topics(job):
+    """Create the filenames and topics for *job*."""
+    from trollflow2.dict_tools import plist_iter
+    from trollsift import compose
+    import os.path
+
+    topic_pattern = job['product_list']['product_list']['publish_topic']
+    topics = []
+
+    for fmat, fmat_config in plist_iter(job['product_list']['product_list'],
+                                        job['input_mda'].copy()):
+        fname_pattern = fmat['fname_pattern']
+        filename = compose(os.path.join(fmat['output_dir'],
+                                        fname_pattern), fmat)
+        fmat.pop('format', None)
+        fmat_config['filename'] = filename
+        topics.append(compose(topic_pattern, fmat))
+
+    return topics
