@@ -286,12 +286,13 @@ def save_datasets(job):
     ``staging_zone`` directory, such that the filename written to the
     headers remains meaningful.
 
-    The product list may contain a ``call_on_done`` parameter.  This parameter
-    has effect if and only if ``eager_writing`` is False (which is the
-    default).  It should refer to a ``dask.Delayed`` object wrapping a
-    callable.  Upon computation time, this callable will be called with the
-    result of ``save_dataset``.  This could be used, for example, to ship
-    products as soon as they are successfully produced.
+    The product list may contain a ``call_on_done`` parameter.  This
+    parameter has effect if and only if ``eager_writing`` is False (which
+    is the default).  It should refer to a callable.  Upon computation
+    time, this callable will be called with two arguments: the result of
+    ``save_dataset``, and the filename that was written.  This could be
+    used, for example, to ship products as soon as they are successfully
+    produced.
 
     Other arguments defined in the job list (either directly under
     ``product_list``, or under ``formats``) are passed on to the satpy writer.  The
