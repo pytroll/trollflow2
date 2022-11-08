@@ -303,9 +303,20 @@ def save_datasets(job):
     base_config = job['input_mda'].copy()
     base_config.pop('dataset', None)
     eager_writing = job['product_list']['product_list'].get("eager_writing", False)
+    sentinel = object()
+    call_on_done = job["product_list"]["product_list"].get("call_on_done", sentinel)
+    if call_on_done is not sentinel:
+        callback = dask.delayed(call_on_done)
+    else:
+        callback = None
     with renamed_files() as renames:
         for fmat, fmat_config in plist_iter(job['product_list']['product_list'], base_config):
-            obj = save_dataset(scns, fmat, fmat_config, renames, compute=eager_writing)
+            if callback is not None:
+                obj = callback(
+                    save_dataset(scns, fmat, fmat_config, renames, compute=eager_writing),
+                    fmat_config["filename"])
+            else:
+                obj = save_dataset(scns, fmat, fmat_config, renames, compute=eager_writing)
             if obj is not None:
                 objs.append(obj)
                 job['produced_files'].put(fmat_config['filename'])

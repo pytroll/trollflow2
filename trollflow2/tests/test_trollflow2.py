@@ -612,7 +612,7 @@ class TestSaveDatasets(TestCase):
 
         assert "PhysicUnit" in job["resampled_scenes"]["euron1"].mock_calls[0].kwargs.keys()
         for absent in {"use_tmp_file", "staging_zone", "output_dir",
-                       "fname_pattern", "dispatch", "callback"}:
+                       "fname_pattern", "dispatch", "call_on_done"}:
             assert absent not in job["resampled_scenes"]["euron1"].mock_calls[0].kwargs.keys()
 
 
@@ -673,7 +673,7 @@ def test_use_staging_zone_tmpfile(tmp_path):
     assert next(iter(renames.keys())).startswith(os.fspath(tmp_path))
 
 
-def test_save_datasets_callback(tmp_path):
+def test_save_datasets_callback(tmp_path, caplog):
     """Test callback functionality for save_datasets
 
     Test that the functionality for a callback after each produced file is
@@ -694,20 +694,20 @@ def test_save_datasets_callback(tmp_path):
     job = {}
     job['input_mda'] = input_mda
 
-    counter = 0
+    logger = logging.getLogger("testlogger")
 
-    def count(obj):
-        """Toy function adding to counter"""
-        nonlocal counter
-        counter += 1
+    def testlog(obj, filename):
+        """Toy function doing some logging"""
+        logger.info(f"Wrote {filename} successfully")
+        assert os.path.exists(filename)  # ensures we are compute-time
         return obj
 
-    form = [{"writer": "geotiff", "fname_pattern": "test.tif"}]
+    form = [{"writer": "geotiff"}]
 
     product_list = {
-        "fname_pattern": "name.tif",
+        "fname_pattern": "{productname}.tif",
         "output_dir": os.fspath(tmp_path / "test"),
-        "call_on_done": count,
+        "call_on_done": testlog,
         "areas": {
             "sargasso": {
                 "products": {
@@ -729,9 +729,11 @@ def test_save_datasets_callback(tmp_path):
 
     job['produced_files'] = mock.MagicMock()
 
-    job['product_list']['product_list']['call_on_done'] = count
-    save_datasets(job)
-    assert counter == 3
+    with caplog.at_level(logging.INFO):
+        save_datasets(job)
+    for nm in {"dragon_top_height", "penguin_bottom_height", "kraken_depth"}:
+        exp = tmp_path / "test" / f"{nm:s}.tif"
+        assert f"Wrote {exp!s} successfully" in caplog.text
 
 
 class TestCreateScene(TestCase):
