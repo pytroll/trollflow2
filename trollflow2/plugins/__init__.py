@@ -290,8 +290,9 @@ def save_datasets(job):
     parameter has effect if and only if ``eager_writing`` is False (which
     is the default).  It should refer to a callable.  Upon computation
     time, this callable will be called with two arguments: the result of
-    ``save_dataset``, and the filename that was written.  This could be
-    used, for example, to ship products as soon as they are successfully
+    ``save_dataset``, and the filename that was written.  The callable
+    must return again the ``save_dataset`` return value.  This callback could
+    be used, for example, to ship products as soon as they are successfully
     produced.
 
     Other arguments defined in the job list (either directly under
