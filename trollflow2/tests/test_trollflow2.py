@@ -31,7 +31,10 @@ from unittest import mock
 from functools import partial
 
 import pytest
-from pyresample.geometry import DynamicAreaDefinition
+from pyresample.geometry import DynamicAreaDefinition, create_area_def
+
+import dask.array as da
+import xarray as xr
 
 from trollflow2.tests.utils import TestCase
 from trollflow2.launcher import read_config
@@ -576,6 +579,7 @@ class TestSaveDatasets(TestCase):
             "fname_pattern": "name.tif",
             "use_tmp_file": True,
             "staging_zone": "értékesítési szakember",
+            "call_on_done": None,
             "areas": {
                 "euron1": {
                     "products": {
@@ -608,7 +612,7 @@ class TestSaveDatasets(TestCase):
 
         assert "PhysicUnit" in job["resampled_scenes"]["euron1"].mock_calls[0].kwargs.keys()
         for absent in {"use_tmp_file", "staging_zone", "output_dir",
-                       "fname_pattern", "dispatch"}:
+                       "fname_pattern", "dispatch", "callback"}:
             assert absent not in job["resampled_scenes"]["euron1"].mock_calls[0].kwargs.keys()
 
 
@@ -616,6 +620,7 @@ def _create_job_for_save_datasets():
     from yaml import UnsafeLoader
     job = {}
     job['input_mda'] = input_mda
+
     job['product_list'] = {
         'product_list': read_config(raw_string=yaml_test_save, Loader=UnsafeLoader)['product_list'],
     }
@@ -666,6 +671,67 @@ def test_use_staging_zone_tmpfile(tmp_path):
     assert len(renames) == 1
     assert next(iter(renames.values())) == tst_file
     assert next(iter(renames.keys())).startswith(os.fspath(tmp_path))
+
+
+def test_save_datasets_callback(tmp_path):
+    """Test callback functionality for save_datasets
+
+    Test that the functionality for a callback after each produced file is
+    working correctly in the save_datasets plugin.
+    """
+    from trollflow2.plugins import save_datasets
+    from satpy.tests.utils import make_fake_scene
+
+    fake_area = create_area_def("sargasso", 4326, resolution=1, width=5, height=5, center=(0, 0))
+    fake_scene = make_fake_scene(
+        {"dragon_top_height": (dat := xr.DataArray(
+            dims=("y", "x"),
+            data=da.arange(25).reshape((5, 5)))),
+         "penguin_bottom_height": dat,
+         "kraken_depth": dat},
+        daskify=True,
+        area=fake_area)
+    job = {}
+    job['input_mda'] = input_mda
+
+    counter = 0
+
+    def count(obj):
+        """Toy function adding to counter"""
+        nonlocal counter
+        counter += 1
+        return obj
+
+    form = [{"writer": "geotiff", "fname_pattern": "test.tif"}]
+
+    product_list = {
+        "fname_pattern": "name.tif",
+        "output_dir": os.fspath(tmp_path / "test"),
+        "call_on_done": count,
+        "areas": {
+            "sargasso": {
+                "products": {
+                    "dragon_top_height": {
+                        "productname": "dragon_top_height",
+                        "formats": copy.deepcopy(form)},
+                    "penguin_bottom_height": {
+                        "productname": "penguin_bottom_height",
+                        "formats": copy.deepcopy(form)},
+                    "kraken_depth": {
+                        "productname": "kraken_depth",
+                        "formats": copy.deepcopy(form)},
+                }
+            }
+        }
+    }
+    job["product_list"] = {"product_list": product_list}
+    job['resampled_scenes'] = {"sargasso": fake_scene}
+
+    job['produced_files'] = mock.MagicMock()
+
+    job['product_list']['product_list']['call_on_done'] = count
+    save_datasets(job)
+    assert counter == 3
 
 
 class TestCreateScene(TestCase):
@@ -2003,8 +2069,8 @@ def test_persisted(sc_3a_3b):
         prods[p] = {"min_valid_data_fraction": 40}
 
     def fake_persist(*args):
-        for da in args:
-            da.attrs["persisted"] = True
+        for daa in args:
+            daa.attrs["persisted"] = True
         return args
 
     with mock.patch("dask.persist", new=fake_persist):
