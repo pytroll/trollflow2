@@ -286,16 +286,17 @@ def save_datasets(job):
     ``staging_zone`` directory, such that the filename written to the
     headers remains meaningful.
 
-    The product list may contain a ``call_on_done`` parameter.  This
-    parameter has effect if and only if ``eager_writing`` is False (which
-    is the default).  It should contain a list of references to callabales.
-    Upon computation
-    time, each callable will be called with three arguments: the result of
-    ``save_dataset``, the full job dictionary, and the dictionary describing
-    the format config and output filename that was written.  The callables
-    must return again the ``save_dataset`` return value again.  This callback could
-    be used, for example, to ship products as soon as they are successfully
-    produced.
+    The product list may contain a ``call_on_done`` parameter.
+    This parameter has effect if and only if ``eager_writing`` is False
+    (which is the default).  It should contain a list of references to
+    callabales.  Upon computation time, each callable will be called
+    with three arguments: the result of ``save_dataset``, the full
+    job dictionary, and the dictionary describing the format config and
+    output filename that was written.  The callables must return again the
+    ``save_dataset`` return value again.  This callback could be used, for
+    example, to ship products as soon as they are successfully produced.
+    Two callback functions are provided with trollflow2: :func:`callback_log`
+    and :func:`callback_move`.
 
     Other arguments defined in the job list (either directly under
     ``product_list``, or under ``formats``) are passed on to the satpy writer.  The
@@ -915,3 +916,36 @@ def _product_meets_min_valid_data_fraction(
     LOG.debug(f"Found {rel_valid:%}>{min_frac:%}, keeping "
               f"{prod_name:s} for area {area_name:s} in the worklist")
     return True
+
+
+def callback_log(obj, job, fmat_config):
+    """Logging callback for save_datasets call_on_done.
+
+    Callback function that can be used with the :func:`save_datasets`
+    ``call_on_done`` functionality.  Will log a message with loglevel INFO to
+    report that the filename was written successfully.
+    """
+
+    filename = fmat_config["filename"]
+    LOG.info(f"Wrote {filename:s} successfully.")
+    return obj
+
+
+def callback_move(obj, job, fmat_config):
+    """Mover callback for save_datasets call_on_done.
+
+    Callback function that can be used with the :func:`save_datasets`
+    ``cal_on_done`` functionality.  Moves the file to the directory indicated
+    with ``final_output_dir`` in the configuration.  This directory will be
+    created if needed.
+
+    Using this callback is incompatible with the options ``staging_zone`` or
+    ``use_tmp_file``.
+    """
+    srcfile = pathlib.Path(fmat_config["filename"])
+    destdir = pathlib.Path(job["product_list"]["product_list"]["final_output_dir"])
+    destdir.mkdir(exist_ok=True, parents=True)
+    destfile = destdir / srcfile.name
+    LOG.debug(f"Moving {srcfile!s} to {destfile!s}")
+    srcfile.rename(destfile)
+    return obj

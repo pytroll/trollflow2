@@ -2084,5 +2084,34 @@ def test_persisted(sc_3a_3b):
     assert not sc_3a_3b["another"].attrs.get("persisted")
 
 
+def test_callback_log(caplog):
+    """Test callback log functionality."""
+    from trollflow2.plugins import callback_log
+    obj = object()
+    with caplog.at_level(logging.INFO):
+        res = callback_log(obj, {}, {"filename": "bouvetøya"})
+    assert res is obj
+    assert "Wrote bouvetøya successfully." in caplog.text
+
+
+def test_callback_move(caplog, tmp_path):
+    """Test callback move functionality."""
+    from trollflow2.plugins import callback_move
+    obj = object()
+    srcdir = tmp_path / "src"
+    srcfile = srcdir / "orkney"
+    srcdir.mkdir(parents=True, exist_ok=True)
+    srcfile.touch()
+    destdir = tmp_path / "dest"
+    destfile = destdir / srcfile.name
+    job = {"product_list": {"product_list": {"final_output_dir": os.fspath(destdir)}}}
+    with caplog.at_level(logging.DEBUG):
+        res = callback_move(obj, job, {"filename": srcfile})
+    assert res is obj
+    assert not srcfile.exists()
+    assert destfile.exists()
+    assert f"Moving {srcfile!s} to {destfile!s}" in caplog.text
+
+
 if __name__ == '__main__':
     unittest.main()
