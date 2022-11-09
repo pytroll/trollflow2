@@ -317,10 +317,11 @@ def save_datasets(job):
     with renamed_files() as renames:
         for fmat, fmat_config in plist_iter(job['product_list']['product_list'], base_config):
             if callbacks:
-                for callback in callbacks:
-                    obj = callback(
-                        save_dataset(scns, fmat, fmat_config, renames, compute=eager_writing),
-                        job, fmat_config)
+                obj = callbacks[0](
+                    save_dataset(scns, fmat, fmat_config, renames, compute=eager_writing),
+                    job, fmat_config)
+                for callback in callbacks[1:]:
+                    obj = callback(obj, job, fmat_config)
             else:
                 obj = save_dataset(scns, fmat, fmat_config, renames, compute=eager_writing)
             if obj is not None:

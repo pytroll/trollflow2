@@ -708,7 +708,7 @@ def test_save_datasets_callback(tmp_path, caplog):
     product_list = {
         "fname_pattern": "{productname}.tif",
         "output_dir": os.fspath(tmp_path / "test"),
-        "call_on_done": [testlog],
+        "call_on_done": [testlog, testlog, testlog],
         "areas": {
             "sargasso": {
                 "products": {
