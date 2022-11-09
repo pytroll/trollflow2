@@ -696,8 +696,9 @@ def test_save_datasets_callback(tmp_path, caplog):
 
     logger = logging.getLogger("testlogger")
 
-    def testlog(obj, filename):
+    def testlog(obj, job, fmat_config):
         """Toy function doing some logging"""
+        filename = fmat_config["filename"]
         logger.info(f"Wrote {filename} successfully")
         assert os.path.exists(filename)  # ensures we are compute-time
         return obj
@@ -707,7 +708,7 @@ def test_save_datasets_callback(tmp_path, caplog):
     product_list = {
         "fname_pattern": "{productname}.tif",
         "output_dir": os.fspath(tmp_path / "test"),
-        "call_on_done": testlog,
+        "call_on_done": [testlog],
         "areas": {
             "sargasso": {
                 "products": {

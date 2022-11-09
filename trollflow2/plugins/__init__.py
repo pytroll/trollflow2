@@ -288,10 +288,12 @@ def save_datasets(job):
 
     The product list may contain a ``call_on_done`` parameter.  This
     parameter has effect if and only if ``eager_writing`` is False (which
-    is the default).  It should refer to a callable.  Upon computation
-    time, this callable will be called with two arguments: the result of
-    ``save_dataset``, and the filename that was written.  The callable
-    must return again the ``save_dataset`` return value.  This callback could
+    is the default).  It should contain a list of references to callabales.
+    Upon computation
+    time, each callable will be called with three arguments: the result of
+    ``save_dataset``, the full job dictionary, and the dictionary describing
+    the format config and output filename that was written.  The callables
+    must return again the ``save_dataset`` return value again.  This callback could
     be used, for example, to ship products as soon as they are successfully
     produced.
 
@@ -308,15 +310,16 @@ def save_datasets(job):
     sentinel = object()
     call_on_done = job["product_list"]["product_list"].get("call_on_done", sentinel)
     if call_on_done is not sentinel:
-        callback = dask.delayed(call_on_done)
+        callbacks = [dask.delayed(c) for c in call_on_done]
     else:
-        callback = None
+        callbacks = None
     with renamed_files() as renames:
         for fmat, fmat_config in plist_iter(job['product_list']['product_list'], base_config):
-            if callback is not None:
-                obj = callback(
-                    save_dataset(scns, fmat, fmat_config, renames, compute=eager_writing),
-                    fmat_config["filename"])
+            if callbacks:
+                for callback in callbacks:
+                    obj = callback(
+                        save_dataset(scns, fmat, fmat_config, renames, compute=eager_writing),
+                        job, fmat_config)
             else:
                 obj = save_dataset(scns, fmat, fmat_config, renames, compute=eager_writing)
             if obj is not None:
