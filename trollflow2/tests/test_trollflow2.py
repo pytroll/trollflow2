@@ -2088,14 +2088,17 @@ def test_persisted(sc_3a_3b):
     assert not sc_3a_3b["another"].attrs.get("persisted")
 
 
-def test_callback_log(caplog):
+def test_callback_log(caplog, tmp_path):
     """Test callback log functionality."""
     from trollflow2.plugins import callback_log
+    srcfile = tmp_path / "bouvetøya"
+    with srcfile.open(mode="w") as fp:
+        fp.write("x" * 10)
     obj = object()
     with caplog.at_level(logging.INFO):
-        res = callback_log(obj, {}, {"filename": "bouvetøya"})
+        res = callback_log(obj, {}, {"filename": os.fspath(srcfile)})
     assert res is obj
-    assert "Wrote bouvetøya successfully." in caplog.text
+    assert f"Wrote {srcfile!s} successfully, total 10 bytes." in caplog.text
 
 
 def test_callback_move(caplog, tmp_path):

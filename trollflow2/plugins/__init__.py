@@ -928,7 +928,8 @@ def callback_log(obj, job, fmat_config):
     """
 
     filename = fmat_config["filename"]
-    LOG.info(f"Wrote {filename:s} successfully.")
+    size = os.path.getsize(filename)
+    LOG.info(f"Wrote {filename:s} successfully, total {size:d} bytes.")
     return obj
 
 
