@@ -27,6 +27,7 @@ import logging
 import os
 import unittest
 import copy
+import pathlib
 from unittest import mock
 from functools import partial
 
@@ -700,7 +701,10 @@ def test_save_datasets_callback(tmp_path, caplog):
         """Toy function doing some logging"""
         filename = fmat_config["filename"]
         logger.info(f"Wrote {filename} successfully")
-        assert os.path.exists(filename)  # ensures we are compute-time
+        # ensure computation has indeed completed
+        p = pathlib.Path(filename)
+        assert p.exists()
+        assert p.stat().st_size > 0
         return obj
 
     form = [{"writer": "geotiff"}]
