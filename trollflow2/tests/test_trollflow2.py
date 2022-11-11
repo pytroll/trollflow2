@@ -2169,9 +2169,9 @@ def test_callback_move(caplog, tmp_path):
     destdir.mkdir(parents=True, exist_ok=True)
     destfile = destdir / srcfile.name
     job = {"product_list":
-            {"product_list":
-                {"staging_zone": os.fspath(srcdir),
-                 "output_dir": os.fspath(destdir)}}}
+           {"product_list":
+            {"staging_zone": os.fspath(srcdir),
+             "output_dir": os.fspath(destdir)}}}
     fname_config = {"filename": os.fspath(destfile)}
     with caplog.at_level(logging.DEBUG):
         res = callback_move(obj, job, fname_config)
