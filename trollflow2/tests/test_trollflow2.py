@@ -28,6 +28,7 @@ import os
 import unittest
 import copy
 import pathlib
+import queue
 from unittest import mock
 from functools import partial
 
@@ -673,13 +674,9 @@ def test_use_staging_zone_tmpfile(tmp_path):
     assert next(iter(renames.keys())).startswith(os.fspath(tmp_path))
 
 
-def test_save_datasets_callback(tmp_path, caplog):
-    """Test callback functionality for save_datasets
-
-    Test that the functionality for a callback after each produced file is
-    working correctly in the save_datasets plugin.
-    """
-    from trollflow2.plugins import save_datasets, callback_close
+@pytest.fixture
+def fake_scene():
+    """Get a fake scene."""
     from satpy.tests.utils import make_fake_scene
 
     fake_area = create_area_def("sargasso", 4087, resolution=1, width=256, height=256, center=(0, 0))
@@ -692,6 +689,17 @@ def test_save_datasets_callback(tmp_path, caplog):
         daskify=True,
         area=fake_area,
         common_attrs={"start_time": dt.datetime(1985, 8, 13, 15)})
+
+    return fake_scene
+
+def test_save_datasets_callback(tmp_path, caplog, fake_scene):
+    """Test callback functionality for save_datasets
+
+    Test that the functionality for a callback after each produced file is
+    working correctly in the save_datasets plugin.
+    """
+    from trollflow2.plugins import save_datasets, callback_close
+
     job = {}
     job['input_mda'] = input_mda
 
@@ -745,6 +753,46 @@ def test_save_datasets_callback(tmp_path, caplog):
     for nm in {"dragon_top_height", "penguin_bottom_height", "kraken_depth"}:
         exp = tmp_path / "test" / f"{nm:s}-geotiff.tif"
         assert f"Wrote {exp!s} successfully" in caplog.text
+
+
+def test_save_datasets_callback_move_check_products(tmp_path, caplog, fake_scene):
+    """Test that check_products and the callback move can cooperate.
+    """
+    from trollflow2.plugins import save_datasets, callback_close, callback_move
+    from trollflow2.launcher import check_results
+
+    job = {}
+    job['input_mda'] = input_mda
+    form = [{"writer": "geotiff", "fill_value": 0}]
+
+    product_list = {
+        "fname_pattern": "{productname}.tif",
+        "output_dir": os.fspath(tmp_path / "test1"),
+        "final_output_dir": os.fspath(tmp_path / "test2"),
+        "call_on_done": [callback_close, callback_move],
+        "areas": {
+            "sargasso": {
+                "products": {
+                    "dragon_top_height": {
+                        "productname": "dragon_top_height",
+                        "formats": copy.deepcopy(form)},
+                    "penguin_bottom_height": {
+                        "productname": "penguin_bottom_height",
+                        "formats": copy.deepcopy(form)},
+                    "kraken_depth": {
+                        "productname": "kraken_depth",
+                        "formats": copy.deepcopy(form)},
+                }
+            }
+        }
+    }
+    job["product_list"] = {"product_list": product_list}
+    job['resampled_scenes'] = {"sargasso": fake_scene}
+    job["produced_files"] = queue.SimpleQueue()
+    save_datasets(job)
+    with caplog.at_level(logging.INFO):
+        check_results(job["produced_files"], dt.datetime(2001, 2, 3, 4, 5, 6), 0)
+    assert "All 3 files produced nominally" in caplog.text
 
 
 class TestCreateScene(TestCase):
