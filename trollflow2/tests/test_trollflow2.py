@@ -767,9 +767,10 @@ def test_save_datasets_callback_move_check_products(tmp_path, caplog, fake_scene
 
     product_list = {
         "fname_pattern": "{productname}.tif",
-        "output_dir": os.fspath(tmp_path / "test1"),
-        "final_output_dir": os.fspath(tmp_path / "test2"),
+        "staging_zone": os.fspath(tmp_path / "test1"),
+        "output_dir": os.fspath(tmp_path / "test2"),
         "call_on_done": [callback_close, callback_move],
+        "early_moving": True,
         "areas": {
             "sargasso": {
                 "products": {
@@ -2164,16 +2165,19 @@ def test_callback_move(caplog, tmp_path):
     srcdir.mkdir(parents=True, exist_ok=True)
     srcfile.touch()
     destdir = tmp_path / "dest"
+    destdir.mkdir(parents=True, exist_ok=True)
     destfile = destdir / srcfile.name
-    job = {"product_list": {"product_list": {"final_output_dir": os.fspath(destdir)}}}
-    fname_config = {"filename": srcfile}
+    job = {"product_list":
+            {"product_list":
+                {"staging_zone": os.fspath(srcdir),
+                 "output_dir": os.fspath(destdir)}}}
+    fname_config = {"filename": os.fspath(destfile)}
     with caplog.at_level(logging.DEBUG):
         res = callback_move(obj, job, fname_config)
     assert res is obj
     assert not srcfile.exists()
     assert destfile.exists()
     assert f"Moving {srcfile!s} to {destfile!s}" in caplog.text
-    assert fname_config["filename"] == os.fspath(destfile)
 
 
 if __name__ == '__main__':

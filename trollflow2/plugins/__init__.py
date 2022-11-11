@@ -257,14 +257,15 @@ def _create_data_query(product, res):
 
 
 @contextmanager
-def renamed_files():
+def renamed_files(do_renames):
     """Context renaming files."""
     renames = {}
 
     yield renames
 
-    for tmp_name, actual_name in renames.items():
-        os.rename(tmp_name, actual_name)
+    if do_renames:
+        for tmp_name, actual_name in renames.items():
+            os.rename(tmp_name, actual_name)
 
 
 def save_datasets(job):
@@ -299,7 +300,8 @@ def save_datasets(job):
     Three callback functions are provided with trollflow2:
     :func:`callback_log`, :func:`callback_move`, and :func:`callback_close`.
     If using the geotiff writer, :func:`callback_close` should be used before
-    the others for correct results.
+    the others for correct results.  When using :func:`callback_move`, the
+    user must also set ``early_moving`` to True and use a ``staging_zone``.
 
     Other arguments defined in the job list (either directly under
     ``product_list``, or under ``formats``) are passed on to the satpy writer.  The
@@ -311,13 +313,14 @@ def save_datasets(job):
     base_config = job['input_mda'].copy()
     base_config.pop('dataset', None)
     eager_writing = job['product_list']['product_list'].get("eager_writing", False)
+    early_moving = job['product_list']['product_list'].get("early_moving", False)
     sentinel = object()
     call_on_done = job["product_list"]["product_list"].get("call_on_done", sentinel)
     if call_on_done is not sentinel:
         callbacks = [dask.delayed(c) for c in call_on_done]
     else:
         callbacks = None
-    with renamed_files() as renames:
+    with renamed_files(not early_moving) as renames:
         for fmat, fmat_config in plist_iter(job['product_list']['product_list'], base_config):
             if callbacks:
                 obj = callbacks[0](
@@ -940,20 +943,20 @@ def callback_move(obj, job, fmat_config):
     """Mover callback for save_datasets call_on_done.
 
     Callback function that can be used with the :func:`save_datasets`
-    ``cal_on_done`` functionality.  Moves the file to the directory indicated
-    with ``final_output_dir`` in the configuration.  This directory will be
+    ``call_on_done`` functionality.  Moves the file to the directory indicated
+    with ``output_dir`` in the configuration.  This directory will be
     created if needed.
 
-    Using this callback is incompatible with the options ``staging_zone`` or
-    ``use_tmp_file``.
+    This callback must be used with ``staging_zone``.
     """
-    srcfile = pathlib.Path(fmat_config["filename"])
-    destdir = pathlib.Path(job["product_list"]["product_list"]["final_output_dir"])
-    destdir.mkdir(exist_ok=True, parents=True)
-    destfile = destdir / srcfile.name
+
+    # due to early moving, I've already changed the filename to the destination
+    # reverse logic also
+    destfile = pathlib.Path(fmat_config["filename"])
+    srcdir = pathlib.Path(job["product_list"]["product_list"]["staging_zone"])
+    srcfile = srcdir / destfile.name
     LOG.debug(f"Moving {srcfile!s} to {destfile!s}")
     srcfile.rename(destfile)
-    fmat_config["filename"] = os.fspath(destfile)
     return obj
 
 
