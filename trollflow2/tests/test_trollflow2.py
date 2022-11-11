@@ -580,7 +580,6 @@ class TestSaveDatasets(TestCase):
             "fname_pattern": "name.tif",
             "use_tmp_file": True,
             "staging_zone": "értékesítési szakember",
-            "call_on_done": None,
             "areas": {
                 "euron1": {
                     "products": {
@@ -680,14 +679,14 @@ def test_save_datasets_callback(tmp_path, caplog):
     Test that the functionality for a callback after each produced file is
     working correctly in the save_datasets plugin.
     """
-    from trollflow2.plugins import save_datasets
+    from trollflow2.plugins import save_datasets, callback_close
     from satpy.tests.utils import make_fake_scene
 
-    fake_area = create_area_def("sargasso", 4326, resolution=1, width=5, height=5, center=(0, 0))
+    fake_area = create_area_def("sargasso", 4087, resolution=1, width=256, height=256, center=(0, 0))
     fake_scene = make_fake_scene(
         {"dragon_top_height": (dat := xr.DataArray(
             dims=("y", "x"),
-            data=da.arange(25).reshape((5, 5)))),
+            data=da.zeros(shape=(256, 256)))),
          "penguin_bottom_height": dat,
          "kraken_depth": dat},
         daskify=True,
@@ -700,19 +699,19 @@ def test_save_datasets_callback(tmp_path, caplog):
     def testlog(obj, job, fmat_config):
         """Toy function doing some logging"""
         filename = fmat_config["filename"]
-        logger.info(f"Wrote {filename} successfully")
-        # ensure computation has indeed completed
+        # ensure computation has indeed completed and file was flushed
         p = pathlib.Path(filename)
+        logger.info(f"Wrote {filename} successfully, {p.stat().st_size:d} bytes")
         assert p.exists()
-        assert p.stat().st_size > 0
+        assert p.stat().st_size == 131473
         return obj
 
-    form = [{"writer": "geotiff"}]
+    form = [{"writer": "geotiff", "compress": "NONE"}]
 
     product_list = {
         "fname_pattern": "{productname}.tif",
         "output_dir": os.fspath(tmp_path / "test"),
-        "call_on_done": [testlog, testlog, testlog],
+        "call_on_done": [callback_close, testlog],
         "areas": {
             "sargasso": {
                 "products": {
@@ -738,7 +737,7 @@ def test_save_datasets_callback(tmp_path, caplog):
         save_datasets(job)
     for nm in {"dragon_top_height", "penguin_bottom_height", "kraken_depth"}:
         exp = tmp_path / "test" / f"{nm:s}.tif"
-        assert f"Wrote {exp!s} successfully" in caplog.text
+        assert f"Wrote {exp!s} successfully, 131473 bytes" in caplog.text
 
 
 class TestCreateScene(TestCase):

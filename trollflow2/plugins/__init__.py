@@ -34,6 +34,7 @@ with suppress(ImportError):
 import dpath.util
 import rasterio
 import dask
+from dask.delayed import Delayed
 from posttroll.message import Message
 from posttroll.publisher import Publisher, NoisyPublisher
 from pyorbital.astronomy import sun_zenith_angle
@@ -295,8 +296,10 @@ def save_datasets(job):
     output filename that was written.  The callables must return again the
     ``save_dataset`` return value again.  This callback could be used, for
     example, to ship products as soon as they are successfully produced.
-    Two callback functions are provided with trollflow2: :func:`callback_log`
-    and :func:`callback_move`.
+    Three callback functions are provided with trollflow2:
+    :func:`callback_log`, :func:`callback_move`, and :func:`callback_close`.
+    If using the geotiff writer, :func:`callback_close` should be used before
+    the others for correct results.
 
     Other arguments defined in the job list (either directly under
     ``product_list``, or under ``formats``) are passed on to the satpy writer.  The
@@ -951,3 +954,21 @@ def callback_move(obj, job, fmat_config):
     LOG.debug(f"Moving {srcfile!s} to {destfile!s}")
     srcfile.rename(destfile)
     return obj
+
+
+def callback_close(obj, job, fmat_config):
+    """Callback closing files where needed.
+
+    When using callbacks with writers that return a ``(src, target)`` pair for
+    ``da.store``, satpy doesn't close the file until after computation is
+    completed.  That means there may be data that have been computed, but not
+    yet written to disk.  This is normally the case for the geotiff writer.
+    For callbacks that depend on the files to be complete, the file should be
+    closed first.  This callback should be prepended in this case.
+
+    If passed a ``dask.Delayed`` object, this callback does nothing.  If passed
+    a ``(src, targ)`` pair, it closes the target.
+    """
+    if isinstance(obj, Delayed):
+        return
+    obj[1].close()
