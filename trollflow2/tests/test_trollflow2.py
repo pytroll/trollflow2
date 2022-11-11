@@ -690,7 +690,8 @@ def test_save_datasets_callback(tmp_path, caplog):
          "penguin_bottom_height": dat,
          "kraken_depth": dat},
         daskify=True,
-        area=fake_area)
+        area=fake_area,
+        common_attrs={"start_time": dt.datetime(1985, 8, 13, 15)})
     job = {}
     job['input_mda'] = input_mda
 
@@ -703,13 +704,19 @@ def test_save_datasets_callback(tmp_path, caplog):
         p = pathlib.Path(filename)
         logger.info(f"Wrote {filename} successfully, {p.stat().st_size:d} bytes")
         assert p.exists()
-        assert p.stat().st_size == 131473
+        assert p.stat().st_size > 65000
         return obj
 
-    form = [{"writer": "geotiff", "compress": "NONE"}]
+    form = [
+            {"writer": "geotiff", "compress": "NONE", "fill_value": 0},
+            {"writer": "ninjogeotiff", "compress": "NONE",
+             "ChannelID": "IR -2+3i", "DataType": "ABCD",
+             "PhysicUnit": "K", "PhysicValue": "Temperature",
+             "SatelliteNameID": "PytrollSat", "fill_value": 0}
+            ]
 
     product_list = {
-        "fname_pattern": "{productname}.tif",
+        "fname_pattern": "{productname}-{writer}.tif",
         "output_dir": os.fspath(tmp_path / "test"),
         "call_on_done": [callback_close, testlog],
         "areas": {
@@ -736,8 +743,8 @@ def test_save_datasets_callback(tmp_path, caplog):
     with caplog.at_level(logging.INFO):
         save_datasets(job)
     for nm in {"dragon_top_height", "penguin_bottom_height", "kraken_depth"}:
-        exp = tmp_path / "test" / f"{nm:s}.tif"
-        assert f"Wrote {exp!s} successfully, 131473 bytes" in caplog.text
+        exp = tmp_path / "test" / f"{nm:s}-geotiff.tif"
+        assert f"Wrote {exp!s} successfully" in caplog.text
 
 
 class TestCreateScene(TestCase):

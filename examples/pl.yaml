@@ -67,7 +67,9 @@ product_list: &product_list
   # scene_load_kwargs:
   #   upper_right_corner: "NE"
   # call_on_done:
-  #   !!python/name:mypkg.callable
+  #   - !!python/name:trollflow2.plugins.callback_close
+  #   - !!python/name:trollflow2.plugins.callback_log
+  #   - !!python/name:trollflow2.plugins.callback_move
 
   areas:
     omerc_bb:

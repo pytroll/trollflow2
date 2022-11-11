@@ -971,4 +971,8 @@ def callback_close(obj, job, fmat_config):
     """
     if isinstance(obj, Delayed):
         return
-    obj[1].close()
+    try:
+        obj[1].close()
+    except AttributeError:
+        for ob in obj[1]:
+            ob.close()
