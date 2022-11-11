@@ -708,12 +708,12 @@ def test_save_datasets_callback(tmp_path, caplog):
         return obj
 
     form = [
-            {"writer": "geotiff", "compress": "NONE", "fill_value": 0},
-            {"writer": "ninjogeotiff", "compress": "NONE",
-             "ChannelID": "IR -2+3i", "DataType": "ABCD",
-             "PhysicUnit": "K", "PhysicValue": "Temperature",
-             "SatelliteNameID": "PytrollSat", "fill_value": 0}
-            ]
+        {"writer": "geotiff", "compress": "NONE", "fill_value": 0},
+        {"writer": "ninjogeotiff", "compress": "NONE",
+         "ChannelID": "IR -2+3i", "DataType": "ABCD",
+         "PhysicUnit": "K", "PhysicValue": "Temperature",
+         "SatelliteNameID": "PytrollSat", "fill_value": 0}
+    ]
 
     product_list = {
         "fname_pattern": "{productname}-{writer}.tif",
