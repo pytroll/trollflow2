@@ -692,6 +692,7 @@ def fake_scene():
 
     return fake_scene
 
+
 def test_save_datasets_callback(tmp_path, caplog, fake_scene):
     """Test callback functionality for save_datasets
 
