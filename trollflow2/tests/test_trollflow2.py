@@ -2118,12 +2118,14 @@ def test_callback_move(caplog, tmp_path):
     destdir = tmp_path / "dest"
     destfile = destdir / srcfile.name
     job = {"product_list": {"product_list": {"final_output_dir": os.fspath(destdir)}}}
+    fname_config = {"filename": srcfile}
     with caplog.at_level(logging.DEBUG):
-        res = callback_move(obj, job, {"filename": srcfile})
+        res = callback_move(obj, job, fname_config)
     assert res is obj
     assert not srcfile.exists()
     assert destfile.exists()
     assert f"Moving {srcfile!s} to {destfile!s}" in caplog.text
+    assert fname_config["filename"] == os.fspath(destfile)
 
 
 if __name__ == '__main__':

@@ -953,6 +953,7 @@ def callback_move(obj, job, fmat_config):
     destfile = destdir / srcfile.name
     LOG.debug(f"Moving {srcfile!s} to {destfile!s}")
     srcfile.rename(destfile)
+    fmat_config["filename"] = os.fspath(destfile)
     return obj
 
 
