@@ -711,9 +711,9 @@ def test_save_datasets_callback(tmp_path, caplog, fake_scene):
         filename = fmat_config["filename"]
         # ensure computation has indeed completed and file was flushed
         p = pathlib.Path(filename)
-        logger.info(f"Wrote {filename} successfully, {p.stat().st_size:d} bytes")
+        logger.info(f"Wrote {filename} successfully, 131505 bytes")
         assert p.exists()
-        assert p.stat().st_size > 65000
+        assert p.stat().st_size == 131505
         return obj
 
     form = [
