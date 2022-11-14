@@ -302,6 +302,9 @@ def save_datasets(job):
     If using the geotiff writer, :func:`callback_close` should be used before
     the others for correct results.  When using :func:`callback_move`, the
     user must also set ``early_moving`` to True and use a ``staging_zone``.
+    If both are used, :func:`callback_log` must be called AFTER
+    :func:`callback_move`, because :func:`callback_log` searches for the final
+    destination of the file and reports the size (so it accesses the metadata).
 
     Other arguments defined in the job list (either directly under
     ``product_list``, or under ``formats``) are passed on to the satpy writer.  The
@@ -931,6 +934,11 @@ def callback_log(obj, job, fmat_config):
     Callback function that can be used with the :func:`save_datasets`
     ``call_on_done`` functionality.  Will log a message with loglevel INFO to
     report that the filename was written successfully.
+
+    If using :func:`callback_move` in combination with
+    :func:`callback_log`, you must call :func:`callback_log` AFTER
+    :func:`callback_move`, because the logger looks for the final
+    destination of the file, not the temporary one.
     """
 
     filename = fmat_config["filename"]
@@ -947,7 +955,11 @@ def callback_move(obj, job, fmat_config):
     with ``output_dir`` in the configuration.  This directory will be
     created if needed.
 
-    This callback must be used with ``staging_zone``.
+    This callback must be used with ``staging_zone`` and ``early_moving`` MUST
+    be set in the configuration.  If used in combination with
+    :func:`callback_log`, you must call :func:`callback_log` AFTER
+    :func:`callback_move`, because the logger looks for the final destination
+    of the file, not the temporary one.
     """
 
     # due to early moving, I've already changed the filename to the destination
