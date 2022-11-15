@@ -34,6 +34,7 @@ from functools import partial
 
 import pytest
 from pyresample.geometry import DynamicAreaDefinition, create_area_def
+import rasterio
 
 import dask.array as da
 import xarray as xr
@@ -679,11 +680,12 @@ def fake_scene():
     """Get a fake scene."""
     from satpy.tests.utils import make_fake_scene
 
-    fake_area = create_area_def("sargasso", 4087, resolution=1, width=256, height=256, center=(0, 0))
+    x = 10
+    fake_area = create_area_def("sargasso", 4087, resolution=1, width=x, height=x, center=(0, 0))
     fake_scene = make_fake_scene(
         {"dragon_top_height": (dat := xr.DataArray(
             dims=("y", "x"),
-            data=da.zeros(shape=(256, 256)))),
+            data=da.arange(x*x).reshape(x, x))),
          "penguin_bottom_height": dat,
          "kraken_depth": dat},
         daskify=True,
@@ -711,9 +713,11 @@ def test_save_datasets_callback(tmp_path, caplog, fake_scene):
         filename = fmat_config["filename"]
         # ensure computation has indeed completed and file was flushed
         p = pathlib.Path(filename)
-        logger.info(f"Wrote {filename} successfully, 131505 bytes")
+        logger.info(f"Wrote {filename} successfully, {p.stat().st_size:d} bytes")
         assert p.exists()
-        assert p.stat().st_size == 131505
+        with rasterio.open(filename) as src:
+            arr = src.read(1)
+            assert arr[5, 5] == 142
         return obj
 
     form = [
