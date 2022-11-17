@@ -708,7 +708,7 @@ def test_save_datasets_callback(tmp_path, caplog, fake_scene):
 
     logger = logging.getLogger("testlogger")
 
-    def testlog(obj, job, fmat_config):
+    def testlog(obj, srcs, targs, job, fmat_config):
         """Toy function doing some logging"""
         filename = fmat_config["filename"]
         # ensure computation has indeed completed and file was flushed
@@ -2156,7 +2156,7 @@ def test_callback_log(caplog, tmp_path):
         fp.write("x" * 10)
     obj = object()
     with caplog.at_level(logging.INFO):
-        res = callback_log(obj, {}, {"filename": os.fspath(srcfile)})
+        res = callback_log(obj, None, None, {}, {"filename": os.fspath(srcfile)})
     assert res is obj
     assert f"Wrote {srcfile!s} successfully, total 10 bytes." in caplog.text
 
@@ -2178,7 +2178,7 @@ def test_callback_move(caplog, tmp_path):
              "output_dir": os.fspath(destdir)}}}
     fname_config = {"filename": os.fspath(destfile)}
     with caplog.at_level(logging.DEBUG):
-        res = callback_move(obj, job, fname_config)
+        res = callback_move(obj, None, None, job, fname_config)
     assert res is obj
     assert not srcfile.exists()
     assert destfile.exists()
