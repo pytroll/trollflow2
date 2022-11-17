@@ -357,8 +357,8 @@ def _maybe_apply_callbacks(late_saver, callbacks, *args):
             return _apply_callbacks_to_sources_and_targets(late_saver, callbacks, *args)
         return _apply_callbacks_to_source_and_target(late_saver, callbacks, *args)
     raise ValueError(
-            "Unrecognised return value type from ``save_datasets``, "
-            "don't know how to apply wrappers.")
+        "Unrecognised return value type from ``save_datasets``, "
+        "don't know how to apply wrappers.")
 
 
 def _apply_callbacks_to_delayed(delayed, callbacks, *args):
