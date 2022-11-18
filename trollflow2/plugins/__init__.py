@@ -397,7 +397,7 @@ def _apply_callbacks_to_sources_and_targets(late_saver, callbacks, *args):
     delayeds = []
     for (src, targ) in group_results_by_output_file(*late_saver):
         delayed = da.store(src, targ, compute=False)
-        delayeds.append(_apply_callbacks_to_delayed(delayed, callbacks, src, targ, *args))
+        delayeds.append(_apply_callbacks_to_delayed(delayed, callbacks, targ, *args))
     return delayeds
 
 
@@ -419,7 +419,7 @@ def _apply_callbacks_to_source_and_target(late_saver, callbacks, *args):
     """
     (src, targ) = late_saver
     delayed = da.store(src, targ, compute=False)
-    return _apply_callbacks_to_delayed(delayed, callbacks, [src], [targ], *args)
+    return _apply_callbacks_to_delayed(delayed, callbacks, [targ], *args)
 
 
 def product_missing_from_scene(product, scene):
@@ -1010,7 +1010,7 @@ def _product_meets_min_valid_data_fraction(
     return True
 
 
-def callback_log(obj, srcs, targs, job, fmat_config):
+def callback_log(obj, targs, job, fmat_config):
     """Logging callback for save_datasets call_on_done.
 
     Callback function that can be used with the :func:`save_datasets`
@@ -1029,7 +1029,7 @@ def callback_log(obj, srcs, targs, job, fmat_config):
     return obj
 
 
-def callback_move(obj, srcs, targs, job, fmat_config):
+def callback_move(obj, targs, job, fmat_config):
     """Mover callback for save_datasets call_on_done.
 
     Callback function that can be used with the :func:`save_datasets`
@@ -1052,7 +1052,7 @@ def callback_move(obj, srcs, targs, job, fmat_config):
     return obj
 
 
-def callback_close(obj, srcs, targs, job, fmat_config):
+def callback_close(obj, targs, job, fmat_config):
     """Callback closing files where needed.
 
     When using callbacks with writers that return a ``(src, target)`` pair for
