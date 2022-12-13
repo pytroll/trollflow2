@@ -22,20 +22,20 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 """Test plugins."""
 
+import copy
 import datetime as dt
 import logging
 import os
 import unittest
-import copy
-from unittest import mock
 from functools import partial
+from unittest import mock
 
+import numpy as np
 import pytest
 from pyresample.geometry import DynamicAreaDefinition
 
-from trollflow2.tests.utils import TestCase
 from trollflow2.launcher import read_config
-
+from trollflow2.tests.utils import TestCase
 
 yaml_test1 = """
 product_list:
@@ -369,7 +369,7 @@ class TestSaveDatasets(TestCase):
     def test_save_datasets(self):
         """Test saving datasets."""
         self.maxDiff = None
-        from trollflow2.plugins import save_datasets, DEFAULT
+        from trollflow2.plugins import DEFAULT, save_datasets
 
         the_queue = mock.MagicMock()
         job = _create_job_for_save_datasets()
@@ -673,8 +673,9 @@ class TestCreateScene(TestCase):
 
     def test_create_scene(self):
         """Test making a scene."""
-        from trollflow2.plugins import create_scene
         from satpy.version import version as satpy_version
+
+        from trollflow2.plugins import create_scene
         if not isinstance(satpy_version, str):
             # trollflow2 mocks all missing imports
             import trollflow2.plugins
@@ -712,7 +713,7 @@ class TestLoadComposites(TestCase):
 
     def test_load_composites(self):
         """Test loading composites."""
-        from trollflow2.plugins import load_composites, DEFAULT
+        from trollflow2.plugins import DEFAULT, load_composites
         scn = _get_mocked_scene_with_properties()
         job = {"product_list": self.product_list, "scene": scn}
         load_composites(job)
@@ -742,7 +743,7 @@ class TestLoadComposites(TestCase):
 
     def test_load_composites_with_custom_args(self):
         """Test loading with arbitrary additional arguments."""
-        from trollflow2.plugins import load_composites, DEFAULT
+        from trollflow2.plugins import DEFAULT, load_composites
         scn = _get_mocked_scene_with_properties()
         self.product_list['product_list']['scene_load_kwargs'] = {"upper_right_corner": "NE"}
         job = {"product_list": self.product_list, "scene": scn}
@@ -974,7 +975,6 @@ class TestSunlightCovers(TestCase):
     def test_coverage(self):
         """Test sunlight coverage."""
         from trollflow2.plugins import _get_sunlight_coverage
-        import numpy as np
         with mock.patch('trollflow2.plugins.AreaDefBoundary') as area_def_boundary, \
                 mock.patch('trollflow2.plugins.Boundary') as boundary, \
                 mock.patch('trollflow2.plugins.get_twilight_poly'), \
@@ -1000,8 +1000,6 @@ class TestGetProductAreaDef(TestCase):
     def test_get_product_area_def(self):
         """Test _get_product_area_def()."""
         from trollflow2.plugins import _get_product_area_def
-        # scn = mock.MagicMock()
-        # scn.__getitem__.side_effect = KeyError
 
         # No area nor product
         scn = dict([])
@@ -1088,13 +1086,13 @@ class TestCheckSunlightCoverage(TestCase):
 
     def test_fully_sunlit_scene_returns_full_coverage(self):
         """Test that a fully sunlit scene returns 100% coverage."""
-        from trollflow2.plugins import check_sunlight_coverage
         from pyresample.spherical import SphPolygon
-        import numpy as np
+
+        from trollflow2.plugins import check_sunlight_coverage
         with mock.patch('trollflow2.plugins.Pass') as tst_pass,\
                 mock.patch('trollflow2.plugins.get_twilight_poly') as twilight:
-            tst_pass.return_value.boundary.contour_poly = SphPolygon(np.array([(0, 0), (0, 90), (45, 0)]))
-            twilight.return_value = SphPolygon(np.array([(0, 0), (0, 90), (90, 0)]))
+            tst_pass.return_value.boundary.contour_poly = SphPolygon(np.deg2rad(np.array([(0, 0), (0, 90), (45, 0)])))
+            twilight.return_value = SphPolygon(np.deg2rad(np.array([(0, 0), (0, 90), (90, 0)])))
             scene = _get_mocked_scene_with_properties()
             job = {"scene": scene, "product_list": self.product_list.copy(),
                    "input_mda": {"platform_name": "platform"}}
@@ -1104,8 +1102,7 @@ class TestCheckSunlightCoverage(TestCase):
 
     def test_product_not_loaded(self):
         """Test that product isn't loaded when sunlight coverage is too low."""
-        from trollflow2.plugins import check_sunlight_coverage
-        from trollflow2.plugins import metadata_alias
+        from trollflow2.plugins import check_sunlight_coverage, metadata_alias
         with mock.patch('trollflow2.plugins.Pass') as ts_pass,\
                 mock.patch('trollflow2.plugins.get_twilight_poly'),\
                 mock.patch('trollflow2.plugins.get_area_def'),\
@@ -1128,8 +1125,7 @@ class TestCheckSunlightCoverage(TestCase):
 
     def test_sunlight_filter(self):
         """Test that product isn't loaded when sunlight coverage is to low."""
-        from trollflow2.plugins import check_sunlight_coverage
-        from trollflow2.plugins import metadata_alias
+        from trollflow2.plugins import check_sunlight_coverage, metadata_alias
         with mock.patch('trollflow2.plugins.Pass'),\
                 mock.patch('trollflow2.plugins.get_twilight_poly'),\
                 mock.patch('trollflow2.plugins.get_area_def'),\
@@ -1328,8 +1324,7 @@ class TestCovers(TestCase):
 
     def test_covers_collection_area_id(self):
         """Test the coverage of a collection area id."""
-        from trollflow2.plugins import covers
-        from trollflow2.plugins import AbortProcessing
+        from trollflow2.plugins import AbortProcessing, covers
         with mock.patch('trollflow2.plugins.Pass', spec=True) as pass_obj:
             fake_area_coverage_100 = partial(fake_area_coverage, result=1)
             pass_obj.return_value.area_coverage.side_effect = fake_area_coverage_100
@@ -1381,8 +1376,7 @@ class TestCheckMetadata(TestCase):
 
     def test_single_item(self):
         """Test checking a single metadata item."""
-        from trollflow2.plugins import check_metadata
-        from trollflow2.plugins import AbortProcessing
+        from trollflow2.plugins import AbortProcessing, check_metadata
         with mock.patch('trollflow2.plugins.get_config_value') as get_config_value:
             get_config_value.return_value = None
             job = {'product_list': None, 'input_mda': {'sensor': 'foo'}}
@@ -1395,8 +1389,7 @@ class TestCheckMetadata(TestCase):
 
     def test_multiple_items(self):
         """Test checking a single metadata item."""
-        from trollflow2.plugins import check_metadata
-        from trollflow2.plugins import AbortProcessing
+        from trollflow2.plugins import AbortProcessing, check_metadata
         with mock.patch('trollflow2.plugins.get_config_value') as get_config_value:
             # Nothing configured
             get_config_value.return_value = None
@@ -1420,8 +1413,7 @@ class TestCheckMetadata(TestCase):
 
     def test_discard_old_data(self):
         """Test that old data are discarded."""
-        from trollflow2.plugins import check_metadata
-        from trollflow2.plugins import AbortProcessing
+        from trollflow2.plugins import AbortProcessing, check_metadata
         with mock.patch('trollflow2.plugins.get_config_value') as get_config_value:
             get_config_value.return_value = None
             job = {'product_list': None, 'input_mda': {'start_time': dt.datetime(2020, 3, 18)}}
@@ -1434,8 +1426,7 @@ class TestCheckMetadata(TestCase):
 
     def test_discard_new_data(self):
         """Test that new data are discarded."""
-        from trollflow2.plugins import check_metadata
-        from trollflow2.plugins import AbortProcessing
+        from trollflow2.plugins import AbortProcessing, check_metadata
         with mock.patch('trollflow2.plugins.get_config_value') as get_config_value:
             job = {'product_list': None, 'input_mda': {'start_time': dt.datetime.utcnow() - dt.timedelta(minutes=90)}}
             get_config_value.return_value = {'start_time': +60}
@@ -1661,9 +1652,10 @@ class TestFilePublisher(TestCase):
 
     def test_filepublisher_with_compose(self):
         """Test filepublisher with compose."""
-        from trollflow2.plugins import FilePublisher
         from satpy import Scene
         from satpy.tests.utils import make_dataid
+
+        from trollflow2.plugins import FilePublisher
 
         scn_euron1 = Scene()
         dataid = make_dataid(name='cloud_top_height', resolution=1000)
@@ -1739,7 +1731,6 @@ class TestFilePublisher(TestCase):
     def test_multiple_dataset_files_can_be_published(self):
         """Test that netcdf files with multiple datasets can be published normally."""
         from satpy import Scene
-        import numpy as np
         from satpy.tests.utils import make_dataid
 
         resampled_scene = Scene()
@@ -1768,9 +1759,11 @@ class TestFilePublisher(TestCase):
     @staticmethod
     def _create_filenames_and_topics(job):
         """Create the filenames and topics for *job*."""
-        from trollflow2.dict_tools import plist_iter
-        from trollsift import compose
         import os.path
+
+        from trollsift import compose
+
+        from trollflow2.dict_tools import plist_iter
 
         topic_pattern = job['product_list']['product_list']['publish_topic']
         topics = []
@@ -1789,6 +1782,7 @@ class TestFilePublisher(TestCase):
     def test_filepublisher_kwargs(self):
         """Test filepublisher keyword argument usage."""
         from yaml import UnsafeLoader
+
         from trollflow2.plugins import FilePublisher
 
         # Direct instantiation
@@ -1836,9 +1830,10 @@ class TestFilePublisher(TestCase):
 
     def test_dispatch(self):
         """Test dispatch order messages."""
-        from trollflow2.plugins import FilePublisher
         from satpy import Scene
         from satpy.tests.utils import make_dataid
+
+        from trollflow2.plugins import FilePublisher
 
         scn = Scene()
         dataid = make_dataid(name='cloud_top_height', resolution=1000)
@@ -1916,10 +1911,10 @@ class FakeScene(dict):
 @pytest.fixture
 def sc_3a_3b():
     """Fixture to prepare a scene with channels 3A and 3B."""
-    from xarray import DataArray
-    from satpy import Scene
     import dask.array as da
     import numpy as np
+    from satpy import Scene
+    from xarray import DataArray
     prod_attrs = {
         "platform_name": "noaa-18",
         "sensor": "avhrr-3"}
