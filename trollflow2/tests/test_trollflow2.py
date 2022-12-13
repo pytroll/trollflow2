@@ -1001,8 +1001,6 @@ class TestGetProductAreaDef(TestCase):
         """Test _get_product_area_def()."""
         from trollflow2.plugins import _get_product_area_def
 
-        # scn = mock.MagicMock()
-        # scn.__getitem__.side_effect = KeyError
         # No area nor product
         scn = dict([])
         job = {'scene': scn}
