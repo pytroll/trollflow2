@@ -29,6 +29,7 @@ import unittest
 import copy
 from unittest import mock
 from functools import partial
+import numpy as np
 
 import pytest
 from pyresample.geometry import DynamicAreaDefinition
@@ -974,7 +975,6 @@ class TestSunlightCovers(TestCase):
     def test_coverage(self):
         """Test sunlight coverage."""
         from trollflow2.plugins import _get_sunlight_coverage
-        import numpy as np
         with mock.patch('trollflow2.plugins.AreaDefBoundary') as area_def_boundary, \
                 mock.patch('trollflow2.plugins.Boundary') as boundary, \
                 mock.patch('trollflow2.plugins.get_twilight_poly'), \
@@ -1090,10 +1090,9 @@ class TestCheckSunlightCoverage(TestCase):
         """Test that a fully sunlit scene returns 100% coverage."""
         from trollflow2.plugins import check_sunlight_coverage
         from pyresample.spherical import SphPolygon
-        import numpy as np
         with mock.patch('trollflow2.plugins.Pass') as tst_pass,\
                 mock.patch('trollflow2.plugins.get_twilight_poly') as twilight:
-            tst_pass.return_value.boundary.contour_poly = SphPolygon(np.array([(0, 0), (0, 90), (45, 0)]))
+            tst_pass.return_value.boundary.contour_poly = SphPolygon(np.deg2rad(np.array([(0, 0), (0, 90), (45, 0)])))
             twilight.return_value = SphPolygon(np.array([(0, 0), (0, 90), (90, 0)]))
             scene = _get_mocked_scene_with_properties()
             job = {"scene": scene, "product_list": self.product_list.copy(),
@@ -1739,7 +1738,6 @@ class TestFilePublisher(TestCase):
     def test_multiple_dataset_files_can_be_published(self):
         """Test that netcdf files with multiple datasets can be published normally."""
         from satpy import Scene
-        import numpy as np
         from satpy.tests.utils import make_dataid
 
         resampled_scene = Scene()
