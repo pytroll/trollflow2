@@ -1092,7 +1092,7 @@ class TestCheckSunlightCoverage(TestCase):
         with mock.patch('trollflow2.plugins.Pass') as tst_pass,\
                 mock.patch('trollflow2.plugins.get_twilight_poly') as twilight:
             tst_pass.return_value.boundary.contour_poly = SphPolygon(np.deg2rad(np.array([(0, 0), (0, 90), (45, 0)])))
-            twilight.return_value = SphPolygon(np.array([(0, 0), (0, 90), (90, 0)]))
+            twilight.return_value = SphPolygon(np.deg2rad(np.array([(0, 0), (0, 90), (90, 0)])))
             scene = _get_mocked_scene_with_properties()
             job = {"scene": scene, "product_list": self.product_list.copy(),
                    "input_mda": {"platform_name": "platform"}}
