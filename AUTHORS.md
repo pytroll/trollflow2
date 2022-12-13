@@ -10,3 +10,4 @@ The following people have made contributions to this project:
 - [Gerrit Holl (gerritholl)](https://github.com/gerritholl)
 - [Panu Lahtinen (pnuu)](https://github.com/pnuu)
 - [Martin Raspaud (mraspaud)](https://github.com/mraspaud)
+- [Paulo Medeiros (paulovcmedeiros)](https://github.com/paulovcmedeiros)
