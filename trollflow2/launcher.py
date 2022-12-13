@@ -237,8 +237,9 @@ class Runner:
                           remote_filesystem_uri=remote_filesystem_uri)
 
     def _get_remote_filesystem_uri(self):
+        config = read_config(self.product_list, Loader=UnsafeLoader)
         try:
-            return self.product_list['s3_config']['target']
+            return config['product_list']['s3_config']['target']
         except KeyError:
             return None
 
