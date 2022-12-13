@@ -238,7 +238,7 @@ class Runner:
 
     def _get_remote_filesystem_uri(self):
         try:
-            return self.product_list['product_list']['s3_config']['target']
+            return self.product_list['s3_config']['target']
         except KeyError:
             return None
 
