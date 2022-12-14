@@ -1781,13 +1781,13 @@ class TestFilePublisher(TestCase):
 
         return topics
 
-    def test_filepublisher_kwargs(self):
-        """Test filepublisher keyword argument usage."""
-        from yaml import UnsafeLoader
+    def test_filepublisher_kwargs_direct_instance_defaults(self):
+        """Test filepublisher keyword argument usage.
 
+        Direct instantation, default settings.
+        """
         from trollflow2.plugins import FilePublisher
 
-        # Direct instantiation
         with mock.patch('trollflow2.plugins.Message'), \
                 mock.patch.multiple(
                     'posttroll.publisher', NoisyPublisher=mock.DEFAULT, Publisher=mock.DEFAULT) as mocks:
@@ -1802,24 +1802,49 @@ class TestFilePublisher(TestCase):
             Publisher.assert_not_called()
             assert pub.port == 0
             assert pub.nameservers == ""
+
+    def test_filepublisher_kwargs_direct_instance_user_settings(self):
+        """Test filepublisher keyword argument usage.
+
+        Direct instantation, user settings.
+        """
+        from trollflow2.plugins import FilePublisher
+
+        with mock.patch('trollflow2.plugins.Message'), \
+                mock.patch.multiple(
+                    'posttroll.publisher', NoisyPublisher=mock.DEFAULT, Publisher=mock.DEFAULT) as mocks:
+            NoisyPublisher = mocks['NoisyPublisher']
+
             pub = FilePublisher(port=40000, nameservers=['localhost'])
             assert mock.call('l2processor', port=40000, aliases=None, broadcast_interval=2,
                              nameservers=['localhost'], min_port=None, max_port=None) in NoisyPublisher.mock_calls
             assert pub.port == 40000
             assert pub.nameservers == ['localhost']
 
-        # Direct instantiation with nameservers set to None, which should use Publisher instead of NoisyPublisher
+    def test_filepublisher_kwargs_direct_instance_no_nameserver(self):
+        """Test filepublisher keyword argument usage.
+
+        Direct instantation, nameserver switched off.
+        """
+        from trollflow2.plugins import FilePublisher
+
         with mock.patch('trollflow2.plugins.Message'), \
                 mock.patch.multiple(
                     'posttroll.publisher', NoisyPublisher=mock.DEFAULT, Publisher=mock.DEFAULT) as mocks:
             NoisyPublisher = mocks['NoisyPublisher']
             Publisher = mocks['Publisher']
 
-            pub = FilePublisher(port=40000, nameservers=False)
+            _ = FilePublisher(port=40000, nameservers=False)
             NoisyPublisher.assert_not_called()
             Publisher.assert_called_once_with('tcp://*:40000', name='l2processor', min_port=None, max_port=None)
 
-        # Instantiate via loading YAML
+    def test_filepublisher_kwargs(self):
+        """Test filepublisher keyword argument usage.
+
+        User settings and FilePublisher instantiated from YAML.
+        """
+        from yaml import UnsafeLoader
+
         with mock.patch('trollflow2.plugins.Message'), \
                 mock.patch.multiple(
                     'posttroll.publisher', NoisyPublisher=mock.DEFAULT, Publisher=mock.DEFAULT) as mocks:
