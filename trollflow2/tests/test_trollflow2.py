@@ -387,7 +387,7 @@ class TestSaveDatasets(TestCase):
                            mock.call(dsid.return_value, compute=False,
                                      filename=os.path.join('/tmp', 'satdmz', 'pps', 'www', 'latest_2018',
                                                            'NOAA-15_20190217_0600_euron1_in_fname_ctth_static.jpg'),
-                                     fill_value=0, format='jpg', writer='simple_image'),feature-s3-upload-plugin
+                                     fill_value=0, format='jpg', writer='simple_image'), feature-s3-upload-plugin
                            mock.call(dsid.return_value, compute=False,
                                      filename=os.path.join('/tmp', 'NOAA-15_20190217_0600_omerc_bb_ct.nc'),
                                      format='nc', writer='cf'),
@@ -511,7 +511,7 @@ class TestSaveDatasets(TestCase):
                     'products': {
                         'cloud_top_height': {
                             'formats': [{
-                                'filename':feature-s3-upload-plugin
+                                'filename': feature-s3-upload-plugin
                                 '/tmp/NOAA-15_20190217_0600_omerc_bb_cloud_top_height.tif',
                                 'format':
                                 'tif',
@@ -702,7 +702,10 @@ class TestCreateScene(TestCase):
             else:
                 scene.assert_called_with(filenames='bar', reader='baz',
                                          reader_kwargs=None)
+
+
 feature-s3-upload-plugin
+
 
 class TestLoadComposites(TestCase):
     """Test case for loading composites."""
@@ -1293,7 +1296,8 @@ class TestCovers(TestCase):
         job2 = copy.deepcopy(job)
 
         with mock.patch('trollflow2.plugins.get_scene_coverage') as get_scene_coverage,\
-                mock.patch('trollflow2.plugins.Pass'):feature-s3-upload-plugin
+                mock.patch('trollflow2.plugins.Pass'):
+                    feature-s3-upload-plugin
             get_scene_coverage.return_value = 10.0
             covers(job)
             get_scene_coverage.assert_called_with(input_mda['platform_name'],
@@ -1474,7 +1478,8 @@ class TestMetadataAlias(TestCase):
         self.assertEqual(job['input_mda']['foo'], set(['c-d']))
 
 
-class TestGetPluginConf(TestCase):feature-s3-upload-plugin
+class TestGetPluginConf(TestCase):
+    feature-s3-upload-plugin
     """Test case for get_plugin_conf."""
 
     def test_get_plugin_conf(self):
