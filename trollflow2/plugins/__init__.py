@@ -217,7 +217,7 @@ def prepared_filename(fmat, renames):
         yield orig_filename
 
 
-def format_decoration(fmat,  fmat_config):
+def format_decoration(fmat, fmat_config):
     """Format decoration text using template given in fmt_config with key-value pairs in fmat."""
     fmat_config_local = copy.deepcopy(fmat_config)
     if "decorate" in fmat_config:
