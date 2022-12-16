@@ -24,7 +24,7 @@
 
 import copy
 import datetime as dt
-import loggingfeature-s3-upload-plugin
+import logging
 import os
 import unittest
 from functools import partial
@@ -34,9 +34,8 @@ import numpy as np
 import pytest
 from pyresample.geometry import DynamicAreaDefinition
 
-from trollflow2.tests.utils import create_filenames_and_topics
-from trollflow2.tests.utils import TestCase
 from trollflow2.launcher import read_config
+from trollflow2.tests.utils import create_filenames_and_topics
 from trollflow2.tests.utils import TestCase
 
 yaml_test1 = """
@@ -52,7 +51,7 @@ product_list:
         min_coverage: 20.0
         products:
           cloud_top_height:
-            productname: cloud_top_height_in_fnamefeature-s3-upload-plugin
+            productname: cloud_top_height_in_fname
             output_dir: /tmp/satdmz/pps/www/latest_2018/
             formats:
               - format: png
@@ -143,7 +142,7 @@ product_list:
           cloud_top_height:
             productname: cloud_top_height
             formats:
-              - format: tiffeature-s3-upload-plugin
+              - format: tif
                 writer: geotiff
                 filename: /tmp/satdmz/pps/www/latest_2018/NOAA-15_20190217_0600_omerc_bb_in_fname_ctth.png
       null:
@@ -174,7 +173,7 @@ product_list:
         products:
           green_snow:
             productname: green_snow
-            formats:feature-s3-upload-plugin
+            formats:
               - format: tif
                 writer: geotiff
 """
@@ -261,7 +260,7 @@ product_list:
                 writer: simple_image
             fname_pattern: "{platform_name:s}_{start_time:%Y%m%d_%H%M}_{areaname:s}_ctth_static.{format}"
 """
-feature-s3-upload-plugin
+
 input_mda = {'orig_platform_name': 'noaa15', 'orbit_number': 7993,
              'start_time': dt.datetime(2019, 2, 17, 6, 0, 11, 100000), 'stfrac': 1,
              'end_time': dt.datetime(2019, 2, 17, 6, 15, 10, 400000), 'etfrac': 4, 'status': 'OK',
@@ -290,7 +289,7 @@ class TestSaveDatasets(TestCase):
     def test_prepared_filename(self):
         """Test the `prepared_filename` context."""
         from trollflow2.plugins import prepared_filename
-        tst_file = 'hi.png'feature-s3-upload-plugin
+        tst_file = 'hi.png'
 
         renames = {}
         fmat = {'fname_pattern': tst_file}
@@ -387,7 +386,7 @@ class TestSaveDatasets(TestCase):
                            mock.call(dsid.return_value, compute=False,
                                      filename=os.path.join('/tmp', 'satdmz', 'pps', 'www', 'latest_2018',
                                                            'NOAA-15_20190217_0600_euron1_in_fname_ctth_static.jpg'),
-                                     fill_value=0, format='jpg', writer='simple_image'), feature-s3-upload-plugin
+                                     fill_value=0, format='jpg', writer='simple_image'),
                            mock.call(dsid.return_value, compute=False,
                                      filename=os.path.join('/tmp', 'NOAA-15_20190217_0600_omerc_bb_ct.nc'),
                                      format='nc', writer='cf'),
@@ -442,7 +441,7 @@ class TestSaveDatasets(TestCase):
                     'min_coverage': 20.0,
                     'products': {
                         'cloud_top_height': {
-                            'fname_pattern': '{platform_name:s}_{start_time:%Y%m%d_%H%M}_{areaname:s}_ctth_static.{ffeature-s3-upload-pluginormat}',  # noqa
+                            'fname_pattern': '{platform_name:s}_{start_time:%Y%m%d_%H%M}_{areaname:s}_ctth_static.{format}',  # noqa
                             'formats':
                             [{
                                 'filename': '/tmp/satdmz/pps/www/latest_2018/NOAA-15_20190217_0600_euron1_in_fname_ctth_static.png',  # noqa
@@ -477,7 +476,7 @@ class TestSaveDatasets(TestCase):
                                 'writer': 'cf'
                             }],
                             'output_dir': '/tmp/satdmz/pps/www/latest_2018/',
-                            'productname': 'ct_and_ctth'feature-s3-upload-plugin
+                            'productname': 'ct_and_ctth'
                         },
                     }
                 },
@@ -511,7 +510,7 @@ class TestSaveDatasets(TestCase):
                     'products': {
                         'cloud_top_height': {
                             'formats': [{
-                                'filename': feature-s3-upload-plugin
+                                'filename':
                                 '/tmp/NOAA-15_20190217_0600_omerc_bb_cloud_top_height.tif',
                                 'format':
                                 'tif',
@@ -567,7 +566,7 @@ class TestSaveDatasets(TestCase):
             sds_calls = job['resampled_scenes']['euron1'].save_datasets.mock_calls
             for sds in sds_calls:
                 assert "compute=True" in str(sds)
-            compute_writer_results.assert_not_called()feature-s3-upload-plugin
+            compute_writer_results.assert_not_called()
 
     def test_pop_unknown_args(self):
         """Test pop unknown kwargs."""
@@ -704,9 +703,6 @@ class TestCreateScene(TestCase):
                                          reader_kwargs=None)
 
 
-feature-s3-upload-plugin
-
-
 class TestLoadComposites(TestCase):
     """Test case for loading composites."""
 
@@ -768,7 +764,7 @@ class TestAggregate(TestCase):
         self.product_list = read_config(raw_string=yaml_test1, Loader=UnsafeLoader)
 
     def test_aggregate_returns_aggregated_scene(self):
-        """Test aggregating."""feature-s3-upload-plugin
+        """Test aggregating."""
         from trollflow2.plugins import aggregate
         scn = _get_mocked_scene_with_properties()
         assert 'aggregate' in self.product_list['product_list']
@@ -922,7 +918,7 @@ class TestResample(TestCase):
 
 
 class TestResampleNullArea(TestCase):
-    """Test case for resampling."""feature-s3-upload-plugin
+    """Test case for resampling."""
 
     def setUp(self):
         """Set up the test case."""
@@ -1085,7 +1081,7 @@ class TestCheckSunlightCoverage(TestCase):
             job = {"scene": scene, "product_list": self.product_list.copy(),
                    "input_mda": {"platform_name": "platform"}}
             job['product_list']['product_list']['sunlight_coverage'] = {'min': 10, 'max': 40, 'check_pass': True}
-            check_sunlight_coverage(job)feature-s3-upload-plugin
+            check_sunlight_coverage(job)
             ts_pass.assert_called_with(job["input_mda"]["platform_name"], scene.start_time, scene.end_time,
                                        instrument=list(scene.sensor_names)[0])
 
@@ -1205,7 +1201,7 @@ class TestCovers(TestCase):
     def test_covers_no_trollsched(self):
         """Test coverage when pytroll schedule is missing."""
         from trollflow2.plugins import covers
-        job_orig = {"foo": "bar"}feature-s3-upload-plugin
+        job_orig = {"foo": "bar"}
         job = job_orig.copy()
         covers(job)
         self.assertEqual(job, job_orig)
@@ -1297,7 +1293,6 @@ class TestCovers(TestCase):
 
         with mock.patch('trollflow2.plugins.get_scene_coverage') as get_scene_coverage,\
                 mock.patch('trollflow2.plugins.Pass'):
-                    feature-s3-upload-plugin
             get_scene_coverage.return_value = 10.0
             covers(job)
             get_scene_coverage.assert_called_with(input_mda['platform_name'],
@@ -1479,7 +1474,6 @@ class TestMetadataAlias(TestCase):
 
 
 class TestGetPluginConf(TestCase):
-    feature-s3-upload-plugin
     """Test case for get_plugin_conf."""
 
     def test_get_plugin_conf(self):
@@ -1796,7 +1790,6 @@ class TestFilePublisher(TestCase):
 
         pub(job)
         return pub, topics
-
 
     def test_filepublisher_kwargs(self):
         """Test filepublisher keyword argument usage."""
