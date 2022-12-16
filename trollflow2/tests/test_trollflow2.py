@@ -22,20 +22,22 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 """Test plugins."""
 
+import copy
 import datetime as dt
-import logging
+import loggingfeature-s3-upload-plugin
 import os
 import unittest
-import copy
-from unittest import mock
 from functools import partial
+from unittest import mock
 
+import numpy as np
 import pytest
 from pyresample.geometry import DynamicAreaDefinition
 
-from trollflow2.tests.utils import TestCase, create_filenames_and_topics
+from trollflow2.tests.utils import create_filenames_and_topics
+from trollflow2.tests.utils import TestCase
 from trollflow2.launcher import read_config
-
+from trollflow2.tests.utils import TestCase
 
 yaml_test1 = """
 product_list:
@@ -50,7 +52,7 @@ product_list:
         min_coverage: 20.0
         products:
           cloud_top_height:
-            productname: cloud_top_height_in_fname
+            productname: cloud_top_height_in_fnamefeature-s3-upload-plugin
             output_dir: /tmp/satdmz/pps/www/latest_2018/
             formats:
               - format: png
@@ -141,7 +143,7 @@ product_list:
           cloud_top_height:
             productname: cloud_top_height
             formats:
-              - format: tif
+              - format: tiffeature-s3-upload-plugin
                 writer: geotiff
                 filename: /tmp/satdmz/pps/www/latest_2018/NOAA-15_20190217_0600_omerc_bb_in_fname_ctth.png
       null:
@@ -172,7 +174,7 @@ product_list:
         products:
           green_snow:
             productname: green_snow
-            formats:
+            formats:feature-s3-upload-plugin
               - format: tif
                 writer: geotiff
 """
@@ -259,7 +261,7 @@ product_list:
                 writer: simple_image
             fname_pattern: "{platform_name:s}_{start_time:%Y%m%d_%H%M}_{areaname:s}_ctth_static.{format}"
 """
-
+feature-s3-upload-plugin
 input_mda = {'orig_platform_name': 'noaa15', 'orbit_number': 7993,
              'start_time': dt.datetime(2019, 2, 17, 6, 0, 11, 100000), 'stfrac': 1,
              'end_time': dt.datetime(2019, 2, 17, 6, 15, 10, 400000), 'etfrac': 4, 'status': 'OK',
@@ -288,7 +290,7 @@ class TestSaveDatasets(TestCase):
     def test_prepared_filename(self):
         """Test the `prepared_filename` context."""
         from trollflow2.plugins import prepared_filename
-        tst_file = 'hi.png'
+        tst_file = 'hi.png'feature-s3-upload-plugin
 
         renames = {}
         fmat = {'fname_pattern': tst_file}
@@ -369,7 +371,7 @@ class TestSaveDatasets(TestCase):
     def test_save_datasets(self):
         """Test saving datasets."""
         self.maxDiff = None
-        from trollflow2.plugins import save_datasets, DEFAULT
+        from trollflow2.plugins import DEFAULT, save_datasets
 
         the_queue = mock.MagicMock()
         job = _create_job_for_save_datasets()
@@ -385,7 +387,7 @@ class TestSaveDatasets(TestCase):
                            mock.call(dsid.return_value, compute=False,
                                      filename=os.path.join('/tmp', 'satdmz', 'pps', 'www', 'latest_2018',
                                                            'NOAA-15_20190217_0600_euron1_in_fname_ctth_static.jpg'),
-                                     fill_value=0, format='jpg', writer='simple_image'),
+                                     fill_value=0, format='jpg', writer='simple_image'),feature-s3-upload-plugin
                            mock.call(dsid.return_value, compute=False,
                                      filename=os.path.join('/tmp', 'NOAA-15_20190217_0600_omerc_bb_ct.nc'),
                                      format='nc', writer='cf'),
@@ -440,7 +442,7 @@ class TestSaveDatasets(TestCase):
                     'min_coverage': 20.0,
                     'products': {
                         'cloud_top_height': {
-                            'fname_pattern': '{platform_name:s}_{start_time:%Y%m%d_%H%M}_{areaname:s}_ctth_static.{format}',  # noqa
+                            'fname_pattern': '{platform_name:s}_{start_time:%Y%m%d_%H%M}_{areaname:s}_ctth_static.{ffeature-s3-upload-pluginormat}',  # noqa
                             'formats':
                             [{
                                 'filename': '/tmp/satdmz/pps/www/latest_2018/NOAA-15_20190217_0600_euron1_in_fname_ctth_static.png',  # noqa
@@ -475,7 +477,7 @@ class TestSaveDatasets(TestCase):
                                 'writer': 'cf'
                             }],
                             'output_dir': '/tmp/satdmz/pps/www/latest_2018/',
-                            'productname': 'ct_and_ctth'
+                            'productname': 'ct_and_ctth'feature-s3-upload-plugin
                         },
                     }
                 },
@@ -509,7 +511,7 @@ class TestSaveDatasets(TestCase):
                     'products': {
                         'cloud_top_height': {
                             'formats': [{
-                                'filename':
+                                'filename':feature-s3-upload-plugin
                                 '/tmp/NOAA-15_20190217_0600_omerc_bb_cloud_top_height.tif',
                                 'format':
                                 'tif',
@@ -565,7 +567,7 @@ class TestSaveDatasets(TestCase):
             sds_calls = job['resampled_scenes']['euron1'].save_datasets.mock_calls
             for sds in sds_calls:
                 assert "compute=True" in str(sds)
-            compute_writer_results.assert_not_called()
+            compute_writer_results.assert_not_called()feature-s3-upload-plugin
 
     def test_pop_unknown_args(self):
         """Test pop unknown kwargs."""
@@ -673,8 +675,9 @@ class TestCreateScene(TestCase):
 
     def test_create_scene(self):
         """Test making a scene."""
-        from trollflow2.plugins import create_scene
         from satpy.version import version as satpy_version
+
+        from trollflow2.plugins import create_scene
         if not isinstance(satpy_version, str):
             # trollflow2 mocks all missing imports
             import trollflow2.plugins
@@ -699,7 +702,7 @@ class TestCreateScene(TestCase):
             else:
                 scene.assert_called_with(filenames='bar', reader='baz',
                                          reader_kwargs=None)
-
+feature-s3-upload-plugin
 
 class TestLoadComposites(TestCase):
     """Test case for loading composites."""
@@ -712,7 +715,7 @@ class TestLoadComposites(TestCase):
 
     def test_load_composites(self):
         """Test loading composites."""
-        from trollflow2.plugins import load_composites, DEFAULT
+        from trollflow2.plugins import DEFAULT, load_composites
         scn = _get_mocked_scene_with_properties()
         job = {"product_list": self.product_list, "scene": scn}
         load_composites(job)
@@ -742,7 +745,7 @@ class TestLoadComposites(TestCase):
 
     def test_load_composites_with_custom_args(self):
         """Test loading with arbitrary additional arguments."""
-        from trollflow2.plugins import load_composites, DEFAULT
+        from trollflow2.plugins import DEFAULT, load_composites
         scn = _get_mocked_scene_with_properties()
         self.product_list['product_list']['scene_load_kwargs'] = {"upper_right_corner": "NE"}
         job = {"product_list": self.product_list, "scene": scn}
@@ -762,7 +765,7 @@ class TestAggregate(TestCase):
         self.product_list = read_config(raw_string=yaml_test1, Loader=UnsafeLoader)
 
     def test_aggregate_returns_aggregated_scene(self):
-        """Test aggregating."""
+        """Test aggregating."""feature-s3-upload-plugin
         from trollflow2.plugins import aggregate
         scn = _get_mocked_scene_with_properties()
         assert 'aggregate' in self.product_list['product_list']
@@ -916,7 +919,7 @@ class TestResample(TestCase):
 
 
 class TestResampleNullArea(TestCase):
-    """Test case for resampling."""
+    """Test case for resampling."""feature-s3-upload-plugin
 
     def setUp(self):
         """Set up the test case."""
@@ -974,7 +977,6 @@ class TestSunlightCovers(TestCase):
     def test_coverage(self):
         """Test sunlight coverage."""
         from trollflow2.plugins import _get_sunlight_coverage
-        import numpy as np
         with mock.patch('trollflow2.plugins.AreaDefBoundary') as area_def_boundary, \
                 mock.patch('trollflow2.plugins.Boundary') as boundary, \
                 mock.patch('trollflow2.plugins.get_twilight_poly'), \
@@ -1000,8 +1002,6 @@ class TestGetProductAreaDef(TestCase):
     def test_get_product_area_def(self):
         """Test _get_product_area_def()."""
         from trollflow2.plugins import _get_product_area_def
-        # scn = mock.MagicMock()
-        # scn.__getitem__.side_effect = KeyError
 
         # No area nor product
         scn = dict([])
@@ -1082,19 +1082,19 @@ class TestCheckSunlightCoverage(TestCase):
             job = {"scene": scene, "product_list": self.product_list.copy(),
                    "input_mda": {"platform_name": "platform"}}
             job['product_list']['product_list']['sunlight_coverage'] = {'min': 10, 'max': 40, 'check_pass': True}
-            check_sunlight_coverage(job)
+            check_sunlight_coverage(job)feature-s3-upload-plugin
             ts_pass.assert_called_with(job["input_mda"]["platform_name"], scene.start_time, scene.end_time,
                                        instrument=list(scene.sensor_names)[0])
 
     def test_fully_sunlit_scene_returns_full_coverage(self):
         """Test that a fully sunlit scene returns 100% coverage."""
-        from trollflow2.plugins import check_sunlight_coverage
         from pyresample.spherical import SphPolygon
-        import numpy as np
+
+        from trollflow2.plugins import check_sunlight_coverage
         with mock.patch('trollflow2.plugins.Pass') as tst_pass,\
                 mock.patch('trollflow2.plugins.get_twilight_poly') as twilight:
-            tst_pass.return_value.boundary.contour_poly = SphPolygon(np.array([(0, 0), (0, 90), (45, 0)]))
-            twilight.return_value = SphPolygon(np.array([(0, 0), (0, 90), (90, 0)]))
+            tst_pass.return_value.boundary.contour_poly = SphPolygon(np.deg2rad(np.array([(0, 0), (0, 90), (45, 0)])))
+            twilight.return_value = SphPolygon(np.deg2rad(np.array([(0, 0), (0, 90), (90, 0)])))
             scene = _get_mocked_scene_with_properties()
             job = {"scene": scene, "product_list": self.product_list.copy(),
                    "input_mda": {"platform_name": "platform"}}
@@ -1104,8 +1104,7 @@ class TestCheckSunlightCoverage(TestCase):
 
     def test_product_not_loaded(self):
         """Test that product isn't loaded when sunlight coverage is too low."""
-        from trollflow2.plugins import check_sunlight_coverage
-        from trollflow2.plugins import metadata_alias
+        from trollflow2.plugins import check_sunlight_coverage, metadata_alias
         with mock.patch('trollflow2.plugins.Pass') as ts_pass,\
                 mock.patch('trollflow2.plugins.get_twilight_poly'),\
                 mock.patch('trollflow2.plugins.get_area_def'),\
@@ -1128,8 +1127,7 @@ class TestCheckSunlightCoverage(TestCase):
 
     def test_sunlight_filter(self):
         """Test that product isn't loaded when sunlight coverage is to low."""
-        from trollflow2.plugins import check_sunlight_coverage
-        from trollflow2.plugins import metadata_alias
+        from trollflow2.plugins import check_sunlight_coverage, metadata_alias
         with mock.patch('trollflow2.plugins.Pass'),\
                 mock.patch('trollflow2.plugins.get_twilight_poly'),\
                 mock.patch('trollflow2.plugins.get_area_def'),\
@@ -1204,7 +1202,7 @@ class TestCovers(TestCase):
     def test_covers_no_trollsched(self):
         """Test coverage when pytroll schedule is missing."""
         from trollflow2.plugins import covers
-        job_orig = {"foo": "bar"}
+        job_orig = {"foo": "bar"}feature-s3-upload-plugin
         job = job_orig.copy()
         covers(job)
         self.assertEqual(job, job_orig)
@@ -1295,7 +1293,7 @@ class TestCovers(TestCase):
         job2 = copy.deepcopy(job)
 
         with mock.patch('trollflow2.plugins.get_scene_coverage') as get_scene_coverage,\
-                mock.patch('trollflow2.plugins.Pass'):
+                mock.patch('trollflow2.plugins.Pass'):feature-s3-upload-plugin
             get_scene_coverage.return_value = 10.0
             covers(job)
             get_scene_coverage.assert_called_with(input_mda['platform_name'],
@@ -1328,8 +1326,7 @@ class TestCovers(TestCase):
 
     def test_covers_collection_area_id(self):
         """Test the coverage of a collection area id."""
-        from trollflow2.plugins import covers
-        from trollflow2.plugins import AbortProcessing
+        from trollflow2.plugins import AbortProcessing, covers
         with mock.patch('trollflow2.plugins.Pass', spec=True) as pass_obj:
             fake_area_coverage_100 = partial(fake_area_coverage, result=1)
             pass_obj.return_value.area_coverage.side_effect = fake_area_coverage_100
@@ -1381,8 +1378,7 @@ class TestCheckMetadata(TestCase):
 
     def test_single_item(self):
         """Test checking a single metadata item."""
-        from trollflow2.plugins import check_metadata
-        from trollflow2.plugins import AbortProcessing
+        from trollflow2.plugins import AbortProcessing, check_metadata
         with mock.patch('trollflow2.plugins.get_config_value') as get_config_value:
             get_config_value.return_value = None
             job = {'product_list': None, 'input_mda': {'sensor': 'foo'}}
@@ -1395,8 +1391,7 @@ class TestCheckMetadata(TestCase):
 
     def test_multiple_items(self):
         """Test checking a single metadata item."""
-        from trollflow2.plugins import check_metadata
-        from trollflow2.plugins import AbortProcessing
+        from trollflow2.plugins import AbortProcessing, check_metadata
         with mock.patch('trollflow2.plugins.get_config_value') as get_config_value:
             # Nothing configured
             get_config_value.return_value = None
@@ -1420,8 +1415,7 @@ class TestCheckMetadata(TestCase):
 
     def test_discard_old_data(self):
         """Test that old data are discarded."""
-        from trollflow2.plugins import check_metadata
-        from trollflow2.plugins import AbortProcessing
+        from trollflow2.plugins import AbortProcessing, check_metadata
         with mock.patch('trollflow2.plugins.get_config_value') as get_config_value:
             get_config_value.return_value = None
             job = {'product_list': None, 'input_mda': {'start_time': dt.datetime(2020, 3, 18)}}
@@ -1434,8 +1428,7 @@ class TestCheckMetadata(TestCase):
 
     def test_discard_new_data(self):
         """Test that new data are discarded."""
-        from trollflow2.plugins import check_metadata
-        from trollflow2.plugins import AbortProcessing
+        from trollflow2.plugins import AbortProcessing, check_metadata
         with mock.patch('trollflow2.plugins.get_config_value') as get_config_value:
             job = {'product_list': None, 'input_mda': {'start_time': dt.datetime.utcnow() - dt.timedelta(minutes=90)}}
             get_config_value.return_value = {'start_time': +60}
@@ -1481,7 +1474,7 @@ class TestMetadataAlias(TestCase):
         self.assertEqual(job['input_mda']['foo'], set(['c-d']))
 
 
-class TestGetPluginConf(TestCase):
+class TestGetPluginConf(TestCase):feature-s3-upload-plugin
     """Test case for get_plugin_conf."""
 
     def test_get_plugin_conf(self):
@@ -1661,9 +1654,10 @@ class TestFilePublisher(TestCase):
 
     def test_filepublisher_with_compose(self):
         """Test filepublisher with compose."""
-        from trollflow2.plugins import FilePublisher
         from satpy import Scene
         from satpy.tests.utils import make_dataid
+
+        from trollflow2.plugins import FilePublisher
 
         scn_euron1 = Scene()
         dataid = make_dataid(name='cloud_top_height', resolution=1000)
@@ -1766,7 +1760,6 @@ class TestFilePublisher(TestCase):
     def test_multiple_dataset_files_can_be_published(self):
         """Test that netcdf files with multiple datasets can be published normally."""
         from satpy import Scene
-        import numpy as np
         from satpy.tests.utils import make_dataid
 
         resampled_scene = Scene()
@@ -1799,9 +1792,11 @@ class TestFilePublisher(TestCase):
         pub(job)
         return pub, topics
 
+
     def test_filepublisher_kwargs(self):
         """Test filepublisher keyword argument usage."""
         from yaml import UnsafeLoader
+
         from trollflow2.plugins import FilePublisher
 
         # Direct instantiation
@@ -1849,9 +1844,10 @@ class TestFilePublisher(TestCase):
 
     def test_dispatch(self):
         """Test dispatch order messages."""
-        from trollflow2.plugins import FilePublisher
         from satpy import Scene
         from satpy.tests.utils import make_dataid
+
+        from trollflow2.plugins import FilePublisher
 
         scn = Scene()
         dataid = make_dataid(name='cloud_top_height', resolution=1000)
@@ -1929,10 +1925,10 @@ class FakeScene(dict):
 @pytest.fixture
 def sc_3a_3b():
     """Fixture to prepare a scene with channels 3A and 3B."""
-    from xarray import DataArray
-    from satpy import Scene
     import dask.array as da
     import numpy as np
+    from satpy import Scene
+    from xarray import DataArray
     prod_attrs = {
         "platform_name": "noaa-18",
         "sensor": "avhrr-3"}

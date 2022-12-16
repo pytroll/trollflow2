@@ -42,7 +42,7 @@ except ImportError:
     from yaml import Loader as UnsafeLoader
 from unittest import mock
 from trollflow2.tests.utils import TestCase
-from trollflow2.launcher import process
+from trollflow2.launcher import process, generate_messages, VALID_MESSAGE_TYPES
 
 yaml_test1 = """
 product_list:
@@ -360,8 +360,10 @@ class TestRun(TestCase):
                 mock.patch('trollflow2.launcher.open'),\
                 mock.patch('multiprocessing.get_context') as get_context, \
                 mock.patch('trollflow2.launcher.ListenerContainer') as lc_:
+            msg = mock.MagicMock()
+            msg.type = 'file'
             listener = mock.MagicMock()
-            listener.output_queue.get.return_value = 'foo'
+            listener.output_queue.get.return_value = msg
             lc_.return_value = listener
             proc_ret = mock.MagicMock()
             get_context.return_value.Process.return_value = proc_ret
@@ -409,8 +411,11 @@ def run_on_a_simple_product_list(config, log_queue):
             mock.patch('trollflow2.launcher.open'),\
             mock.patch('multiprocessing.get_context') as get_context,\
             mock.patch('trollflow2.launcher.ListenerContainer') as lc_:
+
+        msg = mock.MagicMock()
+        msg.type = 'file'
         listener = mock.MagicMock()
-        listener.output_queue.get.return_value = 'foo'
+        listener.output_queue.get.return_value = msg
         lc_.return_value = listener
         proc_ret = mock.MagicMock()
         get_context.return_value.Process.return_value = proc_ret
@@ -846,6 +851,17 @@ def test_check_results_s3_file_exists(tmp_path, caplog):
         assert mock.call('s3://bucket-name/file10') in s3fs_mock.S3FileSystem.return_value.stat.mock_calls
         assert mock.call('s3://bucket-name/file11') in s3fs_mock.S3FileSystem.return_value.stat.mock_calls
         assert mock.call('s3://bucket-name/file12') in s3fs_mock.S3FileSystem.return_value.stat.mock_calls
+
+
+def test_generate_messages():
+    """Test the generate_messages function."""
+    messages = [mock.MagicMock(type=_type) for _type in VALID_MESSAGE_TYPES + ("foo",)]
+    with mock.patch('trollflow2.launcher.ListenerContainer') as lc_:
+        listener = mock.MagicMock()
+        listener.output_queue.get.side_effect = messages + [KeyboardInterrupt]
+        lc_.return_value = listener
+        for msg in generate_messages(connection_parameters=dict(topic=['/topic3'])):
+            assert msg.type in VALID_MESSAGE_TYPES
 
 
 if __name__ == '__main__':
