@@ -55,6 +55,7 @@ from yaml import UnsafeLoader, SafeLoader, BaseLoader
 
 LOG = getLogger(__name__)
 DEFAULT_PRIORITY = 999
+VALID_MESSAGE_TYPES = ("file", "dataset", "collection")
 
 
 def tuple_constructor(loader, node):
@@ -125,7 +126,9 @@ def generate_messages(connection_parameters):
     listener = _create_listener_from_connection_parameters(connection_parameters)
     while True:
         try:
-            yield listener.output_queue.get(True, 5)
+            msg = listener.output_queue.get(True, 5)
+            if msg.type in VALID_MESSAGE_TYPES:
+                yield msg
         except KeyboardInterrupt:
             listener.stop()
             return
