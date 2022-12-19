@@ -2024,15 +2024,20 @@ def test_format_decoration():
     formated = {'format': 'png', 'writer': 'simple_image',
                 'decorate': {'decorate': [{'text': {'txt': '2022-05-03 12:07',
                                                     'align': {'top_bottom': 'top', 'left_right': 'right'}}}]}}
-    # test valid input
     assert format_decoration(fmat, fmat_config) == formated
 
-    # set invalid input data
-    fmat_config_invalid = {'format': 'png', 'writer': 'simple_image',
-                           'decorate': {'decorate': [{'text': {'txt': '{time:%Y-%m-%d %H:%M}',
-                                                      'align': {'top_bottom': 'top', 'left_right': 'right'}}}]}}
-    # test invalid input
-    assert format_decoration(fmat, fmat_config_invalid) == fmat_config_invalid
+
+def test_format_decoration_plain_text():
+    """Test that decoration text is plain text if text in fmt_config does not include name of any key in fmat."""
+    import datetime
+    from trollflow2.plugins import format_decoration
+    # set input data. Text does not include name of any key in fmat.
+    fmat = {'orig_platform_name': 'npp',
+            'start_time': datetime.datetime(2022, 5, 3, 12, 7, 52)}
+    fmat_config = {'format': 'png', 'writer': 'simple_image',
+                   'decorate': {'decorate': [{'text': {'txt': '{wrong_key_name:%Y-%m-%d %H:%M}',
+                                              'align': {'top_bottom': 'top', 'left_right': 'right'}}}]}}
+    assert format_decoration(fmat, fmat_config) == fmat_config
 
 
 if __name__ == '__main__':
