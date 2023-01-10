@@ -217,16 +217,22 @@ def prepared_filename(fmat, renames):
         yield orig_filename
 
 
+def _format_decoration_text(deco, fmat):
+    """Format decoration text if it contains a key that is included in fmat"""
+    if "text" in deco and "txt" in deco["text"]:
+        try:
+            deco["text"]["txt"] = deco["text"]["txt"].format(**fmat)
+        except KeyError:
+            LOG.warning('Could not format: %s.', str(deco["text"]["txt"]))
+    return deco
+
+
 def format_decoration(fmat, fmat_config):
     """Format decoration text using template given in fmt_config with key-value pairs in fmat."""
     fmat_config_local = copy.deepcopy(fmat_config)
     if "decorate" in fmat_config:
         for deco in fmat_config_local["decorate"]["decorate"]:
-            if "text" in deco and "txt" in deco["text"]:
-                try:
-                    deco["text"]["txt"] = deco["text"]["txt"].format(**fmat)
-                except KeyError:
-                    LOG.warning('Could not format: %s.', str(deco["text"]["txt"]))
+            deco = _format_decoration_text(deco, fmat)
     return fmat_config_local
 
 
