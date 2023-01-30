@@ -1647,9 +1647,12 @@ class TestFilePublisher(TestCase):
         """Test that the filepublisher is stopped on exit."""
         from trollflow2.plugins import FilePublisher
         with mock.patch('posttroll.publisher.NoisyPublisher'):
+            publisher = mock.MagicMock()
             pub = FilePublisher()
+            pub.pub = publisher
             pub.__del__()
-            pub.pub.stop.assert_called()
+            publisher.stop.assert_called()
+            assert pub.pub is None
 
     def test_filepublisher_with_compose(self):
         """Test filepublisher with compose."""
