@@ -1639,14 +1639,14 @@ class TestFilePublisher(TestCase):
     def test_filepublisher_is_started(self):
         """Test that the filepublisher is started."""
         from trollflow2.plugins import FilePublisher
-        with mock.patch('trollflow2.plugins.NoisyPublisher'):
-            pub = FilePublisher()
-            pub.pub.start.assert_called_once()
+        with mock.patch('posttroll.publisher.NoisyPublisher') as NoisyPublisher:
+            _ = FilePublisher()
+            NoisyPublisher.return_value.start.assert_called_once()
 
     def test_filepublisher_is_stopped_on_exit(self):
         """Test that the filepublisher is stopped on exit."""
         from trollflow2.plugins import FilePublisher
-        with mock.patch('trollflow2.plugins.NoisyPublisher'):
+        with mock.patch('posttroll.publisher.NoisyPublisher'):
             pub = FilePublisher()
             pub.__del__()
             pub.pub.stop.assert_called()
@@ -1665,9 +1665,10 @@ class TestFilePublisher(TestCase):
                'input_mda': self.input_mda,
                'resampled_scenes': dict(euron1=scn_euron1)}
 
-        with mock.patch.multiple('trollflow2.plugins', Message=mock.DEFAULT,
-                                 NoisyPublisher=mock.DEFAULT, Publisher=mock.DEFAULT) as mocks:
-            message = mocks['Message']
+        with mock.patch('trollflow2.plugins.Message') as Message, \
+                mock.patch.multiple(
+                    'posttroll.publisher', NoisyPublisher=mock.DEFAULT, Publisher=mock.DEFAULT):
+            message = Message
 
             pub = FilePublisher()
             product_list = self.product_list.copy()
@@ -1700,9 +1701,10 @@ class TestFilePublisher(TestCase):
                'input_mda': self.input_mda,
                'resampled_scenes': dict(euron1=scn_euron1)}
 
-        with mock.patch.multiple('trollflow2.plugins', Message=mock.DEFAULT,
-                                 NoisyPublisher=mock.DEFAULT, Publisher=mock.DEFAULT) as mocks:
-            message = mocks['Message']
+        with mock.patch('trollflow2.plugins.Message') as Message, \
+                mock.patch.multiple(
+                    'posttroll.publisher', NoisyPublisher=mock.DEFAULT, Publisher=mock.DEFAULT):
+            message = Message
 
             pub, topics = self._run_publisher_on_job(job)
             message.assert_called()
@@ -1752,7 +1754,7 @@ class TestFilePublisher(TestCase):
         job = {"scene": scn, "product_list": self.product_list, 'input_mda': self.input_mda,
                'resampled_scenes': dict(euron1=Scene(), germ=Scene())}
 
-        with mock.patch('trollflow2.plugins.Message') as message, mock.patch('trollflow2.plugins.NoisyPublisher'):
+        with mock.patch('trollflow2.plugins.Message') as message, mock.patch('posttroll.publisher.NoisyPublisher'):
             self._run_publisher_on_job(job)
             message.assert_not_called()
 
@@ -1768,7 +1770,7 @@ class TestFilePublisher(TestCase):
         job = {"scene": scn, "product_list": self.product_list, 'input_mda': self.input_mda,
                'resampled_scenes': {'None': resampled_scene}}
 
-        with mock.patch('trollflow2.plugins.Message') as message, mock.patch('trollflow2.plugins.NoisyPublisher'):
+        with mock.patch('trollflow2.plugins.Message') as message, mock.patch('posttroll.publisher.NoisyPublisher'):
             self._run_publisher_on_job(job)
             assert message.call_args_list[-1][0][2]['product'] == (
                 'chl_nn', 'chl_oc4me', 'trsp', 'tsm_nn', 'iop_nn', 'mask', 'latitude', 'longitude')
@@ -1791,52 +1793,105 @@ class TestFilePublisher(TestCase):
         pub(job)
         return pub, topics
 
-    def test_filepublisher_kwargs(self):
-        """Test filepublisher keyword argument usage."""
-        from yaml import UnsafeLoader
+    @staticmethod
+    def _create_filenames_and_topics(job):
+        """Create the filenames and topics for *job*."""
+        import os.path
 
+        from trollsift import compose
+
+        from trollflow2.dict_tools import plist_iter
+
+        topic_pattern = job['product_list']['product_list']['publish_topic']
+        topics = []
+
+        for fmat, fmat_config in plist_iter(job['product_list']['product_list'],
+                                            job['input_mda'].copy()):
+            fname_pattern = fmat['fname_pattern']
+            filename = compose(os.path.join(fmat['output_dir'],
+                                            fname_pattern), fmat)
+            fmat.pop('format', None)
+            fmat_config['filename'] = filename
+            topics.append(compose(topic_pattern, fmat))
+
+        return topics
+
+    def test_filepublisher_kwargs_direct_instance_defaults(self):
+        """Test filepublisher keyword argument usage.
+
+        Direct instantation, default settings.
+        """
         from trollflow2.plugins import FilePublisher
 
-        # Direct instantiation
-        with mock.patch.multiple('trollflow2.plugins', Message=mock.DEFAULT,
-                                 NoisyPublisher=mock.DEFAULT, Publisher=mock.DEFAULT) as mocks:
+        with mock.patch('trollflow2.plugins.Message'), \
+                mock.patch.multiple(
+                    'posttroll.publisher', NoisyPublisher=mock.DEFAULT, Publisher=mock.DEFAULT) as mocks:
             NoisyPublisher = mocks['NoisyPublisher']
             Publisher = mocks['Publisher']
 
             pub = FilePublisher()
-            pub.pub.start.assert_called_once()
-            assert mock.call('l2processor', port=0, nameservers="") in NoisyPublisher.mock_calls
+            NoisyPublisher.assert_called_once()
+            assert pub.pub is NoisyPublisher.return_value.start.return_value
+            assert mock.call('l2processor', port=0, aliases=None, broadcast_interval=2,
+                             nameservers="", min_port=None, max_port=None) in NoisyPublisher.mock_calls
             Publisher.assert_not_called()
             assert pub.port == 0
             assert pub.nameservers == ""
+
+    def test_filepublisher_kwargs_direct_instance_user_settings(self):
+        """Test filepublisher keyword argument usage.
+
+        Direct instantation, user settings.
+        """
+        from trollflow2.plugins import FilePublisher
+
+        with mock.patch('trollflow2.plugins.Message'), \
+                mock.patch.multiple(
+                    'posttroll.publisher', NoisyPublisher=mock.DEFAULT, Publisher=mock.DEFAULT) as mocks:
+            NoisyPublisher = mocks['NoisyPublisher']
+
             pub = FilePublisher(port=40000, nameservers=['localhost'])
-            assert mock.call('l2processor', port=40000,
-                             nameservers=['localhost']) in NoisyPublisher.mock_calls
+            assert mock.call('l2processor', port=40000, aliases=None, broadcast_interval=2,
+                             nameservers=['localhost'], min_port=None, max_port=None) in NoisyPublisher.mock_calls
             assert pub.port == 40000
             assert pub.nameservers == ['localhost']
-            assert len(pub.pub.start.mock_calls) == 2
 
-        # Direct instantiation with nameservers set to None, which should use Publisher instead of NoisyPublisher
-        with mock.patch.multiple('trollflow2.plugins', Message=mock.DEFAULT,
-                                 NoisyPublisher=mock.DEFAULT, Publisher=mock.DEFAULT) as mocks:
+    def test_filepublisher_kwargs_direct_instance_no_nameserver(self):
+        """Test filepublisher keyword argument usage.
+
+        Direct instantation, nameserver switched off.
+        """
+        from trollflow2.plugins import FilePublisher
+
+        with mock.patch('trollflow2.plugins.Message'), \
+                mock.patch.multiple(
+                    'posttroll.publisher', NoisyPublisher=mock.DEFAULT, Publisher=mock.DEFAULT) as mocks:
             NoisyPublisher = mocks['NoisyPublisher']
             Publisher = mocks['Publisher']
 
-            pub = FilePublisher(port=40000, nameservers=None)
+            _ = FilePublisher(port=40000, nameservers=False)
             NoisyPublisher.assert_not_called()
-            Publisher.assert_called_once_with('tcp://*:40000', 'l2processor')
+            Publisher.assert_called_once_with('tcp://*:40000', name='l2processor', min_port=None, max_port=None)
 
-        # Instantiate via loading YAML
-        with mock.patch.multiple('trollflow2.plugins', Message=mock.DEFAULT,
-                                 NoisyPublisher=mock.DEFAULT, Publisher=mock.DEFAULT) as mocks:
+    def test_filepublisher_kwargs(self):
+        """Test filepublisher keyword argument usage.
+
+        User settings and FilePublisher instantiated from YAML.
+        """
+        from yaml import UnsafeLoader
+
+        with mock.patch('trollflow2.plugins.Message'), \
+                mock.patch.multiple(
+                    'posttroll.publisher', NoisyPublisher=mock.DEFAULT, Publisher=mock.DEFAULT) as mocks:
             NoisyPublisher = mocks['NoisyPublisher']
             Publisher = mocks['Publisher']
 
             fpub = read_config(raw_string=YAML_FILE_PUBLISHER, Loader=UnsafeLoader)
-            assert mock.call('l2processor', port=40002,
-                             nameservers=['localhost']) in NoisyPublisher.mock_calls
+            assert mock.call('l2processor', port=40002, aliases=None, broadcast_interval=2,
+                             nameservers=['localhost'], min_port=None, max_port=None) in NoisyPublisher.mock_calls
             Publisher.assert_not_called()
-            fpub.pub.start.assert_called_once()
+            assert fpub.pub is NoisyPublisher.return_value.start.return_value
+            NoisyPublisher.assert_called_once()
             assert fpub.port == 40002
             assert fpub.nameservers == ['localhost']
 
@@ -1854,9 +1909,10 @@ class TestFilePublisher(TestCase):
                'input_mda': self.input_mda,
                'resampled_scenes': dict(euron1=scn)}
 
-        with mock.patch.multiple('trollflow2.plugins', Message=mock.DEFAULT,
-                                 NoisyPublisher=mock.DEFAULT, Publisher=mock.DEFAULT) as mocks:
-            message = mocks['Message']
+        with mock.patch('trollflow2.plugins.Message') as Message, \
+                mock.patch.multiple(
+                    'posttroll.publisher', NoisyPublisher=mock.DEFAULT, Publisher=mock.DEFAULT):
+            message = Message
 
             pub = FilePublisher()
             pub(job)
@@ -1881,8 +1937,9 @@ class TestFilePublisher(TestCase):
         """Test deleting the publisher."""
         from trollflow2.plugins import FilePublisher
         nb_ = mock.MagicMock()
-        with mock.patch.multiple('trollflow2.plugins', Message=mock.DEFAULT,
-                                 NoisyPublisher=mock.DEFAULT, Publisher=mock.DEFAULT) as mocks:
+        with mock.patch('trollflow2.plugins.Message'), \
+                mock.patch.multiple(
+                    'posttroll.publisher', NoisyPublisher=mock.DEFAULT, Publisher=mock.DEFAULT) as mocks:
             NoisyPublisher = mocks['NoisyPublisher']
 
             NoisyPublisher.return_value = nb_
@@ -1892,16 +1949,17 @@ class TestFilePublisher(TestCase):
                    'resampled_scenes': {}}
             pub(job)
 
-        nb_.stop.assert_not_called()
+        nb_.start.return_value.stop.assert_not_called()
         del pub
-        nb_.stop.assert_called_once()
+        nb_.start.return_value.stop.assert_called_once()
 
     def test_stopping(self):
         """Test stopping the publisher."""
         from trollflow2.plugins import FilePublisher
         nb_ = mock.MagicMock()
-        with mock.patch.multiple('trollflow2.plugins', Message=mock.DEFAULT,
-                                 NoisyPublisher=mock.DEFAULT, Publisher=mock.DEFAULT) as mocks:
+        with mock.patch('trollflow2.plugins.Message'), \
+                mock.patch.multiple(
+                    'posttroll.publisher', NoisyPublisher=mock.DEFAULT, Publisher=mock.DEFAULT) as mocks:
             NoisyPublisher = mocks['NoisyPublisher']
 
             NoisyPublisher.return_value = nb_
@@ -1911,9 +1969,9 @@ class TestFilePublisher(TestCase):
                    'resampled_scenes': {}}
             pub(job)
 
-        nb_.stop.assert_not_called()
+        nb_.start.return_value.stop.assert_not_called()
         pub.stop()
-        nb_.stop.assert_called_once()
+        nb_.start.return_value.stop.assert_called_once()
 
 
 class FakeScene(dict):

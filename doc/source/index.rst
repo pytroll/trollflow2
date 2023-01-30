@@ -175,7 +175,9 @@ The available options, with the default values, are:
    port is selected.
  - ``nameservers: null`` - a list of nameservers to connect to.  Defining
    any nameserver turns multicast messaging off.  Default to the
-   nameserver on localhost and use multicast
+   nameserver on localhost and use multicast.  The nameserver can be
+   completely switched of by defining it as ``false`` and giving a valid
+   ``port`` number.
 
 These options are given in the list of workers as a dictionary
 argument to the ``FilePublisher`` class.
