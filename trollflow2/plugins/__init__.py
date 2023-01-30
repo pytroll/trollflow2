@@ -35,7 +35,7 @@ import dpath.util
 import rasterio
 import dask
 from posttroll.message import Message
-from posttroll.publisher import Publisher, NoisyPublisher
+from posttroll.publisher import create_publisher_from_dict_config
 from pyorbital.astronomy import sun_zenith_angle
 from pyresample.boundary import AreaDefBoundary, Boundary
 from pyresample.area_config import AreaNotFound
@@ -330,12 +330,14 @@ class FilePublisher:
         LOG.debug('Starting publisher')
         self.port = kwargs.get('port', 0)
         self.nameservers = kwargs.get('nameservers', "")
-        if self.nameservers is None:
-            self.pub = Publisher("tcp://*:" + str(self.port), "l2processor")
-        else:
-            self.pub = NoisyPublisher('l2processor', port=self.port,
-                                      nameservers=self.nameservers)
-            self.pub.start()
+        self._pub_starter = create_publisher_from_dict_config(
+            {
+                'port': self.port,
+                'nameservers': self.nameservers,
+                'name': 'l2processor',
+            }
+        )
+        self.pub = self._pub_starter.start()
 
     @staticmethod
     def create_message(fmat, mda):
