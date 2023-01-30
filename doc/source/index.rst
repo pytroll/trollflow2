@@ -330,7 +330,13 @@ Options:
 Uploading produced data to S3
 *****************************
 
-The ``s3.uploader`` plugin can upload the produced imagery to a S3 object storage.
+.. note::
+   Outside of container environments, it is perhaps better to have a separate dispatcher from
+   `Trollmoves <https://github.com/pytroll/trollmoves/>`_ to handle the file transfers. With
+   containers this will require an additional container image, configuration and a use of
+   a shared volume for the temporary local files.
+
+The ``s3.uploader`` plugin can upload the produced imagery to S3 object storage.
 The plugin also updates the filenames so that the messaging plugin will announce
 the files at the correct location. Optionally, the locally saved files are removed
 after the transfer. The plugin requires ``trollmoves`` and ``s3fs`` Python
