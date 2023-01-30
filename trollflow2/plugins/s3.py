@@ -28,16 +28,9 @@ def uploader(job):
     """
     from trollmoves.movers import S3Mover
 
-    s3_config = job['product_list']['product_list'].get('s3_config', {}).copy()
-    delete_files = s3_config.pop('delete_files', False)
+    staging_zone = job['product_list']['product_list']['staging_zone']
 
     for fmt, fmt_config in plist_iter(job['product_list']['product_list']):
-        local_fname = fmt_config['filename']
-        s3_target = fmt['s3_config']['target']
-        mover = S3Mover(local_fname, s3_target)
-        if delete_files:
-            mover.move()
-        else:
-            mover.copy()
-        s3_uri = fmt['filename'].replace(fmt['output_dir'], s3_target)
-        fmt_config['filename'] = s3_uri
+        local_fname = fmt_config['filename'].replace(fmt['output_dir'], staging_zone)
+        mover = S3Mover(local_fname, fmt['output_dir'])
+        mover.move()

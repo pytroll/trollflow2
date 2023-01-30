@@ -32,10 +32,9 @@ from trollflow2.tests.utils import create_filenames_and_topics
 
 yaml_test_s3_uploader_plain = """
 product_list:
-  output_dir: /tmp/
+  output_dir: s3://bucket-name/
+  staging_zone: /tmp/
   publish_topic: /topic
-  s3_config:
-    target: s3://bucket-name/
   fname_pattern:
     "{start_time:%Y%m%d_%H%M}_{platform_name}_{areaname}_{productname}.{format}"
 
@@ -88,37 +87,10 @@ def test_s3_uploader_update_filenames():
             assert fmt['filename'].startswith('s3://bucket-name/')
 
 
-def test_s3_uploader_copy():
-    """Test that S3 mover is copying the file."""
-    from yaml import UnsafeLoader
-    product_list = read_config(raw_string=yaml_test_s3_uploader_plain, Loader=UnsafeLoader)
-    job = {"product_list": product_list, "input_mda": input_mda.copy()}
-    _ = create_filenames_and_topics(job)
-
-    movers_mock = mock.MagicMock()
-    trollmoves_mock = mock.MagicMock()
-    with mock.patch.dict('sys.modules', {'trollmoves': trollmoves_mock, 'trollmoves.movers': movers_mock}):
-        from trollflow2.plugins.s3 import uploader
-
-        uploader(job)
-
-        assert mock.call(
-            "/tmp/20190217_0600_NOAA-15_euro4_airmass.tif",
-            "s3://bucket-name/"
-        ) in movers_mock.S3Mover.mock_calls
-        assert mock.call(
-            "/tmp/20190217_0600_NOAA-15_euro4_natural_with_colorized_ir_clouds.tif",
-            "s3://bucket-name/"
-        ) in movers_mock.S3Mover.mock_calls
-        assert movers_mock.S3Mover.return_value.copy.call_count == 2
-        movers_mock.S3Mover.return_value.move.assert_not_called()
-
-
 def test_s3_uploader_move():
     """Test that S3 mover is moving the file."""
     from yaml import UnsafeLoader
     product_list = read_config(raw_string=yaml_test_s3_uploader_plain, Loader=UnsafeLoader)
-    product_list['product_list']['s3_config']['delete_files'] = True
     job = {"product_list": product_list, "input_mda": input_mda.copy()}
     _ = create_filenames_and_topics(job)
 

@@ -344,17 +344,16 @@ the files at the correct location. Optionally, the locally saved files are remov
 after the transfer. The plugin requires ``trollmoves`` and ``s3fs`` Python
 packages.
 
-Options are given in the main body of the product list within a ``s3_config`` dictionary.
 The connection options are handled by the
 `fsspec <https://filesystem-spec.readthedocs.io/en/latest/features.html#configuration>`_
 configuration mechanism.
 
-Options:
-  - ``target`` - the name, with scheme, of the target S3 bucket. Note that if ``output_dir``
+Settings:
+  - ``output_dir`` - the name, with scheme, of the target S3 bucket.
+  - ``staging_zone`` - local directory where the files are saved temporarily. Note that if ``output_dir``
     is defined with a tailing directory separator, the same should be done here.
-  - ``delete_files`` - boolean defining whether the locally saved files should be deleted or not.
-    Default: ``False``
 
+The files are deleted automatically from ``staging_zone`` by the uploader.
 
 Product list
 ------------
@@ -372,6 +371,9 @@ Example
   product_list:
     output_dir: &output_dir
       "/data/{variant}/"
+    # For S3 object storage
+    # output_dir: &output_dir
+    #   "s3://bucket/"
     use_extern_calib: false
     fname_pattern: &fname
       "{platform_name}_{start_time:%Y%m%d_%H%M}_{areaname}_{productname}.{format}"
@@ -383,6 +385,8 @@ Example
     mask_area: True
     delay_composites: True
     use_tmp_file: True
+    # For temporary storage of files for certain writers and S3 storage
+    # staging_zone: /path/to/local/directory/
     metadata_aliases:
       variant:
         EARS: regional
@@ -397,9 +401,6 @@ Example
       - avhrr-3
 
     min_coverage: 25
-    s3_config:
-      target: s3://name-of-the-bucket/
-      delete_files: true
 
     areas:
       baws:
@@ -456,7 +457,7 @@ Example
     - fun: !!python/name:trollflow2.plugins.resample
     - fun: !!python/name:trollflow2.plugins.save_datasets
     - fun: !!python/name:trollflow2.plugins.add_overviews
-    - fun: !!python/name:trollflow2.plugins.s3.uploader
+    # - fun: !!python/name:trollflow2.plugins.s3.uploader
     - fun: !!python/object:trollflow2.plugins.FilePublisher {port: 40004, nameservers: [localhost]}
 
 
