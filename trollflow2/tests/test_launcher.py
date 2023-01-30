@@ -24,6 +24,7 @@
 
 import datetime
 import logging
+import os
 import queue
 import sys
 import time
@@ -727,17 +728,18 @@ def test_get_dask_client(caplog):
 class FakeQueue:
     """Face queue class."""
 
-    def __init__(self, lo, hi, tmp_path, skip=None):
+    def __init__(self, lo, hi, tmp_path, skip=None, write=True):
         """Initialize fake queue."""
         if skip is None:
             skip = []
         self._files = set()
         for i in range(lo, hi):
-            f = (tmp_path / f"file{i:d}")
+            f = os.path.join(tmp_path, f"file{i:d}")
             self._files.add(str(f))
             if i not in skip:
-                with f.open(mode="wt") as fp:
-                    fp.write("zucchini" * i)
+                if write:
+                    with open(f, mode="wt") as fp:
+                        fp.write("zucchini" * i)
 
     def get(self, block=None):
         """Get item from queue."""
@@ -751,11 +753,11 @@ class FakeQueue:
         return len(self._files)
 
 
-def _run_check_results(start_time, exitcode, produced_files, caplog, remote_filesystem_uri=None):
+def _run_check_results(start_time, exitcode, produced_files, caplog):
     from trollflow2.launcher import check_results
 
     with caplog.at_level(logging.DEBUG):
-        check_results(produced_files, start_time, exitcode, remote_filesystem_uri=remote_filesystem_uri)
+        check_results(produced_files, start_time, exitcode)
     return caplog.text
 
 
@@ -814,11 +816,10 @@ def test_check_results_s3_nominally(tmp_path, caplog):
     exitcode = 0
     s3fs_mock = mock.MagicMock()
     with mock.patch.dict("sys.modules", {"s3fs": s3fs_mock}):
-        remote_filesystem_uri = "s3://bucket-name"
-        produced_files = FakeQueue(0, 3, tmp_path)
+        produced_files = FakeQueue(0, 3, "s3://bucket-name", write=False)
         s3fs_mock.S3FileSystem.return_value.stat.return_value = {'size': 0}
         caplog_text = _run_check_results(
-            start_time, exitcode, produced_files, caplog, remote_filesystem_uri=remote_filesystem_uri)
+            start_time, exitcode, produced_files, caplog)
         assert "Empty file detected" in caplog_text
         assert "files produced nominally" not in caplog_text
 
@@ -829,11 +830,10 @@ def test_check_results_s3_missing_file(tmp_path, caplog):
     exitcode = 0
     s3fs_mock = mock.MagicMock()
     with mock.patch.dict("sys.modules", {"s3fs": s3fs_mock}):
-        remote_filesystem_uri = "s3://bucket-name"
         produced_files = FakeQueue(5, 8, tmp_path, skip=[6])
         s3fs_mock.S3FileSystem.return_value.stat.side_effect = FileNotFoundError
         caplog_text = _run_check_results(
-            start_time, exitcode, produced_files, caplog, remote_filesystem_uri=remote_filesystem_uri)
+            start_time, exitcode, produced_files, caplog)
         assert "Missing file" in caplog_text
         assert "files produced nominally" not in caplog_text
 
@@ -845,9 +845,8 @@ def test_check_results_s3_file_exists(tmp_path, caplog):
     s3fs_mock = mock.MagicMock()
     with mock.patch.dict("sys.modules", {"s3fs": s3fs_mock}):
         from trollflow2.launcher import check_results
-        remote_filesystem_uri = "s3://bucket-name"
-        produced_files = FakeQueue(10, 13, tmp_path)
-        check_results(produced_files, start_time, exitcode, remote_filesystem_uri=remote_filesystem_uri)
+        produced_files = FakeQueue(10, 13, 's3://bucket-name/', write=False)
+        check_results(produced_files, start_time, exitcode)
         assert mock.call('s3://bucket-name/file10') in s3fs_mock.S3FileSystem.return_value.stat.mock_calls
         assert mock.call('s3://bucket-name/file11') in s3fs_mock.S3FileSystem.return_value.stat.mock_calls
         assert mock.call('s3://bucket-name/file12') in s3fs_mock.S3FileSystem.return_value.stat.mock_calls
