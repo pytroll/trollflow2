@@ -446,10 +446,7 @@ def launch(args_in):
     """Launch the processing."""
     args = parse_args(args_in)
 
-    log_config = args.pop("log_config", None)
-    if log_config is not None:
-        with open(log_config) as fd:
-            log_config = yaml.safe_load(fd.read())
+    log_config = _read_log_config(args)
 
     logger = logging.getLogger("satpy_launcher")
 
@@ -464,6 +461,14 @@ def launch(args_in):
 
         runner = Runner(product_list, log_queue, connection_parameters, test_message, threaded)
         runner.run()
+
+
+def _read_log_config(args):
+    log_config = args.pop("log_config", None)
+    if log_config is not None:
+        with open(log_config) as fd:
+            log_config = yaml.safe_load(fd.read())
+    return log_config
 
 
 def parse_args(args_in):
