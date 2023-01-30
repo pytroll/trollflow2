@@ -1731,20 +1731,20 @@ class TestFilePublisher(TestCase):
                'input_mda': self.input_mda,
                'resampled_scenes': dict(euron1=scn_euron1)}
 
-        with mock.patch.multiple('trollflow2.plugins', Message=mock.DEFAULT,
-                                 NoisyPublisher=mock.DEFAULT, Publisher=mock.DEFAULT) as mocks:
-            message = mocks['Message']
-
-            pub, topics = self._run_publisher_on_job(job, s3_paths=True)
-            for call_ in message.mock_calls:
-                if 'call().__str__()' != str(call_):
-                    type_ = call_.args[1]
-                    mda = call_.args[2]
-                    if type_ == 'dispatch':
-                        uri = mda['file_mda']['uri']
-                    else:
-                        uri = mda['uri']
-                    assert uri.startswith('s3://bucket-name/')
+        with mock.patch('trollflow2.plugins.Message') as message:
+            with mock.patch.multiple('posttroll.publisher',
+                                     NoisyPublisher=mock.DEFAULT,
+                                     Publisher=mock.DEFAULT):
+                _, _ = self._run_publisher_on_job(job, s3_paths=True)
+                for call_ in message.mock_calls:
+                    if 'call().__str__()' != str(call_):
+                        type_ = call_.args[1]
+                        mda = call_.args[2]
+                        if type_ == 'dispatch':
+                            uri = mda['file_mda']['uri']
+                        else:
+                            uri = mda['uri']
+                        assert uri.startswith('s3://bucket-name/')
 
     def test_non_existing_products_are_not_published(self):
         """Test that non existing products are not published."""
