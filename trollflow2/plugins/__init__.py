@@ -19,7 +19,6 @@
 """Trollflow2 plugins."""
 
 import os
-import pathlib
 from contextlib import contextmanager, suppress
 from logging import getLogger
 from tempfile import NamedTemporaryFile
@@ -201,12 +200,12 @@ def prepared_filename(fmat, renames):
 
     if staging_zone or use_tmp_file:
         if staging_zone:
-            directory = pathlib.Path(staging_zone)
-            of = pathlib.Path(orig_filename)
+            directory = staging_zone
+            of = orig_filename
         if use_tmp_file:
             filename = _get_temp_filename(directory, renames.keys())
         else:
-            filename = os.fspath(directory / of.name)
+            filename = os.path.join(directory, os.path.basename(of))
         yield filename
         renames[filename] = orig_filename
     else:
