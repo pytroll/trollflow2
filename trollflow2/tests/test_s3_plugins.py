@@ -73,7 +73,7 @@ input_mda = {'orig_platform_name': 'noaa15', 'orbit_number': 7993,
 def test_s3_uploader_update_filenames():
     """Ensure that filenames are updated when transfer is made to S3."""
     from yaml import UnsafeLoader
-    from trollflow2.plugins import s3_uploader
+    from trollflow2.plugins.s3 import uploader
     from trollflow2.dict_tools import plist_iter
 
     product_list = read_config(raw_string=yaml_test_s3_uploader_plain, Loader=UnsafeLoader)
@@ -83,7 +83,7 @@ def test_s3_uploader_update_filenames():
     movers_mock = mock.MagicMock()
     trollmoves_mock = mock.MagicMock()
     with mock.patch.dict('sys.modules', {'trollmoves': trollmoves_mock, 'trollmoves.movers': movers_mock}):
-        s3_uploader(job)
+        uploader(job)
         for fmt, _ in plist_iter(job['product_list']['product_list']):
             assert fmt['filename'].startswith('s3://bucket-name/')
 
@@ -98,9 +98,9 @@ def test_s3_uploader_copy():
     movers_mock = mock.MagicMock()
     trollmoves_mock = mock.MagicMock()
     with mock.patch.dict('sys.modules', {'trollmoves': trollmoves_mock, 'trollmoves.movers': movers_mock}):
-        from trollflow2.plugins import s3_uploader
+        from trollflow2.plugins.s3 import uploader
 
-        s3_uploader(job)
+        uploader(job)
 
         assert mock.call(
             "/tmp/20190217_0600_NOAA-15_euro4_airmass.tif",
@@ -125,8 +125,8 @@ def test_s3_uploader_move():
     movers_mock = mock.MagicMock()
     trollmoves_mock = mock.MagicMock()
     with mock.patch.dict('sys.modules', {'trollmoves': trollmoves_mock, 'trollmoves.movers': movers_mock}):
-        from trollflow2.plugins import s3_uploader
+        from trollflow2.plugins.s3 import uploader
 
-        s3_uploader(job)
+        uploader(job)
 
         assert movers_mock.S3Mover.return_value.move.call_count == 2

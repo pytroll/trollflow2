@@ -330,7 +330,7 @@ Options:
 Uploading produced data to S3
 *****************************
 
-The ``s3_uploader`` plugin can upload the produced imagery to a S3 object storage.
+The ``s3.uploader`` plugin can upload the produced imagery to a S3 object storage.
 The plugin also updates the filenames so that the messaging plugin will announce
 the files at the correct location. Optionally, the locally saved files are removed
 after the transfer. The plugin requires ``trollmoves`` and ``s3fs`` Python
@@ -448,7 +448,7 @@ Example
     - fun: !!python/name:trollflow2.plugins.resample
     - fun: !!python/name:trollflow2.plugins.save_datasets
     - fun: !!python/name:trollflow2.plugins.add_overviews
-    - fun: !!python/name:trollflow2.plugins.s3_uploader
+    - fun: !!python/name:trollflow2.plugins.s3.uploader
     - fun: !!python/object:trollflow2.plugins.FilePublisher {port: 40004, nameservers: [localhost]}
 
 
