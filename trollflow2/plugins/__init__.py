@@ -22,7 +22,7 @@ import os
 from contextlib import contextmanager, suppress
 from logging import getLogger
 from tempfile import NamedTemporaryFile
-from urllib.parse import urlunsplit
+from urllib.parse import urlunsplit, urlsplit
 import datetime as dt
 
 with suppress(ImportError):
@@ -259,7 +259,9 @@ def renamed_files():
     yield renames
 
     for tmp_name, actual_name in renames.items():
-        os.rename(tmp_name, actual_name)
+        target_scheme = urlsplit(actual_name).scheme
+        if target_scheme in ('', 'file'):
+            os.rename(tmp_name, actual_name)
 
 
 def save_datasets(job):
