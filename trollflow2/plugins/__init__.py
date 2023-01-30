@@ -172,7 +172,9 @@ def _prepare_filename_and_directory(fmat):
 
     # directory creation
     if directory and not os.path.exists(directory):
-        os.makedirs(directory)
+        target_scheme = urlsplit(directory).scheme
+        if target_scheme in ('', 'file'):
+            os.makedirs(directory)
 
     return directory, filename
 
