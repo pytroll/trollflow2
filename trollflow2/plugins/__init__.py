@@ -412,6 +412,7 @@ class FilePublisher:
         """Stop the publisher."""
         if self.pub:
             self.pub.stop()
+            self.pub = None
 
     def __del__(self):
         """Stop the publisher when last reference is deleted."""
