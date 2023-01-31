@@ -39,6 +39,7 @@ from contextlib import suppress
 from datetime import datetime
 from logging import getLogger
 from queue import Empty
+from urllib.parse import urlsplit
 
 import yaml
 from trollflow2.dict_tools import gen_dict_extract, plist_iter
@@ -97,12 +98,15 @@ def check_results(produced_files, start_time, exitcode):
         try:
             saved_file = produced_files.get(block=False)
             try:
-                if os.path.getsize(saved_file) == 0:
-                    LOG.error("Empty file detected: %s", saved_file)
-                    error_detected = True
+                error_detected = _check_file(saved_file)
             except FileNotFoundError:
                 LOG.error("Missing file: %s", saved_file)
                 error_detected = True
+            except NotImplementedError as err:
+                LOG.error(err)
+                error_detected = True
+            if error_detected:
+                break
         except Empty:
             break
     if exitcode != 0:
@@ -119,6 +123,23 @@ def check_results(produced_files, start_time, exitcode):
         else:
             LOG.info(f'All files produced nominally in '
                      f"{elapsed!s}", extra={"time": elapsed})
+
+
+def _check_file(saved_file):
+    file_scheme = urlsplit(saved_file).scheme
+    if file_scheme in ('', 'file'):
+        return _check_local_file(saved_file)
+    if file_scheme == 's3':
+        from trollflow2.plugins.s3 import check_s3_file
+        return check_s3_file(saved_file)
+    raise NotImplementedError("File check not impleneted for remote filesystem %s" % file_scheme)
+
+
+def _check_local_file(saved_file):
+    if os.path.getsize(saved_file) == 0:
+        LOG.error("Empty file detected: %s", saved_file)
+        return True
+    return False
 
 
 def generate_messages(connection_parameters):

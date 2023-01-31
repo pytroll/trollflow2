@@ -329,6 +329,31 @@ Options:
   - ``min_valid_data_fraction: 10`` - only generate products if at least 10% of covered
   part of scene contains valid data.
 
+Uploading produced data to S3
+*****************************
+
+.. note::
+   To transfer files to remote file systems, it is recommended to use a separate process, eg the dispatcher 
+   from `Trollmoves <https://github.com/pytroll/trollmoves/>`_ to handle the file transfers. However,
+   this plugin is a workaround for Satpy's current inability to perform direct remote writing, not a 
+   dispatcher in itself. Later on, if direct saving to S3 becomes available in Satpy writers, this plugin
+   will be deprecated and eventually removed.
+
+The ``s3.uploader`` plugin can upload the produced imagery to S3 object storage. The data will be
+first saved to ``staging_zone`` on local storage. When the saving is completed, the data are
+uploaded to the final S3 bucket given in ``output_dir`` and deleted from ``staging_zone``.
+
+The plugin requires ``trollmoves`` and ``s3fs`` Python packages.
+
+Settings:
+  - ``output_dir`` - the name, with scheme, of the target S3 bucket.
+  - ``staging_zone`` - local directory where the files are saved temporarily. Note that if ``output_dir``
+    is defined with a tailing directory separator, the same should be done here.
+
+The S3 connection options are handled by the
+`fsspec <https://filesystem-spec.readthedocs.io/en/latest/features.html#configuration>`_
+configuration mechanism.
+
 Product list
 ------------
 
@@ -345,6 +370,9 @@ Example
   product_list:
     output_dir: &output_dir
       "/data/{variant}/"
+    # For S3 object storage
+    # output_dir: &output_dir
+    #   "s3://bucket/"
     use_extern_calib: false
     fname_pattern: &fname
       "{platform_name}_{start_time:%Y%m%d_%H%M}_{areaname}_{productname}.{format}"
@@ -356,6 +384,8 @@ Example
     mask_area: True
     delay_composites: True
     use_tmp_file: True
+    # For temporary storage of files for certain writers and S3 storage
+    # staging_zone: /path/to/local/directory/
     metadata_aliases:
       variant:
         EARS: regional
@@ -370,6 +400,7 @@ Example
       - avhrr-3
 
     min_coverage: 25
+
     areas:
       baws:
         areaname: baws
@@ -425,6 +456,7 @@ Example
     - fun: !!python/name:trollflow2.plugins.resample
     - fun: !!python/name:trollflow2.plugins.save_datasets
     - fun: !!python/name:trollflow2.plugins.add_overviews
+    # - fun: !!python/name:trollflow2.plugins.s3.uploader
     - fun: !!python/object:trollflow2.plugins.FilePublisher {port: 40004, nameservers: [localhost]}
 
 
