@@ -33,9 +33,10 @@ def uploader(job):
     from trollmoves.movers import S3Mover
 
     staging_zone = job['product_list']['product_list']['staging_zone']
-
+    logger.info("Uploading data to S3.")
     for fmt, fmt_config in plist_iter(job['product_list']['product_list']):
         local_fname = fmt_config['filename'].replace(fmt['output_dir'], staging_zone)
+        logger.debug(f"Uploading {local_fname} to {fmt['output_dir']}")
         mover = S3Mover(local_fname, fmt['output_dir'])
         mover.move()
 

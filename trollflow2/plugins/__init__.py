@@ -78,7 +78,7 @@ def create_scene(job):
     product_list = job['product_list']
     conf = _get_plugin_conf(product_list, '/product_list', defaults)
 
-    logger.info('Generating scene')
+    logger.info('Creating scene')
     try:
         job['scene'] = Scene(filenames=job['input_filenames'], **conf)
     except ValueError as err:
@@ -96,11 +96,14 @@ def load_composites(job):
             composites_by_res.setdefault(res, set()).update(flat_prod_cfg['product'])
         else:
             composites_by_res.setdefault(res, set()).add(flat_prod_cfg['product'])
+
+    logger.info(f"Loading {len(composites_by_res)} composites.")
+
     scn = job['scene']
     generate = job['product_list']['product_list'].get('delay_composites', True) is False
     extra_args = job["product_list"]["product_list"].get("scene_load_kwargs", {})
     for resolution, composites in composites_by_res.items():
-        logger.info('Loading %s at resolution %s', str(composites), str(resolution))
+        logger.debug('Loading %s at resolution %s', str(composites), str(resolution))
         scn.load(composites, resolution=resolution, generate=generate, **extra_args)
     job['scene'] = scn
 
@@ -109,6 +112,7 @@ def aggregate(job):
     """Aggregate the chosen composites."""
     if 'aggregate' not in job['product_list']['product_list']:
         return
+    logger.debug("Aggregating composites.")
     kwargs = job['product_list']['product_list']['aggregate']
     job['scene'] = job['scene'].aggregate(**kwargs)
 
@@ -128,7 +132,7 @@ def resample(job):
     for area in product_list['product_list']['areas']:
         area_conf = _get_plugin_conf(product_list, '/product_list/areas/' + str(area),
                                      conf)
-        logger.debug('Resampling to %s', str(area))
+        logger.info('Resampling to %s', str(area))
         if area == 'None':
             coarsest = (get_config_value(product_list,
                                          '/product_list/areas/' + str(area),
@@ -428,9 +432,10 @@ def covers(job):
 
     Remove areas with too low coverage from the worklist.
     """
+    logger.info("Checking area coverage.")
     if Pass is None:
         logger.error("Trollsched import failed, coverage calculation not possible")
-        logger.info("Keeping all areas")
+        logger.debug("Keeping all areas")
         return
 
     col_area = job['product_list']['product_list'].get('coverage_by_collection_area', False)
@@ -534,6 +539,7 @@ def check_metadata(job):
     will be discarded.
 
     """
+    logger.info("Checking metadata.")
     mda = job['input_mda']
     product_list = job['product_list']
     conf = get_config_value(product_list, '/product_list', 'check_metadata')
@@ -563,20 +569,24 @@ def metadata_alias(job):
     aliases = get_config_value(product_list, '/product_list', 'metadata_aliases')
     if aliases is None:
         return
+
+    logger.info("Adjusting metadata using configured aliases.")
     for key in aliases:
         if key in mda_out:
             val = mda_out[key]
             if isinstance(val, (list, tuple, set)):
                 typ = type(val)
                 new_vals = typ([aliases[key].get(itm, itm) for itm in val])
-                mda_out[key] = new_vals
             else:
-                mda_out[key] = aliases[key].get(mda_out[key], mda_out[key])
+                new_vals = aliases[key].get(mda_out[key], mda_out[key])
+            logger.debug(f"Replacing '{key}: {str(val)}' with '{str(new_vals)}'")
+            mda_out[key] = new_vals
     job['input_mda'] = mda_out.copy()
 
 
 def sza_check(job):
     """Remove products which are not valid for the current Sun zenith angle."""
+    logger.info("Check Sun zenith angle.")
     scn_mda = _get_scene_metadata(job)
     scn_mda.update(job['input_mda'])
     start_time = scn_mda['start_time']
@@ -601,7 +611,7 @@ def sza_check(job):
                                      "sunzen_minimum_angle")
             if limit is not None:
                 if sunzen < limit:
-                    logger.info("Sun zenith angle to small for nighttime "
+                    logger.info("Sun zenith angle too small for nighttime "
                                 "product '%s', product removed.", product)
                     dpath.util.delete(product_list, prod_path)
                 continue
@@ -634,6 +644,8 @@ def check_sunlight_coverage(job):
     overpass of an polar-orbiting satellite.
 
     """
+    logger.info("Checking sunlight coverage.")
+
     if get_twilight_poly is None:
         logger.error("Trollsched import failed, sunlight coverage calculation not possible")
         logger.info("Keeping all products")
@@ -763,6 +775,8 @@ def _get_product_area_def(job, area, product):
 
 def add_overviews(job):
     """Add overviews to images already written to disk."""
+    logger.info("Adding image overviews.")
+
     # Get the formats, including filenames and overview settings
     for _flat_fmat, fmt in plist_iter(job['product_list']['product_list']):
         if "overviews" in fmt and 'filename' in fmt:
@@ -773,7 +787,7 @@ def add_overviews(job):
                     dst.build_overviews(overviews, Resampling.average)
                     dst.update_tags(ns='rio_overview',
                                     resampling='average')
-                logger.info("Added overviews to %s", fname)
+                logger.debug("Added overviews to %s", fname)
             except rasterio.RasterioIOError:
                 pass
 
@@ -819,6 +833,8 @@ def check_valid_data_fraction(job):
           - fun: !!python/name:trollflow2.plugins.save_datasets
 
     """
+    logger.info("Checking valid data fraction.")
+
     exp_cov = {}
     # As stated, this will trigger a computation.  To prevent computing
     # multiple times, we should persist everything that needs to be persisted,
@@ -833,7 +849,9 @@ def check_valid_data_fraction(job):
                         exp_cov):
                     to_remove.add(prod_name)
         for rem in to_remove:
+            logger.debug(f"Removing {rem} due to low coverage.")
             del area_props["products"][rem]
+        logger.info(f"Removed {len(to_remove)} products from area {area_name} due to low coverage.")
 
 
 def _persist_what_we_must(job):

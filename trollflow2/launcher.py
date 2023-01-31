@@ -149,6 +149,8 @@ def generate_messages(connection_parameters):
         try:
             msg = listener.output_queue.get(True, 5)
             if msg.type in VALID_MESSAGE_TYPES:
+                logger.info("New message received.")
+                logger.debug(f"{str(msg)}")
                 yield msg
         except KeyboardInterrupt:
             listener.stop()
@@ -435,6 +437,7 @@ def read_config(fname=None, raw_string=None, Loader=SafeLoader):
     """Read the configuration file."""
     try:
         if fname:
+            logger.debug(f"Reading config file {fname}")
             with open(fname) as fid:
                 raw_config = fid.read()
         elif raw_string:
