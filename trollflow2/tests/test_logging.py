@@ -64,11 +64,11 @@ def test_log_config_is_used_when_provided():
     """Test that the log config is used when provided."""
     config = LOG_CONFIG
 
-    log = logging.getLogger()
+    logger = logging.getLogger()
     with mock.patch("logging.handlers.BufferingHandler.emit", autospec=True) as emit:
         with logging_on(log_queue, config=config):
             assert not emit.called
-            log.warning("uh oh...")
+            logger.warning("uh oh...")
             # we wait for the log record to go through the queue listener in
             # its own thread
             time.sleep(.01)
@@ -77,18 +77,18 @@ def test_log_config_is_used_when_provided():
 
 def test_logging_works(caplog):
     """Test that the logs get out there."""
-    log = logging.getLogger("something")
+    logger = logging.getLogger("something")
     with logging_on(log_queue):
         logging.getLogger().addHandler(caplog.handler)
-        log.warning("oh no :(")
+        logger.warning("oh no :(")
         assert "oh no :(" in caplog.text
 
 
 def fun(q, log_message):
     """Fake a function to run."""
-    log = logging.getLogger('for fun')
+    logger = logging.getLogger('for fun')
     setup_queued_logging(q)
-    log.debug(log_message)
+    logger.debug(log_message)
 
 
 def run_subprocess(log_message, queue):

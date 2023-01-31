@@ -54,7 +54,7 @@ from trollflow2.dict_tools import gen_dict_extract, plist_iter
 from trollflow2.logging import logging_on, setup_queued_logging
 from trollflow2.plugins import AbortProcessing
 
-LOG = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 DEFAULT_PRIORITY = 999
 VALID_MESSAGE_TYPES = ("file", "dataset", "collection")
 
@@ -100,10 +100,10 @@ def check_results(produced_files, start_time, exitcode):
             try:
                 error_detected = _check_file(saved_file)
             except FileNotFoundError:
-                LOG.error("Missing file: %s", saved_file)
+                logger.error("Missing file: %s", saved_file)
                 error_detected = True
             except NotImplementedError as err:
-                LOG.error(err)
+                logger.error(err)
                 error_detected = True
             if error_detected:
                 break
@@ -112,17 +112,17 @@ def check_results(produced_files, start_time, exitcode):
     if exitcode != 0:
         error_detected = True
         if exitcode < 0:
-            LOG.error('Process killed with signal %d', -exitcode)
+            logger.error('Process killed with signal %d', -exitcode)
         else:
-            LOG.critical('Process crashed with exit code %d', exitcode)
+            logger.critical('Process crashed with exit code %d', exitcode)
     if not error_detected:
         elapsed = end_time - start_time
         if qsize is not None:
-            LOG.info(f'All {qsize:d} files produced nominally in '
-                     f"{elapsed!s}", extra={"time": elapsed})
+            logger.info(f'All {qsize:d} files produced nominally in '
+                        f"{elapsed!s}", extra={"time": elapsed})
         else:
-            LOG.info(f'All files produced nominally in '
-                     f"{elapsed!s}", extra={"time": elapsed})
+            logger.info(f'All files produced nominally in '
+                        f"{elapsed!s}", extra={"time": elapsed})
 
 
 def _check_file(saved_file):
@@ -137,7 +137,7 @@ def _check_file(saved_file):
 
 def _check_local_file(saved_file):
     if os.path.getsize(saved_file) == 0:
-        LOG.error("Empty file detected: %s", saved_file)
+        logger.error("Empty file detected: %s", saved_file)
         return True
     return False
 
@@ -213,13 +213,13 @@ class Runner:
 
     def _run_threaded(self, messages):
         """Run in a thread."""
-        LOG.info("Launching trollflow2 with threads")
+        logger.info("Launching trollflow2 with threads")
         from threading import Thread
         self._run_product_list_on_messages(messages, process, Thread)
 
     def _run_subprocess(self, messages):
         """Run in a subprocess, with queued logging."""
-        LOG.info("Launching trollflow2 with subprocesses")
+        logger.info("Launching trollflow2 with subprocesses")
         from multiprocessing import get_context
         ctx = get_context("spawn")
         self._run_product_list_on_messages(messages, queue_logged_process, ctx.Process)
@@ -336,18 +336,18 @@ def get_dask_client(config):
         client = client_class(**settings)
         try:
             if not client.ncores():
-                LOG.warning("No workers available, reverting to default scheduler")
+                logger.warning("No workers available, reverting to default scheduler")
                 client.close()
                 client = None
         except AttributeError:
             client = None
     except OSError:
-        LOG.error("Scheduler not found, reverting to default scheduler")
+        logger.error("Scheduler not found, reverting to default scheduler")
     except KeyError:
-        LOG.debug("Distributed processing not configured, "
-                  "using default scheduler")
+        logger.debug("Distributed processing not configured, "
+                     "using default scheduler")
     else:
-        LOG.debug(f"Using dask distributed client {client!s}")
+        logger.debug(f"Using dask distributed client {client!s}")
 
     return client
 
@@ -357,7 +357,7 @@ def queue_logged_process(msg, prod_list, produced_files, log_queue, log_config=N
     setup_queued_logging(log_queue, config=log_config)
     with suppress(ValueError):
         signal.signal(signal.SIGUSR1, print_traces)
-        LOG.debug("Use SIGUSR1 on pid {} to check the current tracebacks of this subprocess.".format(os.getpid()))
+        logger.debug("Use SIGUSR1 on pid {} to check the current tracebacks of this subprocess.".format(os.getpid()))
     process(msg, prod_list, produced_files)
 
 
@@ -406,9 +406,9 @@ def process(msg, prod_list, produced_files):
                     if "timeout" in cwrk:
                         signal.alarm(0)  # cancel the alarm
             except AbortProcessing as err:
-                LOG.warning(str(err))
+                logger.warning(str(err))
     except Exception:
-        LOG.exception("Process crashed")
+        logger.exception("Process crashed")
         if "crash_handlers" in config:
             trace = traceback.format_exc()
             for hand in config['crash_handlers']['handlers']:
@@ -417,7 +417,7 @@ def process(msg, prod_list, produced_files):
     finally:
         # Remove config and run garbage collection so all remaining
         # references e.g. to FilePublisher should be removed
-        LOG.debug('Cleaning up')
+        logger.debug('Cleaning up')
         for wrk in config.get("workers", []):
             try:
                 wrk['fun'].stop()
@@ -442,7 +442,7 @@ def read_config(fname=None, raw_string=None, Loader=SafeLoader):
         config = yaml.load(_remove_null_keys(raw_config), Loader=Loader)
     except (IOError, yaml.YAMLError):
         # Either open() or yaml.load() failed
-        LOG.exception("Process crashed, check YAML file.")
+        logger.exception("Process crashed, check YAML file.")
         raise
     return config
 
@@ -473,8 +473,6 @@ def launch(args_in):
     args = parse_args(args_in)
 
     log_config = _read_log_config(args)
-
-    logger = logging.getLogger("satpy_launcher")
 
     log_queue = Manager().Queue()
 
