@@ -333,27 +333,27 @@ Uploading produced data to S3
 *****************************
 
 .. note::
-   Outside of container environments, it is perhaps better to have a separate dispatcher from
+   In most cases it is perhaps better to have a separate dispatcher from
    `Trollmoves <https://github.com/pytroll/trollmoves/>`_ to handle the file transfers. With
    containers this will require an additional container image, configuration and a use of
-   a shared volume for the temporary local files.
+   a shared volume for the temporary local files, so this plugin makes setting up the uploading
+   easier. Later on, if direct saving to S3 becomes available in Satpy writers, this plugin
+   will be removed.
 
-The ``s3.uploader`` plugin can upload the produced imagery to S3 object storage.
-The plugin also updates the filenames so that the messaging plugin will announce
-the files at the correct location. Optionally, the locally saved files are removed
-after the transfer. The plugin requires ``trollmoves`` and ``s3fs`` Python
-packages.
+The ``s3.uploader`` plugin can upload the produced imagery to S3 object storage. The data will be
+first saved to ``staging_zone`` on local storage. When the saving is completed, the data are
+uploaded to the final S3 bucket given in ``output_dir`` and deleted from ``staging_zone``.
 
-The connection options are handled by the
-`fsspec <https://filesystem-spec.readthedocs.io/en/latest/features.html#configuration>`_
-configuration mechanism.
+The plugin requires ``trollmoves`` and ``s3fs`` Python packages.
 
 Settings:
   - ``output_dir`` - the name, with scheme, of the target S3 bucket.
   - ``staging_zone`` - local directory where the files are saved temporarily. Note that if ``output_dir``
     is defined with a tailing directory separator, the same should be done here.
 
-The files are deleted automatically from ``staging_zone`` by the uploader.
+The S3 connection options are handled by the
+`fsspec <https://filesystem-spec.readthedocs.io/en/latest/features.html#configuration>`_
+configuration mechanism.
 
 Product list
 ------------
