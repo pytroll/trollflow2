@@ -13,7 +13,7 @@ Welcome to Trollflow2's documentation!
 
 Trollflow2 is an operational generation chain runner for Satpy.
 
-See the example playlist (``pl.yaml``) for inspiration.
+See the bottom of this page and the example playlist (``pl.yaml``) for inspiration.
 
 The launcher
 ------------
@@ -23,6 +23,11 @@ The launcher
     :undoc-members:
     :show-inheritance:
 
+It is possible to disable Posttroll Nameserver usage for the incoming
+messages by starting ``satpy_launcher.py`` with command-line arguments
+``-n False -a tcp://<host>:<port>`` where the host and port point to a
+message publisher. Multiple publisher addresses can be given by supplying
+them with additional ``-a`` switches.
 
 Plugins
 -------

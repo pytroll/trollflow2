@@ -852,6 +852,28 @@ def test_check_results_s3_file_exists(tmp_path, caplog):
         assert mock.call('s3://bucket-name/file12') in s3fs_mock.S3FileSystem.return_value.stat.mock_calls
 
 
+def test_argparse_nameserver_is_none():
+    """Test that '-n false' is sets nameserver as False."""
+    from trollflow2.launcher import parse_args
+
+    res = parse_args(['-n', 'false', 'product_list.yaml'])
+    assert res['nameserver'] is False
+
+
+def test_launch():
+    """Test launcher.launch()."""
+    with mock.patch("trollflow2.launcher.Runner") as Runner:
+        from trollflow2.launcher import launch
+
+        args_in = ['-n', 'localhost', '-a', 'localhost:12345', 'product_list.yaml']
+        launch(args_in)
+        # See that the commandline arguments are passed to Runner
+        assert "'nameserver': 'localhost'" in str(Runner.mock_calls)
+        assert "'addresses': ['localhost:12345']" in str(Runner.mock_calls)
+        assert "product_list.yaml" in str(Runner.mock_calls)
+        Runner.return_value.run.assert_called_once()
+
+
 def test_generate_messages():
     """Test the generate_messages function."""
     messages = [mock.MagicMock(type=_type) for _type in VALID_MESSAGE_TYPES + ("foo",)]
