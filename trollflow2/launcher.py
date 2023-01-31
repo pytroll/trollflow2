@@ -130,8 +130,8 @@ def _check_file(saved_file):
     if file_scheme in ('', 'file'):
         return _check_local_file(saved_file)
     if file_scheme == 's3':
-        from trollflow2.plugins.s3 import _check_s3_file
-        return _check_s3_file(saved_file)
+        from trollflow2.plugins.s3 import check_s3_file
+        return check_s3_file(saved_file)
     raise NotImplementedError("File check not impleneted for remote filesystem %s" % file_scheme)
 
 

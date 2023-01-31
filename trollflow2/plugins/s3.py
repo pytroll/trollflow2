@@ -43,7 +43,7 @@ def uploader(job):
         mover.move()
 
 
-def _check_s3_file(remote_file):
+def check_s3_file(remote_file):
     """Check that file saved in S3 is not empty."""
     s3 = S3FileSystem()
     if s3.stat(remote_file)['size'] == 0:
