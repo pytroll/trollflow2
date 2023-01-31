@@ -35,6 +35,7 @@ import pytest
 from pyresample.geometry import DynamicAreaDefinition
 
 from trollflow2.launcher import read_config
+from trollflow2.tests.utils import create_filenames_and_topics
 from trollflow2.tests.utils import TestCase
 
 yaml_test1 = """
@@ -1646,9 +1647,12 @@ class TestFilePublisher(TestCase):
         """Test that the filepublisher is stopped on exit."""
         from trollflow2.plugins import FilePublisher
         with mock.patch('posttroll.publisher.NoisyPublisher'):
+            publisher = mock.MagicMock()
             pub = FilePublisher()
+            pub.pub = publisher
             pub.__del__()
-            pub.pub.stop.assert_called()
+            publisher.stop.assert_called()
+            assert pub.pub is None
 
     def test_filepublisher_with_compose(self):
         """Test filepublisher with compose."""
@@ -1672,7 +1676,7 @@ class TestFilePublisher(TestCase):
             pub = FilePublisher()
             product_list = self.product_list.copy()
             product_list['product_list']['publish_topic'] = '/{areaname}/{productname}'
-            topics = self._create_filenames_and_topics(job)
+            topics = create_filenames_and_topics(job)
 
             pub(job)
             message.assert_called()
@@ -1718,6 +1722,33 @@ class TestFilePublisher(TestCase):
                         call_count += 1
             self.assertEqual(call_count, 1)
 
+    def test_filepublisher_s3_files(self):
+        """Test filepublisher with files saved to S3."""
+        from satpy import Scene
+        from satpy.tests.utils import make_dataid
+
+        scn_euron1 = Scene()
+        dataid = make_dataid(name='cloud_top_height', resolution=1000)
+        scn_euron1[dataid] = mock.MagicMock()
+        job = {'product_list': self.product_list,
+               'input_mda': self.input_mda,
+               'resampled_scenes': dict(euron1=scn_euron1)}
+
+        with mock.patch('trollflow2.plugins.Message') as message:
+            with mock.patch.multiple('posttroll.publisher',
+                                     NoisyPublisher=mock.DEFAULT,
+                                     Publisher=mock.DEFAULT):
+                _, _ = self._run_publisher_on_job(job, s3_paths=True)
+                for call_ in message.mock_calls:
+                    if 'call().__str__()' != str(call_):
+                        type_ = call_.args[1]
+                        mda = call_.args[2]
+                        if type_ == 'dispatch':
+                            uri = mda['file_mda']['uri']
+                        else:
+                            uri = mda['uri']
+                        assert uri.startswith('s3://bucket-name/')
+
     def test_non_existing_products_are_not_published(self):
         """Test that non existing products are not published."""
         from satpy import Scene
@@ -1747,14 +1778,21 @@ class TestFilePublisher(TestCase):
             assert message.call_args_list[-1][0][2]['product'] == (
                 'chl_nn', 'chl_oc4me', 'trsp', 'tsm_nn', 'iop_nn', 'mask', 'latitude', 'longitude')
 
-    def _run_publisher_on_job(self, job):
+    def _run_publisher_on_job(self, job, s3_paths=False):
         """Run a publisher on *job*."""
         from trollflow2.plugins import FilePublisher
+        from trollflow2.dict_tools import plist_iter
 
         pub = FilePublisher()
         product_list = self.product_list.copy()
         product_list['product_list']['publish_topic'] = '/static_topic'
-        topics = self._create_filenames_and_topics(job)
+        topics = create_filenames_and_topics(job)
+        if s3_paths:
+            # Replace local directory paths with S3 paths
+            for _fmt, fmt_config in plist_iter(job['product_list']['product_list']):
+                fname = os.path.basename(fmt_config['filename'])
+                fmt_config['filename'] = "s3://bucket-name/" + fname
+
         pub(job)
         return pub, topics
 

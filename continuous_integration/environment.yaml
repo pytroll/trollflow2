@@ -12,6 +12,7 @@ dependencies:
   - satpy>=0.32.0
   - rasterio
   - pyorbital
+  - pip
   - pip:
     - posttroll
     - pytroll-schedule
