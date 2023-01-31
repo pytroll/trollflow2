@@ -20,8 +20,6 @@
 
 import logging
 
-from s3fs import S3FileSystem
-
 from trollflow2.dict_tools import plist_iter
 
 
@@ -45,6 +43,8 @@ def uploader(job):
 
 def check_s3_file(remote_file):
     """Check that file saved in S3 is not empty."""
+    from s3fs import S3FileSystem
+
     s3 = S3FileSystem()
     if s3.stat(remote_file)['size'] == 0:
         logger.error("Empty file detected: %s", remote_file)
