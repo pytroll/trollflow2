@@ -18,31 +18,33 @@
 
 """Trollflow2 plugins."""
 
+import datetime as dt
 import os
 from contextlib import contextmanager, suppress
 from logging import getLogger
 from tempfile import NamedTemporaryFile
-from urllib.parse import urlunsplit, urlsplit
-import datetime as dt
+from urllib.parse import urlsplit, urlunsplit
 
 with suppress(ImportError):
     import hdf5plugin  # noqa
+
+import dask
 import dpath.util
 import rasterio
-import dask
 from posttroll.message import Message
 from posttroll.publisher import create_publisher_from_dict_config
 from pyorbital.astronomy import sun_zenith_angle
-from pyresample.boundary import AreaDefBoundary, Boundary
 from pyresample.area_config import AreaNotFound
+from pyresample.boundary import AreaDefBoundary, Boundary
+from pyresample.geometry import get_geostationary_bounding_box
 from rasterio.enums import Resampling
 from satpy import Scene
 from satpy.resample import get_area_def
-from satpy.writers import compute_writer_results
 from satpy.version import version as satpy_version
-from pyresample.geometry import get_geostationary_bounding_box
-from trollflow2.dict_tools import get_config_value, plist_iter
+from satpy.writers import compute_writer_results
 from trollsift import compose
+
+from trollflow2.dict_tools import get_config_value, plist_iter
 
 try:
     from satpy.dataset import DataQuery

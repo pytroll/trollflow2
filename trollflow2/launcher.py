@@ -30,6 +30,7 @@ import argparse
 import ast
 import copy
 import gc
+import logging
 import os
 import re
 import signal
@@ -37,13 +38,12 @@ import traceback
 from collections import OrderedDict
 from contextlib import suppress
 from datetime import datetime
-import logging
-from queue import Empty
 from multiprocessing import Manager
+from queue import Empty
 from urllib.parse import urlsplit
 
 import yaml
-from yaml import UnsafeLoader, SafeLoader, BaseLoader
+from yaml import BaseLoader, SafeLoader, UnsafeLoader
 
 try:
     from posttroll.listener import ListenerContainer
@@ -51,10 +51,8 @@ except ImportError:
     ListenerContainer = None
 
 from trollflow2.dict_tools import gen_dict_extract, plist_iter
-from trollflow2.logging import logging_on
-from trollflow2.logging import setup_queued_logging
+from trollflow2.logging import logging_on, setup_queued_logging
 from trollflow2.plugins import AbortProcessing
-
 
 LOG = logging.getLogger(__name__)
 DEFAULT_PRIORITY = 999
@@ -303,9 +301,10 @@ def _extract_filenames(msg):
 
 def _create_fs_files(filenames, filesystems):
     """Create FSFile instances when filesystem is provided."""
-    from satpy.readers import FSFile
-    from fsspec.spec import AbstractFileSystem
     import json
+
+    from fsspec.spec import AbstractFileSystem
+    from satpy.readers import FSFile
     fsfiles = [FSFile(filename, AbstractFileSystem.from_json(json.dumps(filesystem)))
                for filename, filesystem in zip(filenames, filesystems)]
     return fsfiles
@@ -452,7 +451,7 @@ def _remove_null_keys(raw_config):
 def sendmail(config, trace):
     """Send email about crashes using `sendmail`."""
     from email.mime.text import MIMEText
-    from subprocess import Popen, PIPE
+    from subprocess import PIPE, Popen
 
     email_settings = config['sendmail']
     msg = MIMEText(email_settings["header"] + "\n\n" + "\n\n" + trace)

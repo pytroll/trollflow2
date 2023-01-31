@@ -35,8 +35,7 @@ import pytest
 from pyresample.geometry import DynamicAreaDefinition
 
 from trollflow2.launcher import read_config
-from trollflow2.tests.utils import create_filenames_and_topics
-from trollflow2.tests.utils import TestCase
+from trollflow2.tests.utils import TestCase, create_filenames_and_topics
 
 yaml_test1 = """
 product_list:
@@ -1780,8 +1779,8 @@ class TestFilePublisher(TestCase):
 
     def _run_publisher_on_job(self, job, s3_paths=False):
         """Run a publisher on *job*."""
-        from trollflow2.plugins import FilePublisher
         from trollflow2.dict_tools import plist_iter
+        from trollflow2.plugins import FilePublisher
 
         pub = FilePublisher()
         product_list = self.product_list.copy()

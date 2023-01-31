@@ -28,6 +28,7 @@ from multiprocessing import Manager
 from unittest import mock
 
 import pytest
+
 from trollflow2.logging import logging_on, setup_queued_logging
 
 log_queue = Manager().Queue(-1)  # no limit on size
@@ -45,7 +46,7 @@ def test_queued_logging_has_a_listener():
 def test_queued_logging_stops_listener_on_exception():
     """Test that queued logging stops the listener even if an exception occurs."""
     with mock.patch("trollflow2.logging.QueueListener", autospec=True) as q_listener:
-        with pytest.raises(Exception):
+        with pytest.raises(Exception, match='Oh no!'):
             with logging_on(log_queue):
                 raise Exception("Oh no!")
         assert q_listener.return_value.stop.called

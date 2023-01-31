@@ -22,7 +22,6 @@ import logging
 
 from trollflow2.dict_tools import plist_iter
 
-
 logger = logging.getLogger(__name__)
 
 

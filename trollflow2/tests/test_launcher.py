@@ -24,6 +24,7 @@
 
 import datetime
 import logging
+import multiprocessing
 import os
 import queue
 import sys
@@ -31,7 +32,6 @@ import time
 import unittest
 from contextlib import contextmanager
 from logging.handlers import QueueHandler
-import multiprocessing
 
 import pytest
 import yaml
@@ -41,9 +41,11 @@ try:
     from yaml import UnsafeLoader
 except ImportError:
     from yaml import Loader as UnsafeLoader
+
 from unittest import mock
+
+from trollflow2.launcher import VALID_MESSAGE_TYPES, generate_messages, process
 from trollflow2.tests.utils import TestCase
-from trollflow2.launcher import process, generate_messages, VALID_MESSAGE_TYPES
 
 yaml_test1 = """
 product_list:
@@ -216,10 +218,12 @@ class TestMessageToJobs(TestCase):
                                              'satpy.writers': mock.MagicMock(),
                                              'satpy.dataset': mock.MagicMock(),
                                              'satpy.version': mock.MagicMock()}):
+            import json
+
             from fsspec.spec import AbstractFileSystem as abs_fs
             from satpy.readers import FSFile as fsfile
+
             from trollflow2.launcher import message_to_jobs
-            import json
 
             filename = "zip:///S3A_OL_2_WFR____20201210T080758_20201210T080936_20201210T103707_0097_066_078_1980_MAR_O_NR_002.SEN3/Oa01_reflectance.nc"  # noqa
             fs = {"cls": "fsspec.implementations.zip.ZipFileSystem",
@@ -333,8 +337,9 @@ class TestRun(TestCase):
 
     def test_run_uses_process_via_multiprocessing(self):
         """Test that process is called through Process."""
-        from trollflow2.launcher import Runner
         from threading import Thread
+
+        from trollflow2.launcher import Runner
         with mock.patch('trollflow2.launcher.yaml.load'),\
                 mock.patch('trollflow2.launcher.open'),\
                 mock.patch('trollflow2.launcher.generate_messages') as generate_messages,\
@@ -647,8 +652,8 @@ class TestProcess(TestCase):
 
 def test_workers_initialized():
     """Test that the config loading works when workers are defined."""
-    from tempfile import NamedTemporaryFile
     import os
+    from tempfile import NamedTemporaryFile
 
     queue = mock.MagicMock()
 

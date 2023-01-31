@@ -24,8 +24,8 @@
 import logging
 import logging.config
 from contextlib import contextmanager
-from logging import getLogger, DEBUG
-from logging.handlers import QueueListener, QueueHandler
+from logging import DEBUG, getLogger
+from logging.handlers import QueueHandler, QueueListener
 
 DEFAULT_LOG_CONFIG = {'version': 1,
                       'disable_existing_loggers': False,
