@@ -333,12 +333,11 @@ Uploading produced data to S3
 *****************************
 
 .. note::
-   In most cases it is perhaps better to have a separate dispatcher from
-   `Trollmoves <https://github.com/pytroll/trollmoves/>`_ to handle the file transfers. With
-   containers this will require an additional container image, configuration and a use of
-   a shared volume for the temporary local files, so this plugin makes setting up the uploading
-   easier. Later on, if direct saving to S3 becomes available in Satpy writers, this plugin
-   will be removed.
+   To transfer files to remote file systems, it is recommended to use a separate process, eg the dispatcher 
+   from `Trollmoves <https://github.com/pytroll/trollmoves/>`_ to handle the file transfers. However,
+   this plugin is a workaround for Satpy's current inability to perform direct remote writing, not a 
+   dispatcher in itself. Later on, if direct saving to S3 becomes available in Satpy writers, this plugin
+   will be deprecated and eventually removed.
 
 The ``s3.uploader`` plugin can upload the produced imagery to S3 object storage. The data will be
 first saved to ``staging_zone`` on local storage. When the saving is completed, the data are
