@@ -16,9 +16,16 @@
 # Workaround for unittests so that satpy and posttroll installations
 # are not necessary
 
-"""S3 object store plugins for Trollflow2."""
+"""S3 object store plugins and utilities for Trollflow2."""
+
+import logging
+
+from s3fs import S3FileSystem
 
 from trollflow2.dict_tools import plist_iter
+
+
+logger = logging.getLogger(__name__)
 
 
 def uploader(job):
@@ -34,3 +41,12 @@ def uploader(job):
         local_fname = fmt_config['filename'].replace(fmt['output_dir'], staging_zone)
         mover = S3Mover(local_fname, fmt['output_dir'])
         mover.move()
+
+
+def _check_s3_file(remote_file):
+    """Check that file saved in S3 is not empty."""
+    s3 = S3FileSystem()
+    if s3.stat(remote_file)['size'] == 0:
+        logger.error("Empty file detected: %s", remote_file)
+        return True
+    return False
