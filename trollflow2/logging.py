@@ -24,7 +24,7 @@
 import logging
 import logging.config
 from contextlib import contextmanager
-from logging import DEBUG, getLogger
+from logging import getLogger
 from logging.handlers import QueueHandler, QueueListener
 
 DEFAULT_LOG_CONFIG = {'version': 1,
@@ -72,4 +72,3 @@ def setup_queued_logging(log_queue, config=None):
     root_logger = getLogger()
     _set_config(config)
     root_logger.addHandler(QueueHandler(log_queue))
-    root_logger.setLevel(DEBUG)
