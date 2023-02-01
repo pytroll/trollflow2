@@ -215,13 +215,13 @@ class Runner:
 
     def _run_threaded(self, messages):
         """Run in a thread."""
-        logger.info("Launching trollflow2 with threads")
+        logger.debug("Launching trollflow2 with threads")
         from threading import Thread
         self._run_product_list_on_messages(messages, process, Thread)
 
     def _run_subprocess(self, messages):
         """Run in a subprocess, with queued logging."""
-        logger.info("Launching trollflow2 with subprocesses")
+        logger.debug("Launching trollflow2 with subprocesses")
         from multiprocessing import get_context
         ctx = get_context("spawn")
         self._run_product_list_on_messages(messages, queue_logged_process, ctx.Process)
