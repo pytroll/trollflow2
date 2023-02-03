@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-#
 # Copyright (c) 2019 Pytroll developers
 #
 # This program is free software: you can redistribute it and/or modify
@@ -23,11 +20,10 @@
 
 import copy
 import os
-import pathlib
 from contextlib import contextmanager, suppress
 from logging import getLogger
 from tempfile import NamedTemporaryFile
-from urllib.parse import urlunsplit
+from urllib.parse import urlunsplit, urlsplit
 import datetime as dt
 
 with suppress(ImportError):
@@ -36,7 +32,7 @@ import dpath.util
 import rasterio
 import dask
 from posttroll.message import Message
-from posttroll.publisher import Publisher, NoisyPublisher
+from posttroll.publisher import create_publisher_from_dict_config
 from pyorbital.astronomy import sun_zenith_angle
 from pyresample.boundary import AreaDefBoundary, Boundary
 from pyresample.area_config import AreaNotFound
@@ -177,7 +173,9 @@ def _prepare_filename_and_directory(fmat):
 
     # directory creation
     if directory and not os.path.exists(directory):
-        os.makedirs(directory)
+        target_scheme = urlsplit(directory).scheme
+        if target_scheme in ('', 'file'):
+            os.makedirs(directory)
 
     return directory, filename
 
@@ -205,12 +203,12 @@ def prepared_filename(fmat, renames):
 
     if staging_zone or use_tmp_file:
         if staging_zone:
-            directory = pathlib.Path(staging_zone)
-            of = pathlib.Path(orig_filename)
+            directory = staging_zone
+            of = orig_filename
         if use_tmp_file:
             filename = _get_temp_filename(directory, renames.keys())
         else:
-            filename = os.fspath(directory / of.name)
+            filename = os.path.join(directory, os.path.basename(of))
         yield filename
         renames[filename] = orig_filename
     else:
@@ -284,7 +282,9 @@ def renamed_files():
     yield renames
 
     for tmp_name, actual_name in renames.items():
-        os.rename(tmp_name, actual_name)
+        target_scheme = urlsplit(actual_name).scheme
+        if target_scheme in ('', 'file'):
+            os.rename(tmp_name, actual_name)
 
 
 def save_datasets(job):
@@ -351,21 +351,28 @@ class FilePublisher:
         LOG.debug('Starting publisher')
         self.port = kwargs.get('port', 0)
         self.nameservers = kwargs.get('nameservers', "")
-        if self.nameservers is None:
-            self.pub = Publisher("tcp://*:" + str(self.port), "l2processor")
-        else:
-            self.pub = NoisyPublisher('l2processor', port=self.port,
-                                      nameservers=self.nameservers)
-            self.pub.start()
+        self._pub_starter = create_publisher_from_dict_config(
+            {
+                'port': self.port,
+                'nameservers': self.nameservers,
+                'name': 'l2processor',
+            }
+        )
+        self.pub = self._pub_starter.start()
 
     @staticmethod
     def create_message(fmat, mda):
         """Create a message topic and mda."""
+        from urllib.parse import urlparse
+
         topic_pattern = fmat["publish_topic"]
         file_mda = mda.copy()
         file_mda.update(fmat.get('extra_metadata', {}))
 
-        file_mda['uri'] = os.path.abspath(fmat['filename'])
+        if urlparse(fmat['filename']).scheme != '':
+            file_mda['uri'] = fmat['filename']
+        else:
+            file_mda['uri'] = os.path.abspath(fmat['filename'])
 
         file_mda['uid'] = os.path.basename(fmat['filename'])
         file_mda['product'] = fmat['product']
@@ -428,6 +435,7 @@ class FilePublisher:
         """Stop the publisher."""
         if self.pub:
             self.pub.stop()
+            self.pub = None
 
     def __del__(self):
         """Stop the publisher when last reference is deleted."""
