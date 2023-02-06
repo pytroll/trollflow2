@@ -105,3 +105,12 @@ venv.bak/
 
 # Emacs autosave
 *~
+
+# sphinx
+doc/source/_build
+
+# pycharm
+.idea
+
+# vscode
+.vscode

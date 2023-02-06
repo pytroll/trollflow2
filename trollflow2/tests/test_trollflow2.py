@@ -22,16 +22,17 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 """Test plugins."""
 
+import copy
 import datetime as dt
 import logging
 import os
 import unittest
-import copy
 import pathlib
 import queue
-from unittest import mock
 from functools import partial
+from unittest import mock
 
+import numpy as np
 import pytest
 from pyresample.geometry import DynamicAreaDefinition, create_area_def
 import rasterio
@@ -39,9 +40,9 @@ import rasterio
 import dask.array as da
 import xarray as xr
 
-from trollflow2.tests.utils import TestCase
 from trollflow2.launcher import read_config
-
+from trollflow2.tests.utils import create_filenames_and_topics
+from trollflow2.tests.utils import TestCase
 
 yaml_test1 = """
 product_list:
@@ -375,7 +376,7 @@ class TestSaveDatasets(TestCase):
     def test_save_datasets(self):
         """Test saving datasets."""
         self.maxDiff = None
-        from trollflow2.plugins import save_datasets, DEFAULT
+        from trollflow2.plugins import DEFAULT, save_datasets
 
         the_queue = mock.MagicMock()
         job = _create_job_for_save_datasets()
@@ -806,8 +807,9 @@ class TestCreateScene(TestCase):
 
     def test_create_scene(self):
         """Test making a scene."""
-        from trollflow2.plugins import create_scene
         from satpy.version import version as satpy_version
+
+        from trollflow2.plugins import create_scene
         if not isinstance(satpy_version, str):
             # trollflow2 mocks all missing imports
             import trollflow2.plugins
@@ -845,7 +847,7 @@ class TestLoadComposites(TestCase):
 
     def test_load_composites(self):
         """Test loading composites."""
-        from trollflow2.plugins import load_composites, DEFAULT
+        from trollflow2.plugins import DEFAULT, load_composites
         scn = _get_mocked_scene_with_properties()
         job = {"product_list": self.product_list, "scene": scn}
         load_composites(job)
@@ -875,7 +877,7 @@ class TestLoadComposites(TestCase):
 
     def test_load_composites_with_custom_args(self):
         """Test loading with arbitrary additional arguments."""
-        from trollflow2.plugins import load_composites, DEFAULT
+        from trollflow2.plugins import DEFAULT, load_composites
         scn = _get_mocked_scene_with_properties()
         self.product_list['product_list']['scene_load_kwargs'] = {"upper_right_corner": "NE"}
         job = {"product_list": self.product_list, "scene": scn}
@@ -1107,7 +1109,6 @@ class TestSunlightCovers(TestCase):
     def test_coverage(self):
         """Test sunlight coverage."""
         from trollflow2.plugins import _get_sunlight_coverage
-        import numpy as np
         with mock.patch('trollflow2.plugins.AreaDefBoundary') as area_def_boundary, \
                 mock.patch('trollflow2.plugins.Boundary') as boundary, \
                 mock.patch('trollflow2.plugins.get_twilight_poly'), \
@@ -1133,8 +1134,6 @@ class TestGetProductAreaDef(TestCase):
     def test_get_product_area_def(self):
         """Test _get_product_area_def()."""
         from trollflow2.plugins import _get_product_area_def
-        # scn = mock.MagicMock()
-        # scn.__getitem__.side_effect = KeyError
 
         # No area nor product
         scn = dict([])
@@ -1221,13 +1220,13 @@ class TestCheckSunlightCoverage(TestCase):
 
     def test_fully_sunlit_scene_returns_full_coverage(self):
         """Test that a fully sunlit scene returns 100% coverage."""
-        from trollflow2.plugins import check_sunlight_coverage
         from pyresample.spherical import SphPolygon
-        import numpy as np
+
+        from trollflow2.plugins import check_sunlight_coverage
         with mock.patch('trollflow2.plugins.Pass') as tst_pass,\
                 mock.patch('trollflow2.plugins.get_twilight_poly') as twilight:
-            tst_pass.return_value.boundary.contour_poly = SphPolygon(np.array([(0, 0), (0, 90), (45, 0)]))
-            twilight.return_value = SphPolygon(np.array([(0, 0), (0, 90), (90, 0)]))
+            tst_pass.return_value.boundary.contour_poly = SphPolygon(np.deg2rad(np.array([(0, 0), (0, 90), (45, 0)])))
+            twilight.return_value = SphPolygon(np.deg2rad(np.array([(0, 0), (0, 90), (90, 0)])))
             scene = _get_mocked_scene_with_properties()
             job = {"scene": scene, "product_list": self.product_list.copy(),
                    "input_mda": {"platform_name": "platform"}}
@@ -1237,8 +1236,7 @@ class TestCheckSunlightCoverage(TestCase):
 
     def test_product_not_loaded(self):
         """Test that product isn't loaded when sunlight coverage is too low."""
-        from trollflow2.plugins import check_sunlight_coverage
-        from trollflow2.plugins import metadata_alias
+        from trollflow2.plugins import check_sunlight_coverage, metadata_alias
         with mock.patch('trollflow2.plugins.Pass') as ts_pass,\
                 mock.patch('trollflow2.plugins.get_twilight_poly'),\
                 mock.patch('trollflow2.plugins.get_area_def'),\
@@ -1261,8 +1259,7 @@ class TestCheckSunlightCoverage(TestCase):
 
     def test_sunlight_filter(self):
         """Test that product isn't loaded when sunlight coverage is to low."""
-        from trollflow2.plugins import check_sunlight_coverage
-        from trollflow2.plugins import metadata_alias
+        from trollflow2.plugins import check_sunlight_coverage, metadata_alias
         with mock.patch('trollflow2.plugins.Pass'),\
                 mock.patch('trollflow2.plugins.get_twilight_poly'),\
                 mock.patch('trollflow2.plugins.get_area_def'),\
@@ -1461,8 +1458,7 @@ class TestCovers(TestCase):
 
     def test_covers_collection_area_id(self):
         """Test the coverage of a collection area id."""
-        from trollflow2.plugins import covers
-        from trollflow2.plugins import AbortProcessing
+        from trollflow2.plugins import AbortProcessing, covers
         with mock.patch('trollflow2.plugins.Pass', spec=True) as pass_obj:
             fake_area_coverage_100 = partial(fake_area_coverage, result=1)
             pass_obj.return_value.area_coverage.side_effect = fake_area_coverage_100
@@ -1514,8 +1510,7 @@ class TestCheckMetadata(TestCase):
 
     def test_single_item(self):
         """Test checking a single metadata item."""
-        from trollflow2.plugins import check_metadata
-        from trollflow2.plugins import AbortProcessing
+        from trollflow2.plugins import AbortProcessing, check_metadata
         with mock.patch('trollflow2.plugins.get_config_value') as get_config_value:
             get_config_value.return_value = None
             job = {'product_list': None, 'input_mda': {'sensor': 'foo'}}
@@ -1528,8 +1523,7 @@ class TestCheckMetadata(TestCase):
 
     def test_multiple_items(self):
         """Test checking a single metadata item."""
-        from trollflow2.plugins import check_metadata
-        from trollflow2.plugins import AbortProcessing
+        from trollflow2.plugins import AbortProcessing, check_metadata
         with mock.patch('trollflow2.plugins.get_config_value') as get_config_value:
             # Nothing configured
             get_config_value.return_value = None
@@ -1553,8 +1547,7 @@ class TestCheckMetadata(TestCase):
 
     def test_discard_old_data(self):
         """Test that old data are discarded."""
-        from trollflow2.plugins import check_metadata
-        from trollflow2.plugins import AbortProcessing
+        from trollflow2.plugins import AbortProcessing, check_metadata
         with mock.patch('trollflow2.plugins.get_config_value') as get_config_value:
             get_config_value.return_value = None
             job = {'product_list': None, 'input_mda': {'start_time': dt.datetime(2020, 3, 18)}}
@@ -1567,8 +1560,7 @@ class TestCheckMetadata(TestCase):
 
     def test_discard_new_data(self):
         """Test that new data are discarded."""
-        from trollflow2.plugins import check_metadata
-        from trollflow2.plugins import AbortProcessing
+        from trollflow2.plugins import AbortProcessing, check_metadata
         with mock.patch('trollflow2.plugins.get_config_value') as get_config_value:
             job = {'product_list': None, 'input_mda': {'start_time': dt.datetime.utcnow() - dt.timedelta(minutes=90)}}
             get_config_value.return_value = {'start_time': +60}
@@ -1780,23 +1772,27 @@ class TestFilePublisher(TestCase):
     def test_filepublisher_is_started(self):
         """Test that the filepublisher is started."""
         from trollflow2.plugins import FilePublisher
-        with mock.patch('trollflow2.plugins.NoisyPublisher'):
-            pub = FilePublisher()
-            pub.pub.start.assert_called_once()
+        with mock.patch('posttroll.publisher.NoisyPublisher') as NoisyPublisher:
+            _ = FilePublisher()
+            NoisyPublisher.return_value.start.assert_called_once()
 
     def test_filepublisher_is_stopped_on_exit(self):
         """Test that the filepublisher is stopped on exit."""
         from trollflow2.plugins import FilePublisher
-        with mock.patch('trollflow2.plugins.NoisyPublisher'):
+        with mock.patch('posttroll.publisher.NoisyPublisher'):
+            publisher = mock.MagicMock()
             pub = FilePublisher()
+            pub.pub = publisher
             pub.__del__()
-            pub.pub.stop.assert_called()
+            publisher.stop.assert_called()
+            assert pub.pub is None
 
     def test_filepublisher_with_compose(self):
         """Test filepublisher with compose."""
-        from trollflow2.plugins import FilePublisher
         from satpy import Scene
         from satpy.tests.utils import make_dataid
+
+        from trollflow2.plugins import FilePublisher
 
         scn_euron1 = Scene()
         dataid = make_dataid(name='cloud_top_height', resolution=1000)
@@ -1805,14 +1801,15 @@ class TestFilePublisher(TestCase):
                'input_mda': self.input_mda,
                'resampled_scenes': dict(euron1=scn_euron1)}
 
-        with mock.patch.multiple('trollflow2.plugins', Message=mock.DEFAULT,
-                                 NoisyPublisher=mock.DEFAULT, Publisher=mock.DEFAULT) as mocks:
-            message = mocks['Message']
+        with mock.patch('trollflow2.plugins.Message') as Message, \
+                mock.patch.multiple(
+                    'posttroll.publisher', NoisyPublisher=mock.DEFAULT, Publisher=mock.DEFAULT):
+            message = Message
 
             pub = FilePublisher()
             product_list = self.product_list.copy()
             product_list['product_list']['publish_topic'] = '/{areaname}/{productname}'
-            topics = self._create_filenames_and_topics(job)
+            topics = create_filenames_and_topics(job)
 
             pub(job)
             message.assert_called()
@@ -1840,9 +1837,10 @@ class TestFilePublisher(TestCase):
                'input_mda': self.input_mda,
                'resampled_scenes': dict(euron1=scn_euron1)}
 
-        with mock.patch.multiple('trollflow2.plugins', Message=mock.DEFAULT,
-                                 NoisyPublisher=mock.DEFAULT, Publisher=mock.DEFAULT) as mocks:
-            message = mocks['Message']
+        with mock.patch('trollflow2.plugins.Message') as Message, \
+                mock.patch.multiple(
+                    'posttroll.publisher', NoisyPublisher=mock.DEFAULT, Publisher=mock.DEFAULT):
+            message = Message
 
             pub, topics = self._run_publisher_on_job(job)
             message.assert_called()
@@ -1857,6 +1855,33 @@ class TestFilePublisher(TestCase):
                         call_count += 1
             self.assertEqual(call_count, 1)
 
+    def test_filepublisher_s3_files(self):
+        """Test filepublisher with files saved to S3."""
+        from satpy import Scene
+        from satpy.tests.utils import make_dataid
+
+        scn_euron1 = Scene()
+        dataid = make_dataid(name='cloud_top_height', resolution=1000)
+        scn_euron1[dataid] = mock.MagicMock()
+        job = {'product_list': self.product_list,
+               'input_mda': self.input_mda,
+               'resampled_scenes': dict(euron1=scn_euron1)}
+
+        with mock.patch('trollflow2.plugins.Message') as message:
+            with mock.patch.multiple('posttroll.publisher',
+                                     NoisyPublisher=mock.DEFAULT,
+                                     Publisher=mock.DEFAULT):
+                _, _ = self._run_publisher_on_job(job, s3_paths=True)
+                for call_ in message.mock_calls:
+                    if 'call().__str__()' != str(call_):
+                        type_ = call_.args[1]
+                        mda = call_.args[2]
+                        if type_ == 'dispatch':
+                            uri = mda['file_mda']['uri']
+                        else:
+                            uri = mda['uri']
+                        assert uri.startswith('s3://bucket-name/')
+
     def test_non_existing_products_are_not_published(self):
         """Test that non existing products are not published."""
         from satpy import Scene
@@ -1865,14 +1890,13 @@ class TestFilePublisher(TestCase):
         job = {"scene": scn, "product_list": self.product_list, 'input_mda': self.input_mda,
                'resampled_scenes': dict(euron1=Scene(), germ=Scene())}
 
-        with mock.patch('trollflow2.plugins.Message') as message, mock.patch('trollflow2.plugins.NoisyPublisher'):
+        with mock.patch('trollflow2.plugins.Message') as message, mock.patch('posttroll.publisher.NoisyPublisher'):
             self._run_publisher_on_job(job)
             message.assert_not_called()
 
     def test_multiple_dataset_files_can_be_published(self):
         """Test that netcdf files with multiple datasets can be published normally."""
         from satpy import Scene
-        import numpy as np
         from satpy.tests.utils import make_dataid
 
         resampled_scene = Scene()
@@ -1882,28 +1906,37 @@ class TestFilePublisher(TestCase):
         job = {"scene": scn, "product_list": self.product_list, 'input_mda': self.input_mda,
                'resampled_scenes': {'None': resampled_scene}}
 
-        with mock.patch('trollflow2.plugins.Message') as message, mock.patch('trollflow2.plugins.NoisyPublisher'):
+        with mock.patch('trollflow2.plugins.Message') as message, mock.patch('posttroll.publisher.NoisyPublisher'):
             self._run_publisher_on_job(job)
             assert message.call_args_list[-1][0][2]['product'] == (
                 'chl_nn', 'chl_oc4me', 'trsp', 'tsm_nn', 'iop_nn', 'mask', 'latitude', 'longitude')
 
-    def _run_publisher_on_job(self, job):
+    def _run_publisher_on_job(self, job, s3_paths=False):
         """Run a publisher on *job*."""
         from trollflow2.plugins import FilePublisher
+        from trollflow2.dict_tools import plist_iter
 
         pub = FilePublisher()
         product_list = self.product_list.copy()
         product_list['product_list']['publish_topic'] = '/static_topic'
-        topics = self._create_filenames_and_topics(job)
+        topics = create_filenames_and_topics(job)
+        if s3_paths:
+            # Replace local directory paths with S3 paths
+            for _fmt, fmt_config in plist_iter(job['product_list']['product_list']):
+                fname = os.path.basename(fmt_config['filename'])
+                fmt_config['filename'] = "s3://bucket-name/" + fname
+
         pub(job)
         return pub, topics
 
     @staticmethod
     def _create_filenames_and_topics(job):
         """Create the filenames and topics for *job*."""
-        from trollflow2.dict_tools import plist_iter
-        from trollsift import compose
         import os.path
+
+        from trollsift import compose
+
+        from trollflow2.dict_tools import plist_iter
 
         topic_pattern = job['product_list']['product_list']['publish_topic']
         topics = []
@@ -1919,59 +1952,91 @@ class TestFilePublisher(TestCase):
 
         return topics
 
-    def test_filepublisher_kwargs(self):
-        """Test filepublisher keyword argument usage."""
-        from yaml import UnsafeLoader
+    def test_filepublisher_kwargs_direct_instance_defaults(self):
+        """Test filepublisher keyword argument usage.
+
+        Direct instantation, default settings.
+        """
         from trollflow2.plugins import FilePublisher
 
-        # Direct instantiation
-        with mock.patch.multiple('trollflow2.plugins', Message=mock.DEFAULT,
-                                 NoisyPublisher=mock.DEFAULT, Publisher=mock.DEFAULT) as mocks:
+        with mock.patch('trollflow2.plugins.Message'), \
+                mock.patch.multiple(
+                    'posttroll.publisher', NoisyPublisher=mock.DEFAULT, Publisher=mock.DEFAULT) as mocks:
             NoisyPublisher = mocks['NoisyPublisher']
             Publisher = mocks['Publisher']
 
             pub = FilePublisher()
-            pub.pub.start.assert_called_once()
-            assert mock.call('l2processor', port=0, nameservers="") in NoisyPublisher.mock_calls
+            NoisyPublisher.assert_called_once()
+            assert pub.pub is NoisyPublisher.return_value.start.return_value
+            assert mock.call('l2processor', port=0, aliases=None, broadcast_interval=2,
+                             nameservers="", min_port=None, max_port=None) in NoisyPublisher.mock_calls
             Publisher.assert_not_called()
             assert pub.port == 0
             assert pub.nameservers == ""
+
+    def test_filepublisher_kwargs_direct_instance_user_settings(self):
+        """Test filepublisher keyword argument usage.
+
+        Direct instantation, user settings.
+        """
+        from trollflow2.plugins import FilePublisher
+
+        with mock.patch('trollflow2.plugins.Message'), \
+                mock.patch.multiple(
+                    'posttroll.publisher', NoisyPublisher=mock.DEFAULT, Publisher=mock.DEFAULT) as mocks:
+            NoisyPublisher = mocks['NoisyPublisher']
+
             pub = FilePublisher(port=40000, nameservers=['localhost'])
-            assert mock.call('l2processor', port=40000,
-                             nameservers=['localhost']) in NoisyPublisher.mock_calls
+            assert mock.call('l2processor', port=40000, aliases=None, broadcast_interval=2,
+                             nameservers=['localhost'], min_port=None, max_port=None) in NoisyPublisher.mock_calls
             assert pub.port == 40000
             assert pub.nameservers == ['localhost']
-            assert len(pub.pub.start.mock_calls) == 2
 
-        # Direct instantiation with nameservers set to None, which should use Publisher instead of NoisyPublisher
-        with mock.patch.multiple('trollflow2.plugins', Message=mock.DEFAULT,
-                                 NoisyPublisher=mock.DEFAULT, Publisher=mock.DEFAULT) as mocks:
+    def test_filepublisher_kwargs_direct_instance_no_nameserver(self):
+        """Test filepublisher keyword argument usage.
+
+        Direct instantation, nameserver switched off.
+        """
+        from trollflow2.plugins import FilePublisher
+
+        with mock.patch('trollflow2.plugins.Message'), \
+                mock.patch.multiple(
+                    'posttroll.publisher', NoisyPublisher=mock.DEFAULT, Publisher=mock.DEFAULT) as mocks:
             NoisyPublisher = mocks['NoisyPublisher']
             Publisher = mocks['Publisher']
 
-            pub = FilePublisher(port=40000, nameservers=None)
+            _ = FilePublisher(port=40000, nameservers=False)
             NoisyPublisher.assert_not_called()
-            Publisher.assert_called_once_with('tcp://*:40000', 'l2processor')
+            Publisher.assert_called_once_with('tcp://*:40000', name='l2processor', min_port=None, max_port=None)
 
-        # Instantiate via loading YAML
-        with mock.patch.multiple('trollflow2.plugins', Message=mock.DEFAULT,
-                                 NoisyPublisher=mock.DEFAULT, Publisher=mock.DEFAULT) as mocks:
+    def test_filepublisher_kwargs(self):
+        """Test filepublisher keyword argument usage.
+
+        User settings and FilePublisher instantiated from YAML.
+        """
+        from yaml import UnsafeLoader
+
+        with mock.patch('trollflow2.plugins.Message'), \
+                mock.patch.multiple(
+                    'posttroll.publisher', NoisyPublisher=mock.DEFAULT, Publisher=mock.DEFAULT) as mocks:
             NoisyPublisher = mocks['NoisyPublisher']
             Publisher = mocks['Publisher']
 
             fpub = read_config(raw_string=YAML_FILE_PUBLISHER, Loader=UnsafeLoader)
-            assert mock.call('l2processor', port=40002,
-                             nameservers=['localhost']) in NoisyPublisher.mock_calls
+            assert mock.call('l2processor', port=40002, aliases=None, broadcast_interval=2,
+                             nameservers=['localhost'], min_port=None, max_port=None) in NoisyPublisher.mock_calls
             Publisher.assert_not_called()
-            fpub.pub.start.assert_called_once()
+            assert fpub.pub is NoisyPublisher.return_value.start.return_value
+            NoisyPublisher.assert_called_once()
             assert fpub.port == 40002
             assert fpub.nameservers == ['localhost']
 
     def test_dispatch(self):
         """Test dispatch order messages."""
-        from trollflow2.plugins import FilePublisher
         from satpy import Scene
         from satpy.tests.utils import make_dataid
+
+        from trollflow2.plugins import FilePublisher
 
         scn = Scene()
         dataid = make_dataid(name='cloud_top_height', resolution=1000)
@@ -1980,9 +2045,10 @@ class TestFilePublisher(TestCase):
                'input_mda': self.input_mda,
                'resampled_scenes': dict(euron1=scn)}
 
-        with mock.patch.multiple('trollflow2.plugins', Message=mock.DEFAULT,
-                                 NoisyPublisher=mock.DEFAULT, Publisher=mock.DEFAULT) as mocks:
-            message = mocks['Message']
+        with mock.patch('trollflow2.plugins.Message') as Message, \
+                mock.patch.multiple(
+                    'posttroll.publisher', NoisyPublisher=mock.DEFAULT, Publisher=mock.DEFAULT):
+            message = Message
 
             pub = FilePublisher()
             pub(job)
@@ -2007,8 +2073,9 @@ class TestFilePublisher(TestCase):
         """Test deleting the publisher."""
         from trollflow2.plugins import FilePublisher
         nb_ = mock.MagicMock()
-        with mock.patch.multiple('trollflow2.plugins', Message=mock.DEFAULT,
-                                 NoisyPublisher=mock.DEFAULT, Publisher=mock.DEFAULT) as mocks:
+        with mock.patch('trollflow2.plugins.Message'), \
+                mock.patch.multiple(
+                    'posttroll.publisher', NoisyPublisher=mock.DEFAULT, Publisher=mock.DEFAULT) as mocks:
             NoisyPublisher = mocks['NoisyPublisher']
 
             NoisyPublisher.return_value = nb_
@@ -2018,16 +2085,17 @@ class TestFilePublisher(TestCase):
                    'resampled_scenes': {}}
             pub(job)
 
-        nb_.stop.assert_not_called()
+        nb_.start.return_value.stop.assert_not_called()
         del pub
-        nb_.stop.assert_called_once()
+        nb_.start.return_value.stop.assert_called_once()
 
     def test_stopping(self):
         """Test stopping the publisher."""
         from trollflow2.plugins import FilePublisher
         nb_ = mock.MagicMock()
-        with mock.patch.multiple('trollflow2.plugins', Message=mock.DEFAULT,
-                                 NoisyPublisher=mock.DEFAULT, Publisher=mock.DEFAULT) as mocks:
+        with mock.patch('trollflow2.plugins.Message'), \
+                mock.patch.multiple(
+                    'posttroll.publisher', NoisyPublisher=mock.DEFAULT, Publisher=mock.DEFAULT) as mocks:
             NoisyPublisher = mocks['NoisyPublisher']
 
             NoisyPublisher.return_value = nb_
@@ -2037,9 +2105,9 @@ class TestFilePublisher(TestCase):
                    'resampled_scenes': {}}
             pub(job)
 
-        nb_.stop.assert_not_called()
+        nb_.start.return_value.stop.assert_not_called()
         pub.stop()
-        nb_.stop.assert_called_once()
+        nb_.start.return_value.stop.assert_called_once()
 
 
 class FakeScene(dict):
@@ -2049,10 +2117,10 @@ class FakeScene(dict):
 @pytest.fixture
 def sc_3a_3b():
     """Fixture to prepare a scene with channels 3A and 3B."""
-    from xarray import DataArray
-    from satpy import Scene
     import dask.array as da
     import numpy as np
+    from satpy import Scene
+    from xarray import DataArray
     prod_attrs = {
         "platform_name": "noaa-18",
         "sensor": "avhrr-3"}
