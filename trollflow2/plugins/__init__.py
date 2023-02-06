@@ -20,6 +20,7 @@
 
 import collections.abc
 import os
+import pathlib
 from contextlib import contextmanager, suppress
 from logging import getLogger
 from tempfile import NamedTemporaryFile
