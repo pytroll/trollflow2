@@ -52,6 +52,88 @@ def test_queued_logging_stops_listener_on_exception():
         assert q_listener.return_value.stop.called
 
 
+def test_queued_logging_process_default_config(caplog):
+    """Test default config for queued logging started in a process."""
+    _run_in_process()
+
+    assert "root debug" in caplog.text
+    assert "logger_1 debug" in caplog.text
+    assert "logger_2 debug" in caplog.text
+
+
+def _run_in_process(log_config=None):
+    from multiprocessing import Manager, get_context
+
+    from trollflow2.logging import logging_on
+
+    log_queue = Manager().Queue()
+
+    with logging_on(log_queue, config=log_config):
+        kwargs = {'log_config': log_config}
+        ctx = get_context("spawn")
+        proc = ctx.Process(target=_queue_logged_process, args=(log_queue,), kwargs=kwargs)
+        proc.start()
+        proc.join()
+
+
+def test_queued_logging_process_custom_config(caplog):
+    """Test default config for queued logging started in a process."""
+    log_config = {
+        'version': 1,
+        'handlers': {
+            'console': {
+                'class': 'logging.StreamHandler',
+            },
+        },
+        'loggers': {
+            'root': {
+                'level': 'WARNING',
+                'handlers': ['console'],
+            },
+            'logger_1': {
+                'level': 'DEBUG',
+                'handlers': ['console'],
+            },
+            'logger_2': {
+                'level': 'INFO',
+                'handlers': ['console'],
+            },
+        },
+    }
+
+    _run_in_process(log_config=log_config)
+
+    assert "root debug" not in caplog.text
+    assert "root info" not in caplog.text
+    assert "logger_1 debug" in caplog.text
+    assert "logger_2 debug" not in caplog.text
+    assert "logger_2 info" in caplog.text
+
+
+def _queue_logged_process(log_queue, log_config=None):
+    from logging import getLogger
+
+    from trollflow2.logging import setup_queued_logging
+
+    setup_queued_logging(log_queue, log_config)
+
+    root = getLogger()
+    logger_1 = getLogger('logger_1')
+    logger_2 = getLogger('logger_2')
+
+    root.debug("root debug")
+    root.info("root info")
+    root.warning("root warning")
+
+    logger_1.debug("logger_1 debug")
+    logger_1.info("logger_1 info")
+    logger_1.warning("logger_1 warning")
+
+    logger_2.debug("logger_2 debug")
+    logger_2.info("logger_2 info")
+    logger_2.warning("logger_2 warning")
+
+
 LOG_CONFIG = {'version': 1,
               'formatters': {'simple': {'format': '%(asctime)s - %(name)s - %(levelname)s - %(message)s'}},
               'handlers': {'file': {'class': 'logging.handlers.BufferingHandler',
