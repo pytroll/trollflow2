@@ -35,6 +35,9 @@ import pytest
 import yaml
 from yaml import YAMLError
 
+from trollflow2.launcher import launch
+from trollflow2.tests.test_logging import duplicate_lines
+
 try:
     from yaml import UnsafeLoader
 except ImportError:
@@ -304,6 +307,28 @@ class TestMessageToJobs(TestCase):
             extracted_filename = jobs[999]['input_filenames'][0]
 
             assert extracted_filename == uri
+
+
+def test_subprocess_uses_queued_logging(tmp_path, caplog):
+    """Test that the subprocess logs are handled correctly."""
+    with mock.patch('trollflow2.launcher.yaml.load'), \
+            mock.patch('trollflow2.launcher.open'), \
+            mock.patch('trollflow2.launcher._create_listener_from_connection_parameters') as listener_creator:
+        from posttroll.message import Message
+        msg = Message('/my/topic', atype='file', data={'filename': 'foo'})
+        listener_creator.return_value.output_queue.get.side_effect = [msg, KeyboardInterrupt]
+
+        config_filename = os.fspath(tmp_path / "myconfig.yaml")
+        with open(config_filename, mode="w") as fd:
+            fd.write(yaml_test_minimal)
+        try:
+            launch(["my_topic", config_filename])
+        except KeyboardInterrupt:
+            pass
+        assert "All 0 files produced nominally in" in caplog.text
+        assert config_filename in caplog.text
+        assert "Creating scene" in caplog.text
+        assert not duplicate_lines(caplog.text)
 
 
 class TestRun(TestCase):

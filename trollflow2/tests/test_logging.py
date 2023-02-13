@@ -155,7 +155,7 @@ def test_logging_works_in_subprocess_with_default_logging_config(caplog):
     with logging_on():
 
         run_subprocess(["foo1", "foo2"])
-        assert no_duplicate_lines(caplog.text)
+        assert not duplicate_lines(caplog.text)
         assert "root debug" in caplog.text
         assert "foo1 debug" in caplog.text
         assert "foo2 debug" in caplog.text
@@ -192,7 +192,7 @@ def test_logging_works_in_subprocess_not_double(tmp_path):
     with open(logfile) as fd:
         file_contents = fd.read()
 
-    assert no_duplicate_lines(file_contents)
+    assert not duplicate_lines(file_contents)
     assert "root debug" not in file_contents
     assert "foo1 debug" in file_contents
     assert "foo2 debug" not in file_contents
@@ -204,7 +204,7 @@ def test_logging_works_in_subprocess_not_double(tmp_path):
     assert "foo2 warning" in file_contents
 
 
-def no_duplicate_lines(contents):
+def duplicate_lines(contents):
     """Make sure there are no duplicate lines."""
     lines = contents.strip().split("\n")
-    return len(lines) == len(set(lines))
+    return len(lines) != len(set(lines))
