@@ -85,7 +85,7 @@ def test_queued_logging_process_custom_config(caplog):
     }
 
     with logging_on(log_config):
-        run_subprocess(["logger_1", "logger_2"], log_config)
+        run_subprocess(["logger_1", "logger_2"])
 
     assert "root debug" not in caplog.text
     assert "root info" not in caplog.text
@@ -108,7 +108,7 @@ def test_log_config_is_used_when_provided():
 
     logger = logging.getLogger()
     with mock.patch("logging.handlers.BufferingHandler.emit", autospec=True) as emit:
-        with logging_on(config=config):
+        with logging_on(config):
             assert not emit.called
             logger.warning("uh oh...")
             # we wait for the log record to go through the queue listener in
@@ -127,9 +127,9 @@ def test_logging_works(caplog):
     assert message in caplog.text
 
 
-def run_subprocess(loggers, config=None):
+def run_subprocess(loggers):
     """Run a subprocess."""
-    proc = create_logged_process(target=fun, args=(loggers,), kwargs={"log_config": config})
+    proc = create_logged_process(target=fun, args=(loggers,))
     proc.start()
     proc.join()
 
@@ -187,7 +187,7 @@ def test_logging_works_in_subprocess_not_double(tmp_path):
                           }
 
     with logging_on(LOG_CONFIG_TO_FILE):
-        run_subprocess(["foo1", "foo2"], LOG_CONFIG_TO_FILE)
+        run_subprocess(["foo1", "foo2"])
     time.sleep(.1)
     logger.handlers[0].flush()
     with open(logfile) as fd:

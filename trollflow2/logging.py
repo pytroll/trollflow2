@@ -40,6 +40,8 @@ DEFAULT_LOG_CONFIG = {'version': 1,
 
 LOG_QUEUE = MP_MANAGER.Queue()
 
+LOG_CONFIG = None
+
 
 @contextmanager
 def logging_on(config=None):
@@ -54,15 +56,28 @@ def logging_on(config=None):
     root = logging.getLogger()
     # Lift out the existing handlers (we need to keep these for pytest's caplog)
     handlers = root.handlers.copy()
+    with configure_logging(config):
+        root.handlers.extend(handlers)
+        # set up and run listener
+        listener = QueueListener(LOG_QUEUE, *(root.handlers))
+        listener.start()
+        try:
+            yield
+        finally:
+            listener.stop()
+
+
+@contextmanager
+def configure_logging(config):
+    """Configure the logging using the provided *config* dict."""
     _set_config(config)
-    root.handlers.extend(handlers)
-    # set up and run listener
-    listener = QueueListener(LOG_QUEUE, *(root.handlers))
-    listener.start()
+    global LOG_CONFIG
+    LOG_CONFIG = config
+
     try:
         yield
     finally:
-        listener.stop()
+        LOG_CONFIG = None
         reset_logging()
 
 
@@ -100,7 +115,7 @@ def reset_logging():
 
 
 def setup_queued_logging(log_queue, config=None):
-    """Set up queued logging."""
+    """Set up queued logging in a spawned subprocess."""
     root_logger = getLogger()
     if config:
         remove_handlers_from_config(config)
@@ -136,6 +151,7 @@ def create_logged_process(target, args, kwargs=None):
     if kwargs is None:
         kwargs = {}
     kwargs["log_queue"] = LOG_QUEUE
+    kwargs["log_config"] = LOG_CONFIG
     ctx = get_context('spawn')
     proc = ctx.Process(target=target, args=args, kwargs=kwargs)
     return proc

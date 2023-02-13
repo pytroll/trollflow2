@@ -176,10 +176,9 @@ class Runner:
     """Class that handles all the administration around running on a product list."""
 
     def __init__(self, product_list, connection_parameters=None,
-                 test_message=None, threaded=False, log_config=None):
+                 test_message=None, threaded=False):
         """Set up the runner."""
         self.product_list = product_list
-        self.log_config = log_config
         self.connection_parameters = connection_parameters
         self.test_message = get_test_message(test_message)
         self.threaded = threaded
@@ -224,14 +223,12 @@ class Runner:
         logger.debug("Launching trollflow2 with subprocesses")
         self._run_product_list_on_messages(messages, queue_logged_process, create_logged_process)
 
-    def _run_product_list_on_messages(self, messages, target_fun, process_class):
+    def _run_product_list_on_messages(self, messages, target_fun, process_creator):
         """Run the product list on the messages."""
         for msg in messages:
             produced_files_queue = MP_MANAGER.Queue()
             kwargs = dict(produced_files=produced_files_queue, prod_list=self.product_list)
-            if not self.threaded:
-                kwargs["log_config"] = self.log_config
-            proc = process_class(target=target_fun, args=(msg,), kwargs=kwargs)
+            proc = process_creator(target=target_fun, args=(msg,), kwargs=kwargs)
             start_time = datetime.now()
             proc.start()
             proc.join()
@@ -481,8 +478,7 @@ def launch(args_in):
         threaded = args.pop("threaded")
         connection_parameters = args
 
-        runner = Runner(product_list, connection_parameters, test_message, threaded,
-                        log_config=log_config)
+        runner = Runner(product_list, connection_parameters, test_message, threaded)
         runner.run()
 
 
