@@ -120,7 +120,6 @@ def test_log_config_is_used_when_provided():
 def test_logging_works(caplog):
     """Test that the logs get out there."""
     logger = logging.getLogger("something")
-    # logging.getLogger().addHandler(caplog.handler)
     message = "oh no :("
     with logging_on():
         logger.warning(message)
