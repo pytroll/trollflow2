@@ -311,9 +311,7 @@ class TestMessageToJobs(TestCase):
 
 def test_subprocess_uses_queued_logging(tmp_path, caplog):
     """Test that the subprocess logs are handled correctly."""
-    with mock.patch('trollflow2.launcher.yaml.load'), \
-            mock.patch('trollflow2.launcher.open'), \
-            mock.patch('trollflow2.launcher._create_listener_from_connection_parameters') as listener_creator:
+    with mock.patch('trollflow2.launcher._create_listener_from_connection_parameters') as listener_creator:
         from posttroll.message import Message
         msg = Message('/my/topic', atype='file', data={'filename': 'foo'})
         listener_creator.return_value.output_queue.get.side_effect = [msg, KeyboardInterrupt]
@@ -327,6 +325,49 @@ def test_subprocess_uses_queued_logging(tmp_path, caplog):
             pass
         assert "All 0 files produced nominally in" in caplog.text
         assert config_filename in caplog.text
+        assert "Creating scene" in caplog.text
+        assert not duplicate_lines(caplog.text)
+
+
+pnuus_log_config = """
+version: 1
+formatters:
+  fmt:
+    format: '[%(asctime)s %(levelname)-8s %(name)s] %(message)s'
+handlers:
+  console:
+    class: logging.StreamHandler
+    formatter: fmt
+    stream: ext://sys.stdout
+loggers:
+  '':
+    level: WARNING
+    handlers: [console]
+  'trollflow2':
+    level: INFO
+"""
+
+
+def test_subprocess_uses_custom_queued_logging(tmp_path, caplog):
+    """Test that the subprocess logs with custom log config are handled correctly."""
+    with mock.patch('trollflow2.launcher._create_listener_from_connection_parameters') as listener_creator:
+        from posttroll.message import Message
+        msg = Message('/my/topic', atype='file', data={'filename': 'foo'})
+        listener_creator.return_value.output_queue.get.side_effect = [msg, KeyboardInterrupt]
+
+        config_filename = os.fspath(tmp_path / "myconfig.yaml")
+        with open(config_filename, mode="w") as fd:
+            fd.write(yaml_test_minimal)
+
+        log_config_filename = os.fspath(tmp_path / "mylogconfig.yaml")
+        with open(log_config_filename, mode="w") as fd:
+            fd.write(pnuus_log_config)
+
+        try:
+            launch(["my_topic", config_filename, "-c", log_config_filename])
+        except KeyboardInterrupt:
+            pass
+        assert "All 0 files produced nominally in" in caplog.text
         assert "Creating scene" in caplog.text
         assert not duplicate_lines(caplog.text)
 
