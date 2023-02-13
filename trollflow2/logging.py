@@ -58,13 +58,40 @@ def logging_on(log_queue, config=None):
         yield
     finally:
         listener.stop()
-        root.handlers = handlers
+        reset_logging()
 
 
 def _set_config(config):
     if config is None:
         config = DEFAULT_LOG_CONFIG
     logging.config.dictConfig(config)
+
+
+def reset_logging():
+    """Reset logging.
+
+    Source: https://stackoverflow.com/a/56810619/9112384
+    """
+    manager = logging.root.manager
+    manager.disabled = logging.NOTSET
+    for logger in manager.loggerDict.values():
+        if isinstance(logger, logging.Logger):
+            logger.setLevel(logging.NOTSET)
+            logger.propagate = True
+            logger.disabled = False
+            logger.filters.clear()
+            handlers = logger.handlers.copy()
+            for handler in handlers:
+                # Copied from `logging.shutdown`.
+                try:
+                    handler.acquire()
+                    handler.flush()
+                    handler.close()
+                except (OSError, ValueError):
+                    pass
+                finally:
+                    handler.release()
+                logger.removeHandler(handler)
 
 
 def setup_queued_logging(log_queue, config=None):
