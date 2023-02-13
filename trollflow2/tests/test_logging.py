@@ -24,20 +24,17 @@
 import logging
 import sys
 import time
-from multiprocessing import Manager
 from unittest import mock
 
 import pytest
 
-from trollflow2.logging import logging_on, setup_queued_logging
-
-LOG_QUEUE = Manager().Queue(-1)  # no limit on size
+from trollflow2.logging import LOG_QUEUE, logging_on, setup_queued_logging
 
 
 def test_queued_logging_has_a_listener():
     """Test that the queued logging has a listener."""
     with mock.patch("trollflow2.logging.QueueListener", autospec=True) as q_listener:
-        with logging_on(LOG_QUEUE):
+        with logging_on():
             assert q_listener.called
             assert q_listener.return_value.start.called
         assert q_listener.return_value.stop.called
@@ -47,14 +44,14 @@ def test_queued_logging_stops_listener_on_exception():
     """Test that queued logging stops the listener even if an exception occurs."""
     with mock.patch("trollflow2.logging.QueueListener", autospec=True) as q_listener:
         with pytest.raises(Exception, match='Oh no!'):
-            with logging_on(LOG_QUEUE):
+            with logging_on():
                 raise Exception("Oh no!")
         assert q_listener.return_value.stop.called
 
 
 def test_queued_logging_process_default_config(caplog):
     """Test default config for queued logging started in a process."""
-    with logging_on(LOG_QUEUE):
+    with logging_on():
         run_subprocess(["logger_1", "logger_2"], LOG_QUEUE)
     assert "root debug" in caplog.text
     assert "logger_1 debug" in caplog.text
@@ -86,7 +83,7 @@ def test_queued_logging_process_custom_config(caplog):
         },
     }
 
-    with logging_on(LOG_QUEUE, log_config):
+    with logging_on(log_config):
         run_subprocess(["logger_1", "logger_2"], LOG_QUEUE, log_config)
 
     assert "root debug" not in caplog.text
@@ -110,7 +107,7 @@ def test_log_config_is_used_when_provided():
 
     logger = logging.getLogger()
     with mock.patch("logging.handlers.BufferingHandler.emit", autospec=True) as emit:
-        with logging_on(LOG_QUEUE, config=config):
+        with logging_on(config=config):
             assert not emit.called
             logger.warning("uh oh...")
             # we wait for the log record to go through the queue listener in
@@ -124,7 +121,7 @@ def test_logging_works(caplog):
     logger = logging.getLogger("something")
     # logging.getLogger().addHandler(caplog.handler)
     message = "oh no :("
-    with logging_on(LOG_QUEUE):
+    with logging_on():
         logger.warning(message)
     assert message in caplog.text
 
@@ -157,7 +154,7 @@ def run_subprocess(loggers, queue, config=None):
                     reason="Logging from a subprocess seems to work only on Linux")
 def test_logging_works_in_subprocess_with_default_logging_config(caplog):
     """Test that the logs get out there, even from a subprocess."""
-    with logging_on(LOG_QUEUE):
+    with logging_on():
 
         run_subprocess(["foo1", "foo2"], LOG_QUEUE)
         assert no_duplicate_lines(caplog.text)
@@ -190,7 +187,7 @@ def test_logging_works_in_subprocess_not_double(tmp_path):
                                }
                           }
 
-    with logging_on(LOG_QUEUE, LOG_CONFIG_TO_FILE):
+    with logging_on(LOG_CONFIG_TO_FILE):
         run_subprocess(["foo1", "foo2"], LOG_QUEUE, LOG_CONFIG_TO_FILE)
     time.sleep(.1)
     logger.handlers[0].flush()

@@ -38,7 +38,6 @@ import traceback
 from collections import OrderedDict
 from contextlib import suppress
 from datetime import datetime
-from multiprocessing import Manager
 from queue import Empty
 from urllib.parse import urlsplit
 
@@ -50,8 +49,9 @@ try:
 except ImportError:
     ListenerContainer = None
 
+from trollflow2 import MP_MANAGER
 from trollflow2.dict_tools import gen_dict_extract, plist_iter
-from trollflow2.logging import logging_on, setup_queued_logging
+from trollflow2.logging import LOG_QUEUE, logging_on, setup_queued_logging
 from trollflow2.plugins import AbortProcessing
 
 logger = logging.getLogger(__name__)
@@ -229,7 +229,7 @@ class Runner:
     def _run_product_list_on_messages(self, messages, target_fun, process_class):
         """Run the product list on the messages."""
         for msg in messages:
-            produced_files_queue = self.log_queue._manager.Queue()
+            produced_files_queue = MP_MANAGER.Queue()
             kwargs = dict(produced_files=produced_files_queue, prod_list=self.product_list,
                           log_config=self.log_config)
             if not self.threaded:
@@ -477,16 +477,14 @@ def launch(args_in):
 
     log_config = _read_log_config(args)
 
-    log_queue = Manager().Queue()
-
-    with logging_on(log_queue, log_config):
+    with logging_on(log_config):
         logger.info("Launching Satpy-based runner.")
         product_list = args.pop("product_list")
         test_message = args.pop("test_message")
         threaded = args.pop("threaded")
         connection_parameters = args
 
-        runner = Runner(product_list, log_queue, connection_parameters, test_message, threaded,
+        runner = Runner(product_list, LOG_QUEUE, connection_parameters, test_message, threaded,
                         log_config=log_config)
         runner.run()
 

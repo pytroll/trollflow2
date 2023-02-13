@@ -27,6 +27,8 @@ from contextlib import contextmanager
 from logging import getLogger
 from logging.handlers import QueueHandler, QueueListener
 
+from trollflow2 import MP_MANAGER
+
 DEFAULT_LOG_CONFIG = {'version': 1,
                       'disable_existing_loggers': False,
                       'formatters': {'pytroll': {'format': '[%(levelname)s: %(asctime)s : %(name)s] %(message)s',
@@ -35,9 +37,11 @@ DEFAULT_LOG_CONFIG = {'version': 1,
                                                'formatter': 'pytroll'}},
                       'root': {'level': 'DEBUG', 'handlers': ['console']}}
 
+LOG_QUEUE = MP_MANAGER.Queue()
+
 
 @contextmanager
-def logging_on(log_queue, config=None):
+def logging_on(config=None):
     """Activate queued logging.
 
     This context activates logging through the use of logging's QueueHandler and
@@ -52,7 +56,7 @@ def logging_on(log_queue, config=None):
     _set_config(config)
     root.handlers.extend(handlers)
     # set up and run listener
-    listener = QueueListener(log_queue, *(root.handlers))
+    listener = QueueListener(LOG_QUEUE, *(root.handlers))
     listener.start()
     try:
         yield
