@@ -51,7 +51,8 @@ except ImportError:
 
 from trollflow2 import MP_MANAGER
 from trollflow2.dict_tools import gen_dict_extract, plist_iter
-from trollflow2.logging import LOG_QUEUE, logging_on, setup_queued_logging
+from trollflow2.logging import (create_logged_process, logging_on,
+                                queued_logging)
 from trollflow2.plugins import AbortProcessing
 
 logger = logging.getLogger(__name__)
@@ -174,11 +175,10 @@ def _create_listener_from_connection_parameters(connection_parameters):
 class Runner:
     """Class that handles all the administration around running on a product list."""
 
-    def __init__(self, product_list, log_queue, connection_parameters=None,
+    def __init__(self, product_list, connection_parameters=None,
                  test_message=None, threaded=False, log_config=None):
         """Set up the runner."""
         self.product_list = product_list
-        self.log_queue = log_queue
         self.log_config = log_config
         self.connection_parameters = connection_parameters
         self.test_message = get_test_message(test_message)
@@ -222,18 +222,15 @@ class Runner:
     def _run_subprocess(self, messages):
         """Run in a subprocess, with queued logging."""
         logger.debug("Launching trollflow2 with subprocesses")
-        from multiprocessing import get_context
-        ctx = get_context("spawn")
-        self._run_product_list_on_messages(messages, queue_logged_process, ctx.Process)
+        self._run_product_list_on_messages(messages, queue_logged_process, create_logged_process)
 
     def _run_product_list_on_messages(self, messages, target_fun, process_class):
         """Run the product list on the messages."""
         for msg in messages:
             produced_files_queue = MP_MANAGER.Queue()
-            kwargs = dict(produced_files=produced_files_queue, prod_list=self.product_list,
-                          log_config=self.log_config)
+            kwargs = dict(produced_files=produced_files_queue, prod_list=self.product_list)
             if not self.threaded:
-                kwargs["log_queue"] = self.log_queue
+                kwargs["log_config"] = self.log_config
             proc = process_class(target=target_fun, args=(msg,), kwargs=kwargs)
             start_time = datetime.now()
             proc.start()
@@ -354,9 +351,9 @@ def get_dask_client(config):
     return client
 
 
-def queue_logged_process(msg, prod_list, produced_files, log_queue, log_config=None):
+@queued_logging
+def queue_logged_process(msg, prod_list, produced_files):
     """Run `process` with a queued log."""
-    setup_queued_logging(log_queue, config=log_config)
     with suppress(ValueError):
         signal.signal(signal.SIGUSR1, print_traces)
         logger.debug("Use SIGUSR1 on pid {} to check the current tracebacks of this subprocess.".format(os.getpid()))
@@ -484,7 +481,7 @@ def launch(args_in):
         threaded = args.pop("threaded")
         connection_parameters = args
 
-        runner = Runner(product_list, LOG_QUEUE, connection_parameters, test_message, threaded,
+        runner = Runner(product_list, connection_parameters, test_message, threaded,
                         log_config=log_config)
         runner.run()
 

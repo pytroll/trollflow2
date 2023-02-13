@@ -21,6 +21,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 """Logging utilities."""
 
+import functools
 import logging
 import logging.config
 from contextlib import contextmanager
@@ -113,3 +114,28 @@ def remove_handlers_from_config(config):
     config.pop("handlers", None)
     for logger in config["loggers"]:
         config["loggers"][logger].pop("handlers", None)
+
+
+def queued_logging(func):
+    """Decorate a function that will take log queue and config."""
+    @functools.wraps(func)
+    def wrapper_decorator(*args, **kwargs):
+        # Do something before
+        log_queue = kwargs.pop("log_queue")
+        log_config = kwargs.pop("log_config")
+        setup_queued_logging(log_queue, config=log_config)
+        value = func(*args, **kwargs)
+        # Do something after
+        return value
+    return wrapper_decorator
+
+
+def create_logged_process(target, args, kwargs=None):
+    """Create a logged process."""
+    from multiprocessing import get_context
+    if kwargs is None:
+        kwargs = {}
+    kwargs["log_queue"] = LOG_QUEUE
+    ctx = get_context('spawn')
+    proc = ctx.Process(target=target, args=args, kwargs=kwargs)
+    return proc

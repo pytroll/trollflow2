@@ -24,14 +24,12 @@
 
 import datetime
 import logging
-import multiprocessing
 import os
 import queue
 import sys
 import time
 import unittest
 from contextlib import contextmanager
-from logging.handlers import QueueHandler
 
 import pytest
 import yaml
@@ -315,7 +313,6 @@ class TestRun(TestCase):
         """Set up the test case."""
         super().setUp()
         self.config = yaml.load(yaml_test1, Loader=UnsafeLoader)
-        self.queue = multiprocessing.Manager().Queue()
 
     def test_run_does_not_call_process_directly(self):
         """Test that process is called through Process."""
@@ -329,35 +326,11 @@ class TestRun(TestCase):
             generate_messages.side_effect = ['foo', KeyboardInterrupt]
             prod_list = {'product_list': {}}
             try:
-                runner = Runner(prod_list, self.queue)
+                runner = Runner(prod_list)
                 runner.run()
             except KeyboardInterrupt:
                 pass
             process.assert_not_called()
-
-    def test_run_uses_process_via_multiprocessing(self):
-        """Test that process is called through Process."""
-        from threading import Thread
-
-        from trollflow2.launcher import Runner
-        with mock.patch('trollflow2.launcher.yaml.load'),\
-                mock.patch('trollflow2.launcher.open'),\
-                mock.patch('trollflow2.launcher.generate_messages') as generate_messages,\
-                mock.patch('trollflow2.launcher.process') as process, \
-                mock.patch('multiprocessing.get_context') as get_context:
-            def gen_messages(*args):
-                del args
-                yield 'foo'
-                raise KeyboardInterrupt
-            generate_messages.side_effect = gen_messages
-            get_context.return_value.Process.side_effect = Thread
-            prod_list = {'product_list': {}}
-            try:
-                runner = Runner(prod_list, self.queue)
-                runner.run()
-            except KeyboardInterrupt:
-                pass
-            process.assert_called_once()
 
     def test_run_relies_on_listener(self):
         """Test running relies on listener."""
@@ -378,7 +351,7 @@ class TestRun(TestCase):
             yaml_load.return_value = self.config
             prod_list = {'product_list': {}}
             try:
-                runner = Runner(prod_list, self.queue)
+                runner = Runner(prod_list)
                 runner.run()
             except KeyboardInterrupt:
                 pass
@@ -390,7 +363,7 @@ class TestRun(TestCase):
             # Topics are given as command line option
             lc_.reset_mock()
             try:
-                runner = Runner(prod_list, self.queue, connection_parameters=dict(topic=['/topic3']))
+                runner = Runner(prod_list, connection_parameters=dict(topic=['/topic3']))
                 runner.run()
             except KeyboardInterrupt:
                 pass
@@ -399,18 +372,18 @@ class TestRun(TestCase):
 
     def test_run_starts_and_joins_process(self):
         """Test running."""
-        with run_on_a_simple_product_list(self.config, self.queue) as (yaml_load, get_context, lc_, proc_ret):
+        with run_on_a_simple_product_list(self.config) as (yaml_load, get_context, lc_, proc_ret):
             proc_ret.start.assert_called_once()
             proc_ret.join.assert_called_once()
 
     def test_subprocess_is_spawned(self):
         """Test that the subprocess is spawned, not forked."""
-        with run_on_a_simple_product_list(self.config, self.queue) as (yaml_load, get_context, lc_, proc_ret):
+        with run_on_a_simple_product_list(self.config) as (yaml_load, get_context, lc_, proc_ret):
             get_context.assert_called_once_with("spawn")
 
 
 @contextmanager
-def run_on_a_simple_product_list(config, log_queue):
+def run_on_a_simple_product_list(config):
     """Run a simple (fake) product list."""
     from trollflow2.launcher import Runner
     with mock.patch('trollflow2.launcher.yaml.load') as yaml_load,\
@@ -430,7 +403,7 @@ def run_on_a_simple_product_list(config, log_queue):
         yaml_load.return_value = config
         prod_list = {'product_list': {}}
         try:
-            runner = Runner(prod_list, log_queue)
+            runner = Runner(prod_list)
             runner.run()
         except KeyboardInterrupt:
             pass
@@ -444,7 +417,6 @@ class TestInterruptRun(TestCase):
         """Set up the test case."""
         super().setUp()
         self.config = yaml.load(yaml_test1, Loader=UnsafeLoader)
-        self.queue = multiprocessing.Manager().Queue()
 
     def test_run_keyboard_interrupt(self):
         """Test interrupting the run with a ctrl-C."""
@@ -457,47 +429,9 @@ class TestInterruptRun(TestCase):
             get.side_effect = KeyboardInterrupt
             listener.output_queue.get = get
             lc_.return_value = listener
-            runner = Runner({'product_list': {}}, self.queue)
+            runner = Runner({'product_list': {}})
             runner.run()
             listener.stop.assert_called_once()
-
-
-class TestRunLogging(TestCase):
-    """Test case for checking the logging in `run`."""
-
-    @pytest.fixture(autouse=True)
-    def inject_fixtures(self, caplog):
-        """Inject the caplog fixture into this testcase instance."""
-        self._caplog = caplog
-
-    def setUp(self):
-        """Set up the test case."""
-        super().setUp()
-        self.config = yaml.load(yaml_test1, Loader=UnsafeLoader)
-        self.queue = multiprocessing.Manager().Queue()
-
-    def test_subprocess_uses_queued_logging(self):
-        """Test that the subprocess logs are handled."""
-        from trollflow2.launcher import Runner
-        with mock.patch('trollflow2.launcher.yaml.load'), \
-                mock.patch('trollflow2.launcher.open'), \
-                mock.patch('trollflow2.launcher.generate_messages') as generate_messages, \
-                mock.patch('trollflow2.launcher.process'), \
-                mock.patch('trollflow2.launcher.check_results'), \
-                mock.patch('multiprocessing.get_context'):
-            generate_messages.side_effect = ['foo', KeyboardInterrupt]
-            prod_list = {'product_list': {}}
-            try:
-                runner = Runner(prod_list, self.queue)
-                runner.run()
-            except KeyboardInterrupt:
-                pass
-            root_logger = logging.getLogger()
-            for handler in root_logger.handlers:
-                if isinstance(handler, QueueHandler):
-                    break
-            else:
-                raise AssertionError("No QueueHandler found.")
 
 
 class TestExpand(TestCase):

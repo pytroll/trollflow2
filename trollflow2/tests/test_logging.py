@@ -28,7 +28,8 @@ from unittest import mock
 
 import pytest
 
-from trollflow2.logging import LOG_QUEUE, logging_on, setup_queued_logging
+from trollflow2.logging import (create_logged_process, logging_on,
+                                queued_logging)
 
 
 def test_queued_logging_has_a_listener():
@@ -52,7 +53,7 @@ def test_queued_logging_stops_listener_on_exception():
 def test_queued_logging_process_default_config(caplog):
     """Test default config for queued logging started in a process."""
     with logging_on():
-        run_subprocess(["logger_1", "logger_2"], LOG_QUEUE)
+        run_subprocess(["logger_1", "logger_2"])
     assert "root debug" in caplog.text
     assert "logger_1 debug" in caplog.text
     assert "logger_2 debug" in caplog.text
@@ -84,7 +85,7 @@ def test_queued_logging_process_custom_config(caplog):
     }
 
     with logging_on(log_config):
-        run_subprocess(["logger_1", "logger_2"], LOG_QUEUE, log_config)
+        run_subprocess(["logger_1", "logger_2"], log_config)
 
     assert "root debug" not in caplog.text
     assert "root info" not in caplog.text
@@ -126,9 +127,16 @@ def test_logging_works(caplog):
     assert message in caplog.text
 
 
-def fun(loggers, log_queue=None, log_config=None):
+def run_subprocess(loggers, config=None):
+    """Run a subprocess."""
+    proc = create_logged_process(target=fun, args=(loggers,), kwargs={"log_config": config})
+    proc.start()
+    proc.join()
+
+
+@queued_logging
+def fun(loggers):
     """Fake a function to run."""
-    setup_queued_logging(log_queue, config=log_config)
     root_logger = logging.getLogger()
     root_logger.debug("root debug")
     root_logger.info("root info")
@@ -141,22 +149,13 @@ def fun(loggers, log_queue=None, log_config=None):
         logger.warning(f"{log_name} warning")
 
 
-def run_subprocess(loggers, queue, config=None):
-    """Run a subprocess."""
-    from multiprocessing import get_context
-    ctx = get_context('spawn')
-    proc = ctx.Process(target=fun, args=(loggers,), kwargs={"log_queue": queue, "log_config": config})
-    proc.start()
-    proc.join()
-
-
 @pytest.mark.skipif(sys.platform != "linux",
                     reason="Logging from a subprocess seems to work only on Linux")
 def test_logging_works_in_subprocess_with_default_logging_config(caplog):
     """Test that the logs get out there, even from a subprocess."""
     with logging_on():
 
-        run_subprocess(["foo1", "foo2"], LOG_QUEUE)
+        run_subprocess(["foo1", "foo2"])
         assert no_duplicate_lines(caplog.text)
         assert "root debug" in caplog.text
         assert "foo1 debug" in caplog.text
@@ -188,7 +187,7 @@ def test_logging_works_in_subprocess_not_double(tmp_path):
                           }
 
     with logging_on(LOG_CONFIG_TO_FILE):
-        run_subprocess(["foo1", "foo2"], LOG_QUEUE, LOG_CONFIG_TO_FILE)
+        run_subprocess(["foo1", "foo2"], LOG_CONFIG_TO_FILE)
     time.sleep(.1)
     logger.handlers[0].flush()
     with open(logfile) as fd:
