@@ -69,7 +69,7 @@ def test_queued_logging_process_custom_config(caplog):
             },
         },
         'loggers': {
-            'root': {
+            '': {
                 'level': 'WARNING',
                 'handlers': ['console'],
             },
@@ -96,10 +96,10 @@ def test_queued_logging_process_custom_config(caplog):
 
 BUFFERING_LOG_CONFIG = {'version': 1,
                         'formatters': {'simple': {'format': '%(asctime)s - %(name)s - %(levelname)s - %(message)s'}},
-                        'handlers': {'file': {'class': 'logging.handlers.BufferingHandler',
-                                              'capacity': 1,
-                                              'formatter': 'simple'}},
-                        'root': {'level': 'INFO', 'handlers': ['file']}}
+                        'handlers': {'buffer': {'class': 'logging.handlers.BufferingHandler',
+                                                'capacity': 1,
+                                                'formatter': 'simple'}},
+                        'root': {'level': 'INFO', 'handlers': ['buffer']}}
 
 
 def test_log_config_is_used_when_provided():
@@ -172,14 +172,13 @@ def test_logging_works_in_subprocess_with_default_logging_config(caplog):
 def test_logging_works_in_subprocess_not_double(tmp_path):
     """Test that the logs get to a file, even from a subprocess, without duplicate lines."""
     logfile = tmp_path / "mylog"
-    logger = logging.getLogger()
     LOG_CONFIG_TO_FILE = {'version': 1,
                           'formatters': {'simple': {'format': '%(asctime)s - %(name)s - %(levelname)s - %(message)s'}},
                           'handlers': {'file': {'class': 'logging.FileHandler',
                                                 'filename': logfile,
                                                 'formatter': 'simple'}},
                           "loggers":
-                              {'root': {'level': 'WARNING', 'handlers': ['file']},
+                              {'': {'level': 'WARNING', 'handlers': ['file']},
                                'foo1': {'level': 'DEBUG'},
                                'foo2': {'level': 'INFO'},
                                }
@@ -187,8 +186,6 @@ def test_logging_works_in_subprocess_not_double(tmp_path):
 
     with logging_on(LOG_CONFIG_TO_FILE):
         run_subprocess(["foo1", "foo2"])
-    time.sleep(.1)
-    logger.handlers[0].flush()
     with open(logfile) as fd:
         file_contents = fd.read()
 
