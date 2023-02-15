@@ -38,7 +38,6 @@ import traceback
 from collections import OrderedDict
 from contextlib import suppress
 from datetime import datetime
-from multiprocessing import Manager
 from queue import Empty
 from urllib.parse import urlsplit
 
@@ -50,8 +49,10 @@ try:
 except ImportError:
     ListenerContainer = None
 
+from trollflow2 import MP_MANAGER
 from trollflow2.dict_tools import gen_dict_extract, plist_iter
-from trollflow2.logging import logging_on, setup_queued_logging
+from trollflow2.logging import (create_logged_process, logging_on,
+                                queued_logging)
 from trollflow2.plugins import AbortProcessing
 
 logger = logging.getLogger(__name__)
@@ -174,12 +175,10 @@ def _create_listener_from_connection_parameters(connection_parameters):
 class Runner:
     """Class that handles all the administration around running on a product list."""
 
-    def __init__(self, product_list, log_queue, connection_parameters=None,
-                 test_message=None, threaded=False, log_config=None):
+    def __init__(self, product_list, connection_parameters=None,
+                 test_message=None, threaded=False):
         """Set up the runner."""
         self.product_list = product_list
-        self.log_queue = log_queue
-        self.log_config = log_config
         self.connection_parameters = connection_parameters
         self.test_message = get_test_message(test_message)
         self.threaded = threaded
@@ -222,19 +221,14 @@ class Runner:
     def _run_subprocess(self, messages):
         """Run in a subprocess, with queued logging."""
         logger.debug("Launching trollflow2 with subprocesses")
-        from multiprocessing import get_context
-        ctx = get_context("spawn")
-        self._run_product_list_on_messages(messages, queue_logged_process, ctx.Process)
+        self._run_product_list_on_messages(messages, queue_logged_process, create_logged_process)
 
-    def _run_product_list_on_messages(self, messages, target_fun, process_class):
+    def _run_product_list_on_messages(self, messages, target_fun, process_creator):
         """Run the product list on the messages."""
         for msg in messages:
-            produced_files_queue = self.log_queue._manager.Queue()
-            kwargs = dict(produced_files=produced_files_queue, prod_list=self.product_list,
-                          log_config=self.log_config)
-            if not self.threaded:
-                kwargs["log_queue"] = self.log_queue
-            proc = process_class(target=target_fun, args=(msg,), kwargs=kwargs)
+            produced_files_queue = MP_MANAGER.Queue()
+            kwargs = dict(produced_files=produced_files_queue, prod_list=self.product_list)
+            proc = process_creator(target=target_fun, args=(msg,), kwargs=kwargs)
             start_time = datetime.now()
             proc.start()
             proc.join()
@@ -354,13 +348,16 @@ def get_dask_client(config):
     return client
 
 
-def queue_logged_process(msg, prod_list, produced_files, log_queue, log_config=None):
+@queued_logging
+def queue_logged_process(msg, prod_list, produced_files):
     """Run `process` with a queued log."""
-    setup_queued_logging(log_queue, config=log_config)
     with suppress(ValueError):
         signal.signal(signal.SIGUSR1, print_traces)
         logger.debug("Use SIGUSR1 on pid {} to check the current tracebacks of this subprocess.".format(os.getpid()))
-    process(msg, prod_list, produced_files)
+    try:
+        process(msg, prod_list, produced_files)
+    finally:
+        logging.shutdown()
 
 
 def print_traces(signum, frame):
@@ -477,17 +474,14 @@ def launch(args_in):
 
     log_config = _read_log_config(args)
 
-    log_queue = Manager().Queue()
-
-    with logging_on(log_queue, log_config):
+    with logging_on(log_config):
         logger.info("Launching Satpy-based runner.")
         product_list = args.pop("product_list")
         test_message = args.pop("test_message")
         threaded = args.pop("threaded")
         connection_parameters = args
 
-        runner = Runner(product_list, log_queue, connection_parameters, test_message, threaded,
-                        log_config=log_config)
+        runner = Runner(product_list, connection_parameters, test_message, threaded)
         runner.run()
 
 
