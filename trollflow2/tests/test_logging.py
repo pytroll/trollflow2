@@ -75,11 +75,9 @@ def test_queued_logging_process_custom_config(caplog):
             },
             'logger_1': {
                 'level': 'DEBUG',
-                'handlers': ['console'],
             },
             'logger_2': {
                 'level': 'INFO',
-                'handlers': ['console'],
             },
         },
     }

@@ -28,12 +28,9 @@ WARNING messages from all the other packages and possible external user-created 
       handlers: [console_handler]
     'trollflow2':
       level: INFO
-      handlers: [console_handler]
-      propagate: false
 
 The logger named ``''`` is the root logger, and its settings will be used by all loggers not defined in the
-configuratio file. The setting ``propagate: false`` stops the log messages being handled also by the root logger,
-in which case the messages would be printed twice.
+configuration file.
 
 Finer control for different loggers (packages and their modules) can be controlled by adding a new section under
 ``loggers``. For example getting DEBUG level (and above) messages from Pyspectral, this can be used:
