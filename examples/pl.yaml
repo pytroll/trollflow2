@@ -70,6 +70,7 @@ product_list: &product_list
   #   - !!python/name:trollflow2.plugins.callback_close
   #   - !!python/name:trollflow2.plugins.callback_move
   #   - !!python/name:trollflow2.plugins.callback_log
+  # early_moving: True  # must be set with callback_move; see docs for details
 
   areas:
     omerc_bb:
