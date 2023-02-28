@@ -294,13 +294,13 @@ def save_datasets(job):
     The product list may contain a ``call_on_done`` parameter.
     This parameter has effect if and only if ``eager_writing`` is False
     (which is the default).  It should contain a list of references
-    to callables.  Upon computation time, each callable will be called
-    with five arguments: the result of ``save_dataset``, sources (if
-    applicable), targets (if applicable), the full job dictionary, and
-    the dictionary describing the format config and output filename
-    that was written.  The parameters sources and targets are set to
-    None if using a writer where :meth:`~satpy.Scene.save_datasets`
-    does not return those.  The callables must return again the
+    to callables.  Upon computation time, each callable will be
+    called with four arguments: the result of ``save_dataset``,
+    targets (if applicable), the full job dictionary, and the
+    dictionary describing the format config and output filename
+    that was written.  The parameter ``targets`` is set to None
+    if using a writer where :meth:`~satpy.Scene.save_datasets`
+    does not return this.  The callables must return again the
     ``save_dataset`` return value (possibly altered).  This callback
     could be used, for example, to ship products as soon as they are
     successfully produced.  Three callback functions are provided
