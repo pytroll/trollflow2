@@ -39,8 +39,6 @@ Finer control for different loggers (packages and their modules) can be controll
 
     'pyspectral':
       level: DEBUG
-      handlers: [console_handler]
-      propagate: false
 
 
 Logging to a file
