@@ -71,5 +71,3 @@ handy with satellite data that is also in UTC time.
       handlers: [console]
     'trollflow2':
       level: INFO
-      handlers: [console]
-      propagate: false
