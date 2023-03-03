@@ -54,6 +54,7 @@ def test_queued_logging_process_default_config(caplog):
     """Test default config for queued logging started in a process."""
     with logging_on():
         run_subprocess(["logger_1", "logger_2"])
+    assert not duplicate_lines(caplog.text)
     assert "root debug" in caplog.text
     assert "logger_1 debug" in caplog.text
     assert "logger_2 debug" in caplog.text
@@ -144,25 +145,6 @@ def fun(loggers):
         logger.debug(f"{log_name} debug")
         logger.info(f"{log_name} info")
         logger.warning(f"{log_name} warning")
-
-
-@pytest.mark.skipif(sys.platform != "linux",
-                    reason="Logging from a subprocess seems to work only on Linux")
-def test_logging_works_in_subprocess_with_default_logging_config(caplog):
-    """Test that the logs get out there, even from a subprocess."""
-    with logging_on():
-
-        run_subprocess(["foo1", "foo2"])
-        assert not duplicate_lines(caplog.text)
-        assert "root debug" in caplog.text
-        assert "foo1 debug" in caplog.text
-        assert "foo2 debug" in caplog.text
-        assert "root info" in caplog.text
-        assert "foo1 info" in caplog.text
-        assert "foo2 info" in caplog.text
-        assert "root warning" in caplog.text
-        assert "foo1 warning" in caplog.text
-        assert "foo2 warning" in caplog.text
 
 
 @pytest.mark.skipif(sys.platform != "linux",
