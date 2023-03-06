@@ -71,9 +71,11 @@ class TestCase(unittest.TestCase):
 
 def create_filenames_and_topics(job):
     """Create the filenames and topics for *job*."""
-    from trollflow2.dict_tools import plist_iter
-    from trollsift import compose
     import os.path
+
+    from trollsift import compose
+
+    from trollflow2.dict_tools import plist_iter
 
     topic_pattern = job['product_list']['product_list']['publish_topic']
     topics = []
