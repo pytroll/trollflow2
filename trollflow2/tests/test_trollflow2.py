@@ -35,8 +35,7 @@ import pytest
 from pyresample.geometry import DynamicAreaDefinition
 
 from trollflow2.launcher import read_config
-from trollflow2.tests.utils import create_filenames_and_topics
-from trollflow2.tests.utils import TestCase
+from trollflow2.tests.utils import TestCase, create_filenames_and_topics
 
 yaml_test1 = """
 product_list:
@@ -1159,18 +1158,18 @@ class TestCheckSunlightCoverage(TestCase):
             with self.assertLogs("trollflow2.plugins", level=logging.INFO) as cm:
                 check_sunlight_coverage(job)
             self.assertNotIn('green_snow', job['product_list']['product_list']['areas']['euron1']['products'])
-            self.assertIn("Not enough sunlight coverage for product "
-                          "'green_snow', removed. Needs at least 10.0%, got "
-                          "0.0%.", cm.output[0])
+            assert any("Not enough sunlight coverage for product "
+                       "'green_snow', removed. Needs at least 10.0%, got "
+                       "0.0%." in line for line in cm.output)
 
             job['product_list']['product_list']['areas']['euron1']['products']['green_snow'] = pl_green
             _get_sunlight_coverage.return_value = 1
             with self.assertLogs("trollflow2.plugins", level=logging.INFO) as cm:
                 check_sunlight_coverage(job)
             self.assertNotIn('green_snow', job['product_list']['product_list']['areas']['euron1']['products'])
-            self.assertIn("Too much sunlight coverage for product "
-                          "'green_snow', removed. Needs at most 40.0%, got "
-                          "100.0%.", cm.output[0])
+            assert any("Too much sunlight coverage for product "
+                       "'green_snow', removed. Needs at most 40.0%, got "
+                       "100.0%." in line for line in cm.output)
 
 
 def _get_mocked_scene_with_properties():
@@ -1221,7 +1220,8 @@ class TestCovers(TestCase):
             with self.assertLogs("trollflow2.plugins", logging.WARNING) as log:
                 covers(job)
             assert len(log.output) == 1
-            assert ("Multiple sensors given, taking the first one for coverage calculations" in log.output[0])
+            assert any("Multiple sensors given, taking the first one for coverage calculations" in line
+                       for line in log.output)
 
     def test_covers_does_not_complain_when_one_sensor_is_provided_as_a_sequence(self):
         """Test that the plugin complains when multiple sensors are provided."""
@@ -1304,7 +1304,7 @@ class TestCovers(TestCase):
             del job2["product_list"]["product_list"]["min_coverage"]
             with self.assertLogs(level="DEBUG") as log:
                 covers(job2)
-                assert "Minimum area coverage not given" in log.output[0]
+            assert any("Minimum area coverage not given" in line for line in log.output)
 
     def test_scene_coverage(self):
         """Test scene coverage."""
@@ -1780,8 +1780,8 @@ class TestFilePublisher(TestCase):
 
     def _run_publisher_on_job(self, job, s3_paths=False):
         """Run a publisher on *job*."""
-        from trollflow2.plugins import FilePublisher
         from trollflow2.dict_tools import plist_iter
+        from trollflow2.plugins import FilePublisher
 
         pub = FilePublisher()
         product_list = self.product_list.copy()

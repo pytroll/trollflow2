@@ -72,8 +72,9 @@ input_mda = {'orig_platform_name': 'noaa15', 'orbit_number': 7993,
 def test_s3_uploader_update_filenames():
     """Ensure that filenames are updated when transfer is made to S3."""
     from yaml import UnsafeLoader
-    from trollflow2.plugins.s3 import uploader
+
     from trollflow2.dict_tools import plist_iter
+    from trollflow2.plugins.s3 import uploader
 
     product_list = read_config(raw_string=yaml_test_s3_uploader_plain, Loader=UnsafeLoader)
     job = {"product_list": product_list, "input_mda": input_mda.copy()}

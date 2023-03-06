@@ -23,8 +23,9 @@
 
 """Setup for trollflow2."""
 
-from setuptools import setup, find_packages
 import sys
+
+from setuptools import find_packages, setup
 
 try:
     # HACK: https://github.com/pypa/setuptools_scm/issues/190#issuecomment-351181286

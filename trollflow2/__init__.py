@@ -25,7 +25,12 @@
 # are not necessary
 """Base module for trollflow2."""
 
-from pkg_resources import get_distribution, DistributionNotFound
+from multiprocessing import Manager
+
+from pkg_resources import DistributionNotFound, get_distribution
+
+MP_MANAGER = Manager()
+
 try:
     __version__ = get_distribution(__name__).version
 except DistributionNotFound:
