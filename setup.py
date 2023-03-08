@@ -63,7 +63,7 @@ setup(name=NAME,
       zip_safe=False,
       install_requires=install_requires,
       tests_require=['pytest', 'mock', 'rasterio'],
-      python_requires='>=3.4',
+      python_requires='>=3.9',
       test_suite='trollflow2.tests.suite',
       use_scm_version=True
       )

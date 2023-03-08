@@ -26,7 +26,6 @@ import datetime
 import logging
 import os
 import queue
-import sys
 import time
 import unittest
 from contextlib import contextmanager
@@ -632,8 +631,6 @@ class TestProcess(TestCase):
         with pytest.raises(YAMLError):
             process("msg", "prod_list", self.queue)
 
-    @pytest.mark.skipif(sys.platform != "linux",
-                        reason="Timeout only supported on Linux")
     def test_timeout_in_running_job(self):
         """Test timeout in running job."""
         def wait(job):
