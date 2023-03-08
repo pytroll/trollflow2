@@ -22,7 +22,6 @@
 """Tests for the logging utilities."""
 
 import logging
-import sys
 import time
 from unittest import mock
 
@@ -147,8 +146,6 @@ def fun(loggers):
         logger.warning(f"{log_name} warning")
 
 
-@pytest.mark.skipif(sys.platform != "linux",
-                    reason="Logging from a subprocess seems to work only on Linux")
 def test_logging_works_in_subprocess_not_double(tmp_path):
     """Test that the logs get to a file, even from a subprocess, without duplicate lines."""
     logfile = tmp_path / "mylog"
