@@ -16,8 +16,9 @@ Welcome to Trollflow2's documentation!
    logging
 
 
-Trollflow2 is an operational generation chain runner for Satpy.
+Trollflow2 is an operational generation chain runner for Satpy in Linux.
 
+Official support for OS X was dropped in v0.15, but it might still work.
 
 Indices and tables
 ==================
