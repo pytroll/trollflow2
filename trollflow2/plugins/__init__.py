@@ -31,10 +31,9 @@ with suppress(ImportError):
     import hdf5plugin  # noqa
 
 import dask
+import dask.array as da
 import dpath.util
 import rasterio
-import dask
-import dask.array as da
 from dask.delayed import Delayed
 from posttroll.message import Message
 from posttroll.publisher import create_publisher_from_dict_config
@@ -45,9 +44,8 @@ from pyresample.geometry import get_geostationary_bounding_box
 from rasterio.enums import Resampling
 from satpy import Scene
 from satpy.resample import get_area_def
-from satpy.writers import compute_writer_results, group_results_by_output_file
 from satpy.version import version as satpy_version
-from satpy.writers import compute_writer_results
+from satpy.writers import compute_writer_results, group_results_by_output_file
 from trollsift import compose
 
 from trollflow2.dict_tools import get_config_value, plist_iter
@@ -1042,7 +1040,7 @@ def _product_meets_min_valid_data_fraction(
 
 
 def callback_log(obj, targs, job, fmat_config):
-    """Logging callback for save_datasets call_on_done.
+    """Log written files as callback for save_datasets call_on_done.
 
     Callback function that can be used with the :func:`save_datasets`
     ``call_on_done`` functionality.  Will log a message with loglevel INFO to
@@ -1053,15 +1051,14 @@ def callback_log(obj, targs, job, fmat_config):
     :func:`callback_move`, because the logger looks for the final
     destination of the file, not the temporary one.
     """
-
     filename = fmat_config["filename"]
     size = os.path.getsize(filename)
-    LOG.info(f"Wrote {filename:s} successfully, total {size:d} bytes.")
+    logger.info(f"Wrote {filename:s} successfully, total {size:d} bytes.")
     return obj
 
 
 def callback_move(obj, targs, job, fmat_config):
-    """Mover callback for save_datasets call_on_done.
+    """Move files as a callback by save_datasets call_on_done.
 
     Callback function that can be used with the :func:`save_datasets`
     ``call_on_done`` functionality.  Moves the file to the directory indicated
@@ -1074,17 +1071,16 @@ def callback_move(obj, targs, job, fmat_config):
     :func:`callback_move`, because the logger looks for the final destination
     of the file, not the temporary one.
     """
-
     destfile = pathlib.Path(fmat_config["filename"])
     srcdir = pathlib.Path(job["product_list"]["product_list"]["staging_zone"])
     srcfile = srcdir / destfile.name
-    LOG.debug(f"Moving {srcfile!s} to {destfile!s}")
+    logger.debug(f"Moving {srcfile!s} to {destfile!s}")
     srcfile.rename(destfile)
     return obj
 
 
 def callback_close(obj, targs, job, fmat_config):
-    """Callback closing files where needed.
+    """Close files as a callback where needed.
 
     When using callbacks with writers that return a ``(src, target)`` pair for
     ``da.store``, satpy doesn't close the file until after computation is
