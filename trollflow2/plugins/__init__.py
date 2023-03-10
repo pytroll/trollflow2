@@ -22,7 +22,7 @@ import collections.abc
 import datetime as dt
 import os
 import pathlib
-from contextlib import contextmanager, suppress
+from contextlib import contextmanager, suppress, nullcontext
 from logging import getLogger
 from tempfile import NamedTemporaryFile
 from urllib.parse import urlsplit, urlunsplit
@@ -264,17 +264,16 @@ def _create_data_query(product, res):
 
 
 @contextmanager
-def renamed_files(do_renames):
+def renamed_files():
     """Context renaming files."""
     renames = {}
 
     yield renames
 
-    if do_renames:
-        for tmp_name, actual_name in renames.items():
-            target_scheme = urlsplit(actual_name).scheme
-            if target_scheme in ('', 'file'):
-                os.rename(tmp_name, actual_name)
+    for tmp_name, actual_name in renames.items():
+        target_scheme = urlsplit(actual_name).scheme
+        if target_scheme in ('', 'file'):
+            os.rename(tmp_name, actual_name)
 
 
 def save_datasets(job):
@@ -331,7 +330,11 @@ def save_datasets(job):
         callbacks = [dask.delayed(c) for c in call_on_done]
     else:
         callbacks = None
-    with renamed_files(not early_moving) as renames:
+    if early_moving:
+        cm = nullcontext({})
+    else:
+        cm = renamed_files()
+    with cm as renames:
         for fmat, fmat_config in plist_iter(job['product_list']['product_list'], base_config):
             late_saver = save_dataset(scns, fmat, fmat_config, renames, compute=eager_writing)
             late_saver = _apply_callbacks(late_saver, callbacks, job, fmat_config)
