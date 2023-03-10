@@ -309,15 +309,10 @@ def save_datasets(job):
     does not return this.  The callables must return again the
     ``save_dataset`` return value (possibly altered).  This callback
     could be used, for example, to ship products as soon as they are
-    successfully produced.  Three callback functions are provided
-    with trollflow2: :func:`callback_log`, :func:`callback_move`, and
-    :func:`callback_close`.  If using the geotiff or ninjogeotiff writers,
-    :func:`callback_close` should be used before the others for correct
-    results.  When using :func:`callback_move`, the user must also set
-    ``early_moving`` to True and use a ``staging_zone``.  If both are
-    used, :func:`callback_log` must be called AFTER :func:`callback_move`,
-    because :func:`callback_log` searches for the final destination of
-    the file and reports the size (so it accesses the metadata).
+    successfully produced.
+
+    Three built-in are provided with Trollflow2: :func:`callback_close`,
+    :func:`callback_move` and :func:`callback_log`.
 
     Other arguments defined in the job list (either directly under
     ``product_list``, or under ``formats``) are passed on to the satpy writer.  The
@@ -339,7 +334,7 @@ def save_datasets(job):
     with renamed_files(not early_moving) as renames:
         for fmat, fmat_config in plist_iter(job['product_list']['product_list'], base_config):
             late_saver = save_dataset(scns, fmat, fmat_config, renames, compute=eager_writing)
-            late_saver = _maybe_apply_callbacks(late_saver, callbacks, job, fmat_config)
+            late_saver = _apply_callbacks(late_saver, callbacks, job, fmat_config)
             if late_saver is not None:
                 objs.append(late_saver)
                 job['produced_files'].put(fmat_config['filename'])
@@ -347,8 +342,8 @@ def save_datasets(job):
             compute_writer_results(objs)
 
 
-def _maybe_apply_callbacks(late_saver, callbacks, *args):
-    """Maybe apply callbacks.
+def _apply_callbacks(late_saver, callbacks, *args):
+    """Apply callbacks if there are any.
 
     If we are using callbacks via the ``call_on_done`` parameter, wrap
     ``late_saver`` with those iteratively.  If not, return ``late_saver`` as is.
@@ -358,7 +353,7 @@ def _maybe_apply_callbacks(late_saver, callbacks, *args):
     if callbacks is None:
         return late_saver
     if isinstance(late_saver, Delayed):
-        return _apply_callbacks_to_delayed(late_saver, callbacks, None, None, *args)
+        return _apply_callbacks_to_delayed(late_saver, callbacks, None, *args)
     if isinstance(late_saver, collections.abc.Sequence) and len(late_saver) == 2:
         if isinstance(late_saver[0], collections.abc.Sequence):
             return _apply_callbacks_to_sources_and_targets(late_saver, callbacks, *args)
@@ -1044,7 +1039,7 @@ def callback_log(obj, targs, job, fmat_config):
 
     Callback function that can be used with the :func:`save_datasets`
     ``call_on_done`` functionality.  Will log a message with loglevel INFO to
-    report that the filename was written successfully.
+    report that the filename was written successfully along with its size.
 
     If using :func:`callback_move` in combination with
     :func:`callback_log`, you must call :func:`callback_log` AFTER

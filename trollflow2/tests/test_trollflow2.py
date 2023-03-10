@@ -725,7 +725,8 @@ def test_save_datasets_callback(tmp_path, caplog, fake_scene):
         {"writer": "ninjogeotiff", "compress": "NONE",
          "ChannelID": "IR -2+3i", "DataType": "ABCD",
          "PhysicUnit": "K", "PhysicValue": "Temperature",
-         "SatelliteNameID": "PytrollSat", "fill_value": 0}
+         "SatelliteNameID": "PytrollSat", "fill_value": 0},
+        {"writer": "simple_image", "format": "png"},
     ]
 
     product_list = {
