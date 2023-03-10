@@ -356,8 +356,8 @@ def _apply_callbacks(late_saver, callbacks, *args):
         return _apply_callbacks_to_delayed(late_saver, callbacks, None, *args)
     if isinstance(late_saver, collections.abc.Sequence) and len(late_saver) == 2:
         if isinstance(late_saver[0], collections.abc.Sequence):
-            return _apply_callbacks_to_sources_and_targets(late_saver, callbacks, *args)
-        return _apply_callbacks_to_source_and_target(late_saver, callbacks, *args)
+            return _apply_callbacks_to_multiple_sources_and_targets(late_saver, callbacks, *args)
+        return _apply_callbacks_to_single_source_and_target(late_saver, callbacks, *args)
     raise ValueError(
         "Unrecognised return value type from ``save_datasets``, "
         "don't know how to apply wrappers.")
@@ -380,7 +380,7 @@ def _apply_callbacks_to_delayed(delayed, callbacks, *args):
     return delayed
 
 
-def _apply_callbacks_to_sources_and_targets(late_saver, callbacks, *args):
+def _apply_callbacks_to_multiple_sources_and_targets(late_saver, callbacks, *args):
     """Apply callbacks to multiple sources/targets pairs.
 
     Taking source/target pairs such as returned by
@@ -403,7 +403,7 @@ def _apply_callbacks_to_sources_and_targets(late_saver, callbacks, *args):
     return delayeds
 
 
-def _apply_callbacks_to_source_and_target(late_saver, callbacks, *args):
+def _apply_callbacks_to_single_source_and_target(late_saver, callbacks, *args):
     """Apply callbacks to single source/target pairs.
 
     Taking a single source/target pair such as may be returned by
