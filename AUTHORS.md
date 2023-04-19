@@ -9,6 +9,6 @@ The following people have made contributions to this project:
 - [Adam Dybbroe (adybbroe)](https://github.com/adybbroe)
 - [Gerrit Holl (gerritholl)](https://github.com/gerritholl)
 - [Panu Lahtinen (pnuu)](https://github.com/pnuu)
-- [Ondrej Nedelcev (nedelceo)](https://github.com/nedelceo)
 - [Paulo Medeiros (paulovcmedeiros)](https://github.com/paulovcmedeiros)
+- [Ondrej Nedelcev (nedelceo)](https://github.com/nedelceo)
 - [Martin Raspaud (mraspaud)](https://github.com/mraspaud)
