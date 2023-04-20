@@ -19,31 +19,33 @@
 """Trollflow2 plugins."""
 
 import copy
+import datetime as dt
 import os
 from contextlib import contextmanager, suppress
 from logging import getLogger
 from tempfile import NamedTemporaryFile
-from urllib.parse import urlunsplit, urlsplit
-import datetime as dt
+from urllib.parse import urlsplit, urlunsplit
 
 with suppress(ImportError):
     import hdf5plugin  # noqa
+
+import dask
 import dpath.util
 import rasterio
-import dask
 from posttroll.message import Message
 from posttroll.publisher import create_publisher_from_dict_config
 from pyorbital.astronomy import sun_zenith_angle
-from pyresample.boundary import AreaDefBoundary, Boundary
 from pyresample.area_config import AreaNotFound
+from pyresample.boundary import AreaDefBoundary, Boundary
+from pyresample.geometry import get_geostationary_bounding_box
 from rasterio.enums import Resampling
 from satpy import Scene
 from satpy.resample import get_area_def
-from satpy.writers import compute_writer_results
 from satpy.version import version as satpy_version
-from pyresample.geometry import get_geostationary_bounding_box
-from trollflow2.dict_tools import get_config_value, plist_iter
+from satpy.writers import compute_writer_results
 from trollsift import compose
+
+from trollflow2.dict_tools import get_config_value, plist_iter
 
 try:
     from satpy.dataset import DataQuery
@@ -61,7 +63,7 @@ except ImportError:
     get_twilight_poly = None
 
 
-LOG = getLogger(__name__)
+logger = getLogger(__name__)
 
 
 class AbortProcessing(Exception):
@@ -77,7 +79,7 @@ def create_scene(job):
     product_list = job['product_list']
     conf = _get_plugin_conf(product_list, '/product_list', defaults)
 
-    LOG.info('Generating scene')
+    logger.info('Creating scene')
     try:
         job['scene'] = Scene(filenames=job['input_filenames'], **conf)
     except ValueError as err:
@@ -95,11 +97,14 @@ def load_composites(job):
             composites_by_res.setdefault(res, set()).update(flat_prod_cfg['product'])
         else:
             composites_by_res.setdefault(res, set()).add(flat_prod_cfg['product'])
+
+    logger.info(f"Loading {len(composites_by_res)} composites.")
+
     scn = job['scene']
     generate = job['product_list']['product_list'].get('delay_composites', True) is False
     extra_args = job["product_list"]["product_list"].get("scene_load_kwargs", {})
     for resolution, composites in composites_by_res.items():
-        LOG.info('Loading %s at resolution %s', str(composites), str(resolution))
+        logger.debug('Loading %s at resolution %s', str(composites), str(resolution))
         scn.load(composites, resolution=resolution, generate=generate, **extra_args)
     job['scene'] = scn
 
@@ -108,6 +113,7 @@ def aggregate(job):
     """Aggregate the chosen composites."""
     if 'aggregate' not in job['product_list']['product_list']:
         return
+    logger.debug("Aggregating composites.")
     kwargs = job['product_list']['product_list']['aggregate']
     job['scene'] = job['scene'].aggregate(**kwargs)
 
@@ -127,7 +133,7 @@ def resample(job):
     for area in product_list['product_list']['areas']:
         area_conf = _get_plugin_conf(product_list, '/product_list/areas/' + str(area),
                                      conf)
-        LOG.debug('Resampling to %s', str(area))
+        logger.info('Resampling to %s', str(area))
         if area == 'None':
             coarsest = (get_config_value(product_list,
                                          '/product_list/areas/' + str(area),
@@ -153,11 +159,11 @@ def resample(job):
             else:
                 # The composites need to be created for the saving to work
                 if not set(scn.keys()).issuperset(scn.wishlist):
-                    LOG.debug("Generating composites for 'null' area (satellite projection).")
+                    logger.debug("Generating composites for 'null' area (satellite projection).")
                     scn.load(scn.wishlist, generate=True)
                 job['resampled_scenes'][area] = scn
         else:
-            LOG.debug("area: %s, area_conf: %s", area, str(area_conf))
+            logger.debug("area: %s, area_conf: %s", area, str(area_conf))
             job['resampled_scenes'][area] = scn.resample(area, **area_conf)
 
 
@@ -264,7 +270,7 @@ def save_dataset(scns, fmat, fmat_config, renames, compute=False):
                                                       filename=filename,
                                                       compute=compute, **kwargs)
     except KeyError as err:
-        LOG.warning('Skipping %s: %s', fmat['product'], str(err))
+        logger.warning('Skipping %s: %s', fmat['product'], str(err))
     else:
         fmat_config['filename'] = renames.get(filename, filename)
     return obj
@@ -348,7 +354,7 @@ class FilePublisher:
 
     def __setstate__(self, kwargs):
         """Set things running even when loading from YAML."""
-        LOG.debug('Starting publisher')
+        logger.debug('Starting publisher')
         self.port = kwargs.get('port', 0)
         self.nameservers = kwargs.get('nameservers', "")
         self._pub_starter = create_publisher_from_dict_config(
@@ -408,7 +414,7 @@ class FilePublisher:
                 'target': self.create_dispatch_uri(dispatch_item, fmat)
                 }
             msg = Message(topic, 'dispatch', mda)
-            LOG.debug('Sending dispatch order: %s', str(msg))
+            logger.debug('Sending dispatch order: %s', str(msg))
             self.pub.send(str(msg))
 
     def __call__(self, job):
@@ -419,15 +425,15 @@ class FilePublisher:
         for fmat, fmat_config in plist_iter(job['product_list']['product_list'], mda):
             resampled_scene = job['resampled_scenes'].get(fmat['area'], [])
             if product_missing_from_scene(fmat['product'], resampled_scene):
-                LOG.debug('Not publishing missing product %s.', str(fmat))
+                logger.debug('Not publishing missing product %s.', str(fmat))
                 continue
             try:
                 topic, file_mda = self.create_message(fmat, mda)
             except KeyError:
-                LOG.debug('Could not create a message for %s.', str(fmat))
+                logger.debug('Could not create a message for %s.', str(fmat))
                 continue
             msg = Message(topic, 'file', file_mda)
-            LOG.info('Publishing %s', str(msg))
+            logger.info('Publishing %s', str(msg))
             self.pub.send(str(msg))
             self.send_dispatch_messages(fmat, fmat_config, topic, file_mda)
 
@@ -447,9 +453,10 @@ def covers(job):
 
     Remove areas with too low coverage from the worklist.
     """
+    logger.info("Checking area coverage.")
     if Pass is None:
-        LOG.error("Trollsched import failed, coverage calculation not possible")
-        LOG.info("Keeping all areas")
+        logger.error("Trollsched import failed, coverage calculation not possible")
+        logger.debug("Keeping all areas")
         return
 
     col_area = job['product_list']['product_list'].get('coverage_by_collection_area', False)
@@ -472,8 +479,8 @@ def covers(job):
     sensor = scn_mda['sensor']
     if isinstance(sensor, (list, tuple, set)):
         if len(sensor) > 1:
-            LOG.warning("Multiple sensors given, taking the first one for "
-                        "coverage calculations: %s", sensor)
+            logger.warning("Multiple sensors given, taking the first one for "
+                           "coverage calculations: %s", sensor)
         sensor = list(sensor)[0]
 
     areas = list(product_list['product_list']['areas'].keys())
@@ -503,8 +510,8 @@ def _check_coverage_for_area(
                                     area_path,
                                     "min_coverage")
     if not min_coverage:
-        LOG.debug("Minimum area coverage not given or set to zero "
-                  "for area %s", area)
+        logger.debug("Minimum area coverage not given or set to zero "
+                     "for area %s", area)
         return
 
     _check_overall_coverage_for_area(
@@ -524,15 +531,15 @@ def _check_overall_coverage_for_area(
                              sensor, area)
     product_list['product_list']['areas'][area]['area_coverage_percent'] = cov
     if cov < min_coverage:
-        LOG.info(
+        logger.info(
             "Area coverage %.2f %% below threshold %.2f %%",
             cov, min_coverage)
-        LOG.info("Removing area %s from the worklist", area)
+        logger.info("Removing area %s from the worklist", area)
         dpath.util.delete(product_list, area_path)
 
     else:
-        LOG.debug(f"Area coverage {cov:.2f}% above threshold "
-                  f"{min_coverage:.2f}% - Carry on with {area:s}")
+        logger.debug(f"Area coverage {cov:.2f}% above threshold "
+                     f"{min_coverage:.2f}% - Carry on with {area:s}")
 
 
 def get_scene_coverage(platform_name, start_time, end_time, sensor, area_id):
@@ -553,6 +560,7 @@ def check_metadata(job):
     will be discarded.
 
     """
+    logger.info("Checking metadata.")
     mda = job['input_mda']
     product_list = job['product_list']
     conf = get_config_value(product_list, '/product_list', 'check_metadata')
@@ -560,8 +568,8 @@ def check_metadata(job):
         return
     for key, val in conf.items():
         if key not in mda:
-            LOG.warning("Metadata item '%s' not in the input message.",
-                        key)
+            logger.warning("Metadata item '%s' not in the input message.",
+                           key)
             continue
         if key == 'start_time':
             time_diff = dt.datetime.utcnow() - mda[key]
@@ -582,20 +590,24 @@ def metadata_alias(job):
     aliases = get_config_value(product_list, '/product_list', 'metadata_aliases')
     if aliases is None:
         return
+
+    logger.info("Adjusting metadata using configured aliases.")
     for key in aliases:
         if key in mda_out:
             val = mda_out[key]
             if isinstance(val, (list, tuple, set)):
                 typ = type(val)
                 new_vals = typ([aliases[key].get(itm, itm) for itm in val])
-                mda_out[key] = new_vals
             else:
-                mda_out[key] = aliases[key].get(mda_out[key], mda_out[key])
+                new_vals = aliases[key].get(mda_out[key], mda_out[key])
+            logger.debug(f"Replacing '{key}: {str(val)}' with '{str(new_vals)}'")
+            mda_out[key] = new_vals
     job['input_mda'] = mda_out.copy()
 
 
 def sza_check(job):
     """Remove products which are not valid for the current Sun zenith angle."""
+    logger.info("Check Sun zenith angle.")
     scn_mda = _get_scene_metadata(job)
     scn_mda.update(job['input_mda'])
     start_time = scn_mda['start_time']
@@ -608,20 +620,20 @@ def sza_check(job):
             lon = get_config_value(product_list, prod_path, "sunzen_check_lon")
             lat = get_config_value(product_list, prod_path, "sunzen_check_lat")
             if lon is None or lat is None:
-                LOG.debug("No 'sunzen_check_lon' or 'sunzen_check_lat' configured, "
-                          "can\'t check Sun elevation for %s / %s",
-                          area, product)
+                logger.debug("No 'sunzen_check_lon' or 'sunzen_check_lat' configured, "
+                             "can\'t check Sun elevation for %s / %s",
+                             area, product)
                 continue
 
             sunzen = sun_zenith_angle(start_time, lon, lat)
-            LOG.debug("Sun zenith angle is %.2f degrees", sunzen)
+            logger.debug("Sun zenith angle is %.2f degrees", sunzen)
             # Check nighttime limit
             limit = get_config_value(product_list, prod_path,
                                      "sunzen_minimum_angle")
             if limit is not None:
                 if sunzen < limit:
-                    LOG.info("Sun zenith angle to small for nighttime "
-                             "product '%s', product removed.", product)
+                    logger.info("Sun zenith angle too small for nighttime "
+                                "product '%s', product removed.", product)
                     dpath.util.delete(product_list, prod_path)
                 continue
 
@@ -630,13 +642,13 @@ def sza_check(job):
                                      "sunzen_maximum_angle")
             if limit is not None:
                 if sunzen > limit:
-                    LOG.info("Sun zenith angle too large for daytime "
-                             "product '%s', product removed.", product)
+                    logger.info("Sun zenith angle too large for daytime "
+                                "product '%s', product removed.", product)
                     dpath.util.delete(product_list, prod_path)
                 continue
 
         if len(product_list['product_list']['areas'][area]['products']) == 0:
-            LOG.info("Removing empty area: %s", area)
+            logger.info("Removing empty area: %s", area)
             dpath.util.delete(product_list, '/product_list/areas/%s' % area)
 
 
@@ -653,9 +665,11 @@ def check_sunlight_coverage(job):
     overpass of an polar-orbiting satellite.
 
     """
+    logger.info("Checking sunlight coverage.")
+
     if get_twilight_poly is None:
-        LOG.error("Trollsched import failed, sunlight coverage calculation not possible")
-        LOG.info("Keeping all products")
+        logger.error("Trollsched import failed, sunlight coverage calculation not possible")
+        logger.info("Keeping all products")
         return
 
     scn_mda = _get_scene_metadata(job)
@@ -668,8 +682,8 @@ def check_sunlight_coverage(job):
     if isinstance(sensor, (list, tuple, set)):
         sensor = list(sensor)
         if len(sensor) > 1:
-            LOG.warning("Multiple sensors given, taking only one for "
-                        "coverage calculations: %s", sensor[0])
+            logger.warning("Multiple sensors given, taking only one for "
+                           "coverage calculations: %s", sensor[0])
         sensor = sensor[0]
 
     product_list = job['product_list']
@@ -693,8 +707,8 @@ def check_sunlight_coverage(job):
             check_pass = config.get('check_pass', False)
 
             if min_day is None and max_day is None:
-                LOG.debug("Sunlight coverage not configured for %s / %s",
-                          product, area)
+                logger.debug("Sunlight coverage not configured for %s / %s",
+                             product, area)
                 continue
 
             if area_def is None:
@@ -712,14 +726,14 @@ def check_sunlight_coverage(job):
             area_conf = product_list['product_list']['areas'][area]
             area_conf['area_sunlight_coverage_percent'] = coverage[check_pass] * 100
             if min_day is not None and coverage[check_pass] < (min_day / 100.0):
-                LOG.info("Not enough sunlight coverage for "
-                         f"product '{product!s}', removed. Needs at least "
-                         f"{min_day:.1f}%, got {coverage[check_pass]:.1%}.")
+                logger.info("Not enough sunlight coverage for "
+                            f"product '{product!s}', removed. Needs at least "
+                            f"{min_day:.1f}%, got {coverage[check_pass]:.1%}.")
                 dpath.util.delete(product_list, prod_path)
             if max_day is not None and coverage[check_pass] > (max_day / 100.0):
-                LOG.info("Too much sunlight coverage for "
-                         f"product '{product!s}', removed. Needs at most "
-                         f"{max_day:.1f}%, got {coverage[check_pass]:.1%}.")
+                logger.info("Too much sunlight coverage for "
+                            f"product '{product!s}', removed. Needs at most "
+                            f"{max_day:.1f}%, got {coverage[check_pass]:.1%}.")
                 dpath.util.delete(product_list, prod_path)
 
 
@@ -773,8 +787,8 @@ def _get_product_area_def(job, area, product):
         try:
             prod = scn[list(scn.keys())[0]]
         except IndexError:
-            LOG.warning("No dataset %s for this scene and area %s",
-                        product, area)
+            logger.warning("No dataset %s for this scene and area %s",
+                           product, area)
             return None
 
     return prod.attrs['area']
@@ -782,6 +796,8 @@ def _get_product_area_def(job, area, product):
 
 def add_overviews(job):
     """Add overviews to images already written to disk."""
+    logger.info("Adding image overviews.")
+
     # Get the formats, including filenames and overview settings
     for _flat_fmat, fmt in plist_iter(job['product_list']['product_list']):
         if "overviews" in fmt and 'filename' in fmt:
@@ -792,7 +808,7 @@ def add_overviews(job):
                     dst.build_overviews(overviews, Resampling.average)
                     dst.update_tags(ns='rio_overview',
                                     resampling='average')
-                LOG.info("Added overviews to %s", fname)
+                logger.debug("Added overviews to %s", fname)
             except rasterio.RasterioIOError:
                 pass
 
@@ -838,6 +854,8 @@ def check_valid_data_fraction(job):
           - fun: !!python/name:trollflow2.plugins.save_datasets
 
     """
+    logger.info("Checking valid data fraction.")
+
     exp_cov = {}
     # As stated, this will trigger a computation.  To prevent computing
     # multiple times, we should persist everything that needs to be persisted,
@@ -852,7 +870,9 @@ def check_valid_data_fraction(job):
                         exp_cov):
                     to_remove.add(prod_name)
         for rem in to_remove:
+            logger.debug(f"Removing {rem} due to low coverage.")
             del area_props["products"][rem]
+        logger.info(f"Removed {len(to_remove)} products from area {area_name} due to low coverage.")
 
 
 def _persist_what_we_must(job):
@@ -870,7 +890,7 @@ def _persist_what_we_must(job):
         for (prod_name, prod_props) in area_props["products"].items():
             if "min_valid_data_fraction" in prod_props and prod_name in scn:
                 to_persist.append((scn, prod_name, scn[prod_name]))
-    LOG.debug("Persisting early due to content checks")
+    logger.debug("Persisting early due to content checks")
     persisted = dask.persist(*[p[2] for p in to_persist])
     for ((sc, prod_name, _old), new) in zip(to_persist, persisted):
         sc[prod_name] = new
@@ -886,9 +906,9 @@ def _product_meets_min_valid_data_fraction(
     Returns True if product can remain or is absent.  Returns False if product
     has to be removed.
     """
-    LOG.debug(f"Checking validity for {area_name:s}/{prod_name:s}")
+    logger.debug(f"Checking validity for {area_name:s}/{prod_name:s}")
     if prod_name not in job["resampled_scenes"][area_name]:
-        LOG.debug(f"product {prod_name!s} not found, already removed or loading failed?")
+        logger.debug(f"product {prod_name!s} not found, already removed or loading failed?")
         return True
     prod = job["resampled_scenes"][area_name][prod_name]
     platform_name = prod.attrs["platform_name"]
@@ -901,23 +921,23 @@ def _product_meets_min_valid_data_fraction(
             platform_name, start_time, end_time, sensor, area_name)/100
     exp_valid = exp_cov[area_name]
     if exp_valid == 0:
-        LOG.debug(f"product {prod_name!s} no expected coverage at all, removing")
+        logger.debug(f"product {prod_name!s} no expected coverage at all, removing")
         return False
     valid = job["resampled_scenes"][area_name][prod_name].notnull()
     actual_valid = float(valid.sum()/valid.size)
     rel_valid = float(actual_valid / exp_valid)
-    LOG.debug(f"Expected maximum validity: {exp_valid:%}")
-    LOG.debug(f"Actual validity (coverage): {actual_valid:%}")
-    LOG.debug(f"Relative validity: {rel_valid:%}")
+    logger.debug(f"Expected maximum validity: {exp_valid:%}")
+    logger.debug(f"Actual validity (coverage): {actual_valid:%}")
+    logger.debug(f"Relative validity: {rel_valid:%}")
     min_frac = prod_props["min_valid_data_fraction"]/100
     if not 0 <= rel_valid < 1.05:
-        LOG.warning(f"Found {rel_valid:%} valid data, impossible... "
-                    "inaccurate coverage estimate suspected!")
+        logger.warning(f"Found {rel_valid:%} valid data, impossible... "
+                       "inaccurate coverage estimate suspected!")
         return True
     if rel_valid < min_frac:
-        LOG.debug(f"Found {rel_valid:%}<{min_frac:%} valid data, removing "
-                  f"{prod_name:s} for area {area_name:s} from the worklist")
+        logger.debug(f"Found {rel_valid:%}<{min_frac:%} valid data, removing "
+                     f"{prod_name:s} for area {area_name:s} from the worklist")
         return False
-    LOG.debug(f"Found {rel_valid:%}>{min_frac:%}, keeping "
-              f"{prod_name:s} for area {area_name:s} in the worklist")
+    logger.debug(f"Found {rel_valid:%}>{min_frac:%}, keeping "
+                 f"{prod_name:s} for area {area_name:s} in the worklist")
     return True

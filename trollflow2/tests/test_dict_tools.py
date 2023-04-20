@@ -23,11 +23,14 @@
 """Test the product list tools."""
 
 import unittest
+
 try:
     from unittest import mock
 except ImportError:
     import mock  # noqa
+
 import datetime as dt
+
 try:
     # Numpy doesn't like being removed from sys.modules by the patcher, so
     # import it first
@@ -36,7 +39,6 @@ except ImportError:
     pass
 
 from trollflow2.launcher import read_config
-
 
 yaml_test1 = """
 product_list:
@@ -233,6 +235,7 @@ class TestConfigValue(unittest.TestCase):
         self.assertEqual(res, 42)
 
     def test_null_area(self):
+        """Test area labeled as null."""
         from trollflow2.dict_tools import get_config_value
         path = "/product_list/areas/None/products/cloudtype"
         expected = "/tmp/satdmz/pps/www/latest_2018/"
