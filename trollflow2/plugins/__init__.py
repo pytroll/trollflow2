@@ -18,6 +18,7 @@
 
 """Trollflow2 plugins."""
 
+import copy
 import datetime as dt
 import os
 from contextlib import contextmanager, suppress
@@ -220,6 +221,25 @@ def prepared_filename(fmat, renames):
         yield orig_filename
 
 
+def _format_decoration_text(deco, fmat):
+    """Format decoration text if it contains a key that is included in fmat."""
+    if "text" in deco and "txt" in deco["text"]:
+        try:
+            deco["text"]["txt"] = deco["text"]["txt"].format(**fmat)
+        except KeyError:
+            logger.warning('Could not format: %s.', str(deco["text"]["txt"]))
+    return deco
+
+
+def format_decoration(fmat, fmat_config):
+    """Format decoration text using template given in fmt_config with key-value pairs in fmat."""
+    fmat_config_local = copy.deepcopy(fmat_config)
+    if "decorate" in fmat_config:
+        for deco in fmat_config_local["decorate"]["decorate"]:
+            deco = _format_decoration_text(deco, fmat)
+    return fmat_config_local
+
+
 def save_dataset(scns, fmat, fmat_config, renames, compute=False):
     """Save one dataset to file.
 
@@ -230,6 +250,7 @@ def save_dataset(scns, fmat, fmat_config, renames, compute=False):
         with prepared_filename(fmat, renames) as filename:
             res = fmat.get('resolution', DEFAULT)
             kwargs = fmat_config.copy()
+            kwargs = format_decoration(fmat, fmat_config)
             # these keyword arguments are used by the trollflow2 plugin but not
             # by satpy writers
             for name in {"fname_pattern", "dispatch", "output_dir",
