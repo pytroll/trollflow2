@@ -222,12 +222,12 @@ def prepared_filename(fmat, renames):
 
 
 def _format_decoration_text(deco, fmat):
-    """Format decoration text if it contains a key that is included in fmat"""
+    """Format decoration text if it contains a key that is included in fmat."""
     if "text" in deco and "txt" in deco["text"]:
         try:
             deco["text"]["txt"] = deco["text"]["txt"].format(**fmat)
         except KeyError:
-            LOG.warning('Could not format: %s.', str(deco["text"]["txt"]))
+            logger.warning('Could not format: %s.', str(deco["text"]["txt"]))
     return deco
 
 
