@@ -120,14 +120,44 @@ are several options:
 
  - ``formats`` dictionary with a list of wanted output file formats,
    writers and file patterns.  The handled arguments, with default values, are:
+
   - ``format: tif``
   - ``writer: geotiff``
   - ``fname_pattern: '{platform_name}_{start_time:%Y%m%d_%H%M}_{areaname}_{productname}.{format}'``
+  - ``decorate: dict`` - Decorate the image. See an example of the ``dict`` below.
+
  - ``use_tmp_file: bool`` - First save the data to a temporary filename
    and then rename to the final version.
 
 The ``fname_pattern`` can be a global setting at the top-level of the
 configuration, and overridden on area and product levels.
+
+It is possible to add decoration to image. For text added as a
+decoration, string substitution will be applied based on the
+attributes of the dataset. Here's an example that can be used with the
+``decorate`` keyword in ``formats`` dict:
+
+.. code-block::
+
+   formats:
+    - format: tif
+      decorate: {
+        decorate: [{
+          text: {
+            txt: 'Time {start_time:%Y-%m-%d %H:%M}',
+            align: {
+              top_bottom: top,
+              left_right: right,
+              },
+            font: /usr/share/fonts/truetype/arial.ttf,
+            font_size: 20,
+            height: 30,
+            bg: black,
+            bg_opacity: 255,
+            line: white,
+            }
+          }]
+        }
 
 It is possible to force the saving to be eager by defining
 ``eager_writing: True`` in the product list. Eager saving means that
@@ -184,9 +214,11 @@ being processed:
 
  - after ``create_scene`` when area is defined in areas.yaml
  - after ``load_composites`` when area is ``null``
+
   - using ``use_min_area: True`` or ``use_max_area: True``
   - the original data are to be saved without resampling
   - ``resampler: native`` is used
+
  - after ``resampler`` for backwards compatibility, although this wastes time
 
 For explanation on the individual resampler options see the
@@ -301,7 +333,7 @@ This plugin triggers a calculation of the data to be checked.
 
 Options:
   - ``min_valid_data_fraction: 10`` - only generate products if at least 10% of covered
-  part of scene contains valid data.
+    part of scene contains valid data.
 
 Uploading produced data to S3
 *****************************

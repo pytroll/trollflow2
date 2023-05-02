@@ -10,4 +10,5 @@ The following people have made contributions to this project:
 - [Gerrit Holl (gerritholl)](https://github.com/gerritholl)
 - [Panu Lahtinen (pnuu)](https://github.com/pnuu)
 - [Paulo Medeiros (paulovcmedeiros)](https://github.com/paulovcmedeiros)
+- [Ondrej Nedelcev (nedelceo)](https://github.com/nedelceo)
 - [Martin Raspaud (mraspaud)](https://github.com/mraspaud)
