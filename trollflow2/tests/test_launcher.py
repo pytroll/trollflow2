@@ -523,7 +523,7 @@ class TestProcess(TestCase):
                                            yaml=mock.DEFAULT,
                                            message_to_jobs=mock.DEFAULT,
                                            open=mock.DEFAULT,
-                                           get_dask_client=mock.DEFAULT)
+                                           get_dask_distributed_client=mock.DEFAULT)
         mocks = self.patcher.start()
 
         self.traceback = mocks['traceback']
@@ -538,11 +538,11 @@ class TestProcess(TestCase):
         # Is this necessary?
         self.yaml.YAMLError = YAMLError
 
-        self.get_dask_client = mocks['get_dask_client']
+        self.get_dask_distributed_client = mocks['get_dask_distributed_client']
         # Make a client that has no `.close()` method (for coverage)
         self.client = mock.MagicMock()
         self.client.close.side_effect = AttributeError
-        self.get_dask_client.return_value = self.client
+        self.get_dask_distributed_client.return_value = self.client
 
         self.expand = mocks['expand']
         self.fake_plugin = mock.MagicMock()
@@ -587,7 +587,7 @@ class TestProcess(TestCase):
     def test_dask_client_is_used(self):
         """Test that the dask client is used."""
         process("msg", "prod_list", self.queue)
-        self.get_dask_client.assert_called_once()
+        self.get_dask_distributed_client.assert_called_once()
 
     def test_dask_client_is_closed(self):
         """Test that the dask client is closed."""
@@ -660,8 +660,8 @@ def test_workers_initialized():
         tmp_file.close()
 
         try:
-            with mock.patch("trollflow2.launcher.get_dask_client") as gdc:
-                # `get_dask_client()` is called just after config reading, so if we get there loading worked
+            with mock.patch("trollflow2.launcher.get_dask_distributed_client") as gdc:
+                # `get_dask_distributed_client()` is called just after config reading, so if we get there loading worked
                 gdc.side_effect = StopIteration
                 try:
                     process("msg", fname, queue)
@@ -671,9 +671,9 @@ def test_workers_initialized():
             os.remove(fname)
 
 
-def test_get_dask_client(caplog):
+def test_get_dask_distributed_clien(caplog):
     """Test getting dask client."""
-    from trollflow2.launcher import get_dask_client
+    from trollflow2.launcher import get_dask_distributed_client
 
     ncores = mock.MagicMock()
     ncores.return_value = {}
@@ -684,7 +684,7 @@ def test_get_dask_client(caplog):
     # No client configured
     config = {}
     with caplog.at_level(logging.DEBUG):
-        res = get_dask_client(config)
+        res = get_dask_distributed_client(config)
     assert "Distributed processing not configured" in caplog.text
     caplog.clear()
     assert res is None
@@ -695,7 +695,7 @@ def test_get_dask_client(caplog):
                                    }
               }
     with caplog.at_level(logging.WARNING):
-        res = get_dask_client(config)
+        res = get_dask_distributed_client(config)
     assert "No workers available, reverting to default scheduler" in caplog.text
     caplog.clear()
     assert res is None
@@ -705,13 +705,13 @@ def test_get_dask_client(caplog):
     # The scheduler had no workers, the client doesn't have `.close()`
     client.close.side_effect = AttributeError
     with caplog.at_level(logging.WARNING):
-        res = get_dask_client(config)
+        res = get_dask_distributed_client(config)
     assert res is None
 
     # Config is valid, scheduler has workers
     ncores.return_value = {'a': 1, 'b': 1}
     with caplog.at_level(logging.DEBUG):
-        res = get_dask_client(config)
+        res = get_dask_distributed_client(config)
     assert "Using dask distributed client" in caplog.text
     caplog.clear()
     assert res is client
@@ -720,7 +720,7 @@ def test_get_dask_client(caplog):
     # Scheduler couldn't connect to workers
     client_class.side_effect = OSError
     with caplog.at_level(logging.ERROR):
-        res = get_dask_client(config)
+        res = get_dask_distributed_client(config)
     assert "Scheduler not found, reverting to default scheduler" in caplog.text
     caplog.clear()
     assert res is None

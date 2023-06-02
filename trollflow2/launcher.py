@@ -322,7 +322,7 @@ def expand(yml):
     return yml
 
 
-def get_dask_client(config):
+def get_dask_distributed_client(config):
     """Create Dask client if configured."""
     client = None
 
@@ -375,10 +375,7 @@ def print_traces(signum, frame):
 def process(msg, prod_list, produced_files):
     """Process a message."""
     config = read_config(prod_list, Loader=UnsafeLoader)
-
-    # Get distributed client
-    client = get_dask_client(config)
-
+    client = get_dask_distributed_client(config)
     try:
         config = expand(config)
         jobs = message_to_jobs(msg, config)
