@@ -3,6 +3,7 @@
 import argparse
 import json
 import logging
+from queue import Queue
 
 import yaml
 
@@ -39,7 +40,7 @@ def cli(args=None):
 
     with logging_on(log_config):
         logger.info("Starting Satpy.")
-        produced_files = []
+        produced_files = Queue()
         process_files(args.files, json.loads(args.metadata), args.product_list, produced_files)
 
 

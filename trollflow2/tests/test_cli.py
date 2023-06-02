@@ -102,5 +102,6 @@ def test_cli_starts_processing_when_files_are_provided(tmp_path):
     new_process = mock.Mock(wraps=process_files)
     mda = {"dish": "pizza"}
     with mock.patch("trollflow2.cli.process_files", new=new_process):
-        cli(["-p", os.fspath(product_list_filename), "-m", json.dumps(mda), *files])
-    new_process.assert_called_once_with(files, mda, product_list_filename, [])
+        with mock.patch("trollflow2.cli.Queue") as q_mock:
+            cli(["-p", os.fspath(product_list_filename), "-m", json.dumps(mda), *files])
+    new_process.assert_called_once_with(files, mda, product_list_filename, q_mock.return_value)
