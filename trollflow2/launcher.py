@@ -257,6 +257,13 @@ def get_area_priorities(product_list):
 
 def message_to_jobs(msg, product_list):
     """Convert a posttroll message *msg* to a list of jobs given a *product_list*."""
+    input_filenames = _extract_filenames(msg)
+    input_mda = msg.data
+    return file_list_to_jobs(input_filenames, product_list, input_mda)
+
+
+def file_list_to_jobs(input_filenames, product_list, input_mda):
+    """Convert a file list to jobs."""
     formats = product_list['product_list'].get('formats', None)
     for _product, pconfig in plist_iter(product_list['product_list'], level='product'):
         if 'formats' not in pconfig and formats is not None:
@@ -264,11 +271,10 @@ def message_to_jobs(msg, product_list):
     jobs = OrderedDict()
     priorities = get_area_priorities(product_list)
     # TODO: check the uri is accessible from the current host.
-    input_filenames = _extract_filenames(msg)
     for prio, areas in priorities.items():
         jobs[prio] = OrderedDict()
         jobs[prio]['input_filenames'] = input_filenames.copy()
-        jobs[prio]['input_mda'] = msg.data.copy()
+        jobs[prio]['input_mda'] = input_mda.copy()
         jobs[prio]['product_list'] = {}
         for section in product_list:
             if section == 'product_list':
@@ -374,35 +380,20 @@ def print_traces(signum, frame):
 
 def process(msg, prod_list, produced_files):
     """Process a message."""
+    """Convert a posttroll message *msg* to a list of jobs given a *product_list*."""
+    input_filenames = _extract_filenames(msg)
+    input_mda = msg.data
+    process_files(input_filenames, input_mda, prod_list, produced_files)
+
+
+def process_files(input_filenames, input_mda, prod_list, produced_files):
+    """Process files."""
     config = read_config(prod_list, Loader=UnsafeLoader)
     client = get_dask_distributed_client(config)
     try:
         config = expand(config)
-        jobs = message_to_jobs(msg, config)
-        for prio in sorted(jobs.keys()):
-            job = jobs[prio]
-            job['processing_priority'] = prio
-            job['produced_files'] = produced_files
-            try:
-                for wrk in config['workers']:
-                    cwrk = wrk.copy()
-                    if "timeout" in cwrk:
-
-                        def _timeout_handler(signum, frame, wrk=wrk):
-                            raise TimeoutError(
-                                f"Timeout for {wrk['fun']!s} expired "
-                                f"after {wrk['timeout']:.1f} seconds, "
-                                "giving up")
-                        signal.signal(signal.SIGALRM, _timeout_handler)
-                        # using setitimer because it accepts floats,
-                        # unlike signal.alarm
-                        signal.setitimer(signal.ITIMER_REAL,
-                                         cwrk.pop("timeout"))
-                    cwrk.pop('fun')(job, **cwrk)
-                    if "timeout" in cwrk:
-                        signal.alarm(0)  # cancel the alarm
-            except AbortProcessing as err:
-                logger.warning(str(err))
+        jobs = file_list_to_jobs(input_filenames, config, input_mda)
+        process_jobs(config["workers"], jobs, produced_files)
     except Exception:
         logger.exception("Process crashed")
         if "crash_handlers" in config:
@@ -420,11 +411,37 @@ def process(msg, prod_list, produced_files):
             except AttributeError:
                 continue
         del config
-        try:
+        with suppress(AttributeError):
             client.close()
-        except AttributeError:
-            pass
         gc.collect()
+
+
+def process_jobs(workers, jobs, produced_files):
+    """Process the jobs."""
+    for prio in sorted(jobs.keys()):
+        job = jobs[prio]
+        job['processing_priority'] = prio
+        job['produced_files'] = produced_files
+        try:
+            for wrk in workers:
+                cwrk = wrk.copy()
+                if "timeout" in cwrk:
+                    def _timeout_handler(signum, frame, wrk=wrk):
+                        raise TimeoutError(
+                            f"Timeout for {wrk['fun']!s} expired "
+                            f"after {wrk['timeout']:.1f} seconds, "
+                            "giving up")
+
+                    signal.signal(signal.SIGALRM, _timeout_handler)
+                    # using setitimer because it accepts floats,
+                    # unlike signal.alarm
+                    signal.setitimer(signal.ITIMER_REAL,
+                                     cwrk.pop("timeout"))
+                cwrk.pop('fun')(job, **cwrk)
+                if "timeout" in cwrk:
+                    signal.alarm(0)  # cancel the alarm
+        except AbortProcessing as err:
+            logger.warning(str(err))
 
 
 def read_config(fname=None, raw_string=None, Loader=SafeLoader):
@@ -436,6 +453,8 @@ def read_config(fname=None, raw_string=None, Loader=SafeLoader):
                 raw_config = fid.read()
         elif raw_string:
             raw_config = raw_string
+        if not raw_config:
+            raise IOError
         config = yaml.load(_remove_null_keys(raw_config), Loader=Loader)
     except (IOError, yaml.YAMLError):
         # Either open() or yaml.load() failed
