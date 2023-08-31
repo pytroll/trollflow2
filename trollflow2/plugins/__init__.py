@@ -345,9 +345,8 @@ def save_datasets(job):
     base_config.pop('dataset', None)
     eager_writing = job['product_list']['product_list'].get("eager_writing", False)
     early_moving = job['product_list']['product_list'].get("early_moving", False)
-    sentinel = object()
-    call_on_done = job["product_list"]["product_list"].get("call_on_done", sentinel)
-    if call_on_done is not sentinel:
+    call_on_done = job["product_list"]["product_list"].get("call_on_done", None)
+    if call_on_done is not None:
         callbacks = [dask.delayed(c) for c in call_on_done]
     else:
         callbacks = None
