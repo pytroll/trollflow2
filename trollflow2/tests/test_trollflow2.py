@@ -27,12 +27,18 @@ import datetime as dt
 import logging
 import os
 import unittest
+import pathlib
+import queue
 from functools import partial
 from unittest import mock
 
 import numpy as np
 import pytest
-from pyresample.geometry import DynamicAreaDefinition
+from pyresample.geometry import DynamicAreaDefinition, create_area_def
+import rasterio
+
+import dask.array as da
+import xarray as xr
 
 from trollflow2.launcher import read_config
 from trollflow2.tests.utils import TestCase, create_filenames_and_topics
@@ -608,7 +614,7 @@ class TestSaveDatasets(TestCase):
 
         assert "PhysicUnit" in job["resampled_scenes"]["euron1"].mock_calls[0].kwargs.keys()
         for absent in {"use_tmp_file", "staging_zone", "output_dir",
-                       "fname_pattern", "dispatch"}:
+                       "fname_pattern", "dispatch", "call_on_done"}:
             assert absent not in job["resampled_scenes"]["euron1"].mock_calls[0].kwargs.keys()
 
 
@@ -616,6 +622,7 @@ def _create_job_for_save_datasets():
     from yaml import UnsafeLoader
     job = {}
     job['input_mda'] = input_mda
+
     job['product_list'] = {
         'product_list': read_config(raw_string=yaml_test_save, Loader=UnsafeLoader)['product_list'],
     }
@@ -666,6 +673,133 @@ def test_use_staging_zone_tmpfile(tmp_path):
     assert len(renames) == 1
     assert next(iter(renames.values())) == tst_file
     assert next(iter(renames.keys())).startswith(os.fspath(tmp_path))
+
+
+@pytest.fixture
+def fake_scene():
+    """Get a fake scene."""
+    from satpy.tests.utils import make_fake_scene
+
+    x = 10
+    fake_area = create_area_def("sargasso", 4087, resolution=1, width=x, height=x, center=(0, 0))
+    fake_scene = make_fake_scene(
+        {"dragon_top_height": (dat := xr.DataArray(
+            dims=("y", "x"),
+            data=da.arange(x*x).reshape(x, x))),
+         "penguin_bottom_height": dat,
+         "kraken_depth": dat},
+        daskify=True,
+        area=fake_area,
+        common_attrs={"start_time": dt.datetime(1985, 8, 13, 15)})
+
+    return fake_scene
+
+
+def test_save_datasets_callback(tmp_path, caplog, fake_scene):
+    """Test callback functionality for save_datasets
+
+    Test that the functionality for a callback after each produced file is
+    working correctly in the save_datasets plugin.
+    """
+    from trollflow2.plugins import save_datasets, callback_close
+
+    job = {}
+    job['input_mda'] = input_mda
+
+    logger = logging.getLogger("testlogger")
+
+    def testlog(obj, targs, job, fmat_config):
+        """Toy function doing some logging"""
+        filename = fmat_config["filename"]
+        # ensure computation has indeed completed and file was flushed
+        p = pathlib.Path(filename)
+        logger.info(f"Wrote {filename} successfully, {p.stat().st_size:d} bytes")
+        assert p.exists()
+        with rasterio.open(filename) as src:
+            arr = src.read(1)
+            assert arr[5, 5] == 142
+        return obj
+
+    form = [
+        {"writer": "geotiff", "compress": "NONE", "fill_value": 0},
+        {"writer": "ninjogeotiff", "compress": "NONE",
+         "ChannelID": "IR -2+3i", "DataType": "ABCD",
+         "PhysicUnit": "K", "PhysicValue": "Temperature",
+         "SatelliteNameID": "PytrollSat", "fill_value": 0},
+        {"writer": "simple_image", "format": "png"},
+    ]
+
+    product_list = {
+        "fname_pattern": "{productname}-{writer}.tif",
+        "output_dir": os.fspath(tmp_path / "test"),
+        "call_on_done": [callback_close, testlog],
+        "areas": {
+            "sargasso": {
+                "products": {
+                    "dragon_top_height": {
+                        "productname": "dragon_top_height",
+                        "formats": copy.deepcopy(form)},
+                    "penguin_bottom_height": {
+                        "productname": "penguin_bottom_height",
+                        "formats": copy.deepcopy(form)},
+                    "kraken_depth": {
+                        "productname": "kraken_depth",
+                        "formats": copy.deepcopy(form)},
+                }
+            }
+        }
+    }
+    job["product_list"] = {"product_list": product_list}
+    job['resampled_scenes'] = {"sargasso": fake_scene}
+
+    job['produced_files'] = mock.MagicMock()
+
+    with caplog.at_level(logging.INFO):
+        save_datasets(job)
+    for nm in {"dragon_top_height", "penguin_bottom_height", "kraken_depth"}:
+        exp = tmp_path / "test" / f"{nm:s}-geotiff.tif"
+        assert f"Wrote {exp!s} successfully" in caplog.text
+
+
+def test_save_datasets_callback_move_check_products(tmp_path, caplog, fake_scene):
+    """Test that check_products and the callback move can cooperate.
+    """
+    from trollflow2.plugins import save_datasets, callback_close, callback_move
+    from trollflow2.launcher import check_results
+
+    job = {}
+    job['input_mda'] = input_mda
+    form = [{"writer": "geotiff", "fill_value": 0}]
+
+    product_list = {
+        "fname_pattern": "{productname}.tif",
+        "staging_zone": os.fspath(tmp_path / "test1"),
+        "output_dir": os.fspath(tmp_path / "test2"),
+        "call_on_done": [callback_close, callback_move],
+        "early_moving": True,
+        "areas": {
+            "sargasso": {
+                "products": {
+                    "dragon_top_height": {
+                        "productname": "dragon_top_height",
+                        "formats": copy.deepcopy(form)},
+                    "penguin_bottom_height": {
+                        "productname": "penguin_bottom_height",
+                        "formats": copy.deepcopy(form)},
+                    "kraken_depth": {
+                        "productname": "kraken_depth",
+                        "formats": copy.deepcopy(form)},
+                }
+            }
+        }
+    }
+    job["product_list"] = {"product_list": product_list}
+    job['resampled_scenes'] = {"sargasso": fake_scene}
+    job["produced_files"] = queue.SimpleQueue()
+    save_datasets(job)
+    with caplog.at_level(logging.INFO):
+        check_results(job["produced_files"], dt.datetime(2001, 2, 3, 4, 5, 6), 0)
+    assert "All 3 files produced nominally" in caplog.text
 
 
 class TestCreateScene(TestCase):
@@ -2071,8 +2205,8 @@ def test_persisted(sc_3a_3b):
         prods[p] = {"min_valid_data_fraction": 40}
 
     def fake_persist(*args):
-        for da in args:
-            da.attrs["persisted"] = True
+        for daa in args:
+            daa.attrs["persisted"] = True
         return args
 
     with mock.patch("dask.persist", new=fake_persist):
@@ -2081,6 +2215,43 @@ def test_persisted(sc_3a_3b):
     # confirm that sc_3a_3b dataset NIR016 is persisted
     assert sc_3a_3b["NIR016"].attrs.get("persisted")
     assert not sc_3a_3b["another"].attrs.get("persisted")
+
+
+def test_callback_log(caplog, tmp_path):
+    """Test callback log functionality."""
+    from trollflow2.plugins import callback_log
+    srcfile = tmp_path / "bouvetøya"
+    with srcfile.open(mode="w") as fp:
+        fp.write("x" * 10)
+    obj = object()
+    with caplog.at_level(logging.INFO):
+        res = callback_log(obj, None, {}, {"filename": os.fspath(srcfile)})
+    assert res is obj
+    assert f"Wrote {srcfile!s} successfully, total 10 bytes." in caplog.text
+
+
+def test_callback_move(caplog, tmp_path):
+    """Test callback move functionality."""
+    from trollflow2.plugins import callback_move
+    obj = object()
+    srcdir = tmp_path / "src"
+    srcfile = srcdir / "orkney"
+    srcdir.mkdir(parents=True, exist_ok=True)
+    srcfile.touch()
+    destdir = tmp_path / "dest"
+    destdir.mkdir(parents=True, exist_ok=True)
+    destfile = destdir / srcfile.name
+    job = {"product_list":
+           {"product_list":
+            {"staging_zone": os.fspath(srcdir),
+             "output_dir": os.fspath(destdir)}}}
+    fname_config = {"filename": os.fspath(destfile)}
+    with caplog.at_level(logging.DEBUG):
+        res = callback_move(obj, None, job, fname_config)
+    assert res is obj
+    assert not srcfile.exists()
+    assert destfile.exists()
+    assert f"Moving {srcfile!s} to {destfile!s}" in caplog.text
 
 
 def test_format_decoration():
