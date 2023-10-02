@@ -37,6 +37,8 @@ import numpy as np
 import pytest
 import rasterio
 import xarray as xr
+from posttroll.message import Message
+from posttroll.testing import patched_publisher
 from pyresample.geometry import DynamicAreaDefinition, create_area_def
 
 from trollflow2.launcher import read_config
@@ -1801,6 +1803,8 @@ class TestFilePublisher(TestCase):
 
     def test_filepublisher_with_compose(self):
         """Test filepublisher with compose."""
+        from posttroll.message import Message
+        from posttroll.testing import patched_publisher
         from satpy import Scene
         from satpy.tests.utils import make_dataid
 
@@ -1813,35 +1817,37 @@ class TestFilePublisher(TestCase):
                'input_mda': self.input_mda,
                'resampled_scenes': dict(euron1=scn_euron1)}
 
-        with mock.patch('trollflow2.plugins.Message') as Message, \
-                mock.patch.multiple(
-                    'posttroll.publisher', NoisyPublisher=mock.DEFAULT, Publisher=mock.DEFAULT):
-            message = Message
-
-            pub = FilePublisher()
+        with patched_publisher() as published_messages:
+            pub = FilePublisher(nameservers=False, port=2009)
             product_list = self.product_list.copy()
             product_list['product_list']['publish_topic'] = '/{areaname}/{productname}'
-            topics = create_filenames_and_topics(job)
+            _ = create_filenames_and_topics(job)
 
             pub(job)
-            message.assert_called()
-            pub.pub.send.assert_called()
 
-            call_count = 0
-            for area in job['product_list']['product_list']['areas']:
-                for _prod in job['product_list']['product_list']['areas'][area]:
-                    # Skip calls to __str__
-                    if 'call().__str__()' != str(message.mock_calls[call_count]):
-                        self.assertTrue(topics[call_count] in str(message.mock_calls[call_count]))
-                        call_count += 1
-            self.assertEqual(call_count, 1)
-            self.assertEqual(message.call_args[0][2]['processing_center'], 'SMHI')
+        assert len(published_messages) == 3
+
+        formats = []
+        directory = "/tmp/satdmz/pps/www/latest_2018/"
+        filename_base = "NOAA-15_20190217_0600_euron1_in_fname_ctth_static"
+        for rawmsg in published_messages:
+            msg = Message(rawstr=rawmsg)
+            if msg.type == "file":
+                assert msg.data["area"] == "euron1"
+                assert msg.data["product"] == "cloud_top_height"
+                assert msg.data["uri"].startswith(os.path.join(directory, filename_base))
+                assert msg.data["processing_center"] == "SMHI"
+                assert msg.subject == "/euron1_in_fname/cloud_top_height_in_fname"
+                formats.append(msg.data["format"])
+        assert formats == ["png", "jpg"]
+        del pub
 
     def test_filepublisher_without_compose(self):
         """Test filepublisher without compose."""
+        from posttroll.message import Message
+        from posttroll.testing import patched_publisher
         from satpy import Scene
         from satpy.tests.utils import make_dataid
-
         scn_euron1 = Scene()
         dataid = make_dataid(name='cloud_top_height', resolution=1000)
         scn_euron1[dataid] = mock.MagicMock()
@@ -1849,23 +1855,23 @@ class TestFilePublisher(TestCase):
                'input_mda': self.input_mda,
                'resampled_scenes': dict(euron1=scn_euron1)}
 
-        with mock.patch('trollflow2.plugins.Message') as Message, \
-                mock.patch.multiple(
-                    'posttroll.publisher', NoisyPublisher=mock.DEFAULT, Publisher=mock.DEFAULT):
-            message = Message
-
+        with patched_publisher() as published_messages:
             pub, topics = self._run_publisher_on_job(job)
-            message.assert_called()
-            pub.pub.send.assert_called()
+        assert len(published_messages) == 3
 
-            call_count = 0
-            for area in job['product_list']['product_list']['areas']:
-                for _prod in job['product_list']['product_list']['areas'][area]:
-                    # Skip calls to __str__
-                    if 'call().__str__()' != str(message.mock_calls[call_count]):
-                        self.assertTrue(topics[call_count] in str(message.mock_calls[call_count]))
-                        call_count += 1
-            self.assertEqual(call_count, 1)
+        formats = []
+        directory = "/tmp/satdmz/pps/www/latest_2018/"
+        filename_base = "NOAA-15_20190217_0600_euron1_in_fname_ctth_static"
+        for rawmsg in published_messages:
+            msg = Message(rawstr=rawmsg)
+            if msg.type == "file":
+                assert msg.data["area"] == "euron1"
+                assert msg.data["product"] == "cloud_top_height"
+                assert msg.data["uri"].startswith(os.path.join(directory, filename_base))
+                assert msg.subject in topics
+                formats.append(msg.data["format"])
+        assert formats == ["png", "jpg"]
+        del pub
 
     def test_filepublisher_s3_files(self):
         """Test filepublisher with files saved to S3."""
@@ -1879,20 +1885,15 @@ class TestFilePublisher(TestCase):
                'input_mda': self.input_mda,
                'resampled_scenes': dict(euron1=scn_euron1)}
 
-        with mock.patch('trollflow2.plugins.Message') as message:
-            with mock.patch.multiple('posttroll.publisher',
-                                     NoisyPublisher=mock.DEFAULT,
-                                     Publisher=mock.DEFAULT):
-                _, _ = self._run_publisher_on_job(job, s3_paths=True)
-                for call_ in message.mock_calls:
-                    if 'call().__str__()' != str(call_):
-                        type_ = call_.args[1]
-                        mda = call_.args[2]
-                        if type_ == 'dispatch':
-                            uri = mda['file_mda']['uri']
-                        else:
-                            uri = mda['uri']
-                        assert uri.startswith('s3://bucket-name/')
+        with patched_publisher() as published_messages:
+            _, _ = self._run_publisher_on_job(job, s3_paths=True)
+            for rawmsg in published_messages:
+                msg = Message(rawstr=rawmsg)
+                if msg.type == "dispatch":
+                    uri = msg.data["file_mda"]["uri"]
+                else:
+                    uri = msg.data["uri"]
+                assert uri.startswith('s3://bucket-name/')
 
     def test_non_existing_products_are_not_published(self):
         """Test that non existing products are not published."""
@@ -1902,9 +1903,9 @@ class TestFilePublisher(TestCase):
         job = {"scene": scn, "product_list": self.product_list, 'input_mda': self.input_mda,
                'resampled_scenes': dict(euron1=Scene(), germ=Scene())}
 
-        with mock.patch('trollflow2.plugins.Message') as message, mock.patch('posttroll.publisher.NoisyPublisher'):
+        with patched_publisher() as published_messages:
             self._run_publisher_on_job(job)
-            message.assert_not_called()
+        assert len(published_messages) == 0
 
     def test_multiple_dataset_files_can_be_published(self):
         """Test that netcdf files with multiple datasets can be published normally."""
@@ -1918,17 +1919,19 @@ class TestFilePublisher(TestCase):
         job = {"scene": scn, "product_list": self.product_list, 'input_mda': self.input_mda,
                'resampled_scenes': {'None': resampled_scene}}
 
-        with mock.patch('trollflow2.plugins.Message') as message, mock.patch('posttroll.publisher.NoisyPublisher'):
+        with patched_publisher() as published_messages:
             self._run_publisher_on_job(job)
-            assert message.call_args_list[-1][0][2]['product'] == (
-                'chl_nn', 'chl_oc4me', 'trsp', 'tsm_nn', 'iop_nn', 'mask', 'latitude', 'longitude')
+
+        assert len(published_messages) == 1
+        product = ['chl_nn', 'chl_oc4me', 'trsp', 'tsm_nn', 'iop_nn', 'mask', 'latitude', 'longitude']
+        assert Message(rawstr=published_messages[0]).data["product"] == product
 
     def _run_publisher_on_job(self, job, s3_paths=False):
         """Run a publisher on *job*."""
         from trollflow2.dict_tools import plist_iter
         from trollflow2.plugins import FilePublisher
 
-        pub = FilePublisher()
+        pub = FilePublisher(nameservers=False, port=2023)
         product_list = self.product_list.copy()
         product_list['product_list']['publish_topic'] = '/static_topic'
         topics = create_filenames_and_topics(job)
