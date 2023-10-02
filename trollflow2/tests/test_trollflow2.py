@@ -26,19 +26,18 @@ import copy
 import datetime as dt
 import logging
 import os
-import unittest
 import pathlib
 import queue
+import unittest
 from functools import partial
 from unittest import mock
 
+import dask.array as da
 import numpy as np
 import pytest
-from pyresample.geometry import DynamicAreaDefinition, create_area_def
 import rasterio
-
-import dask.array as da
 import xarray as xr
+from pyresample.geometry import DynamicAreaDefinition, create_area_def
 
 from trollflow2.launcher import read_config
 from trollflow2.tests.utils import TestCase, create_filenames_and_topics
@@ -380,8 +379,8 @@ class TestSaveDatasets(TestCase):
         the_queue = mock.MagicMock()
         job = _create_job_for_save_datasets()
         job['produced_files'] = the_queue
-        with mock.patch('trollflow2.plugins.compute_writer_results'),\
-                mock.patch('trollflow2.plugins.DataQuery') as dsid,\
+        with mock.patch('trollflow2.plugins.compute_writer_results'), \
+                mock.patch('trollflow2.plugins.DataQuery') as dsid, \
                 mock.patch('os.rename') as rename:
             save_datasets(job)
             expected_sd = [mock.call(dsid.return_value, compute=False,
@@ -560,8 +559,8 @@ class TestSaveDatasets(TestCase):
 
         job = _create_job_for_save_datasets()
         job['product_list']['product_list']['eager_writing'] = True
-        with mock.patch('trollflow2.plugins.compute_writer_results') as compute_writer_results,\
-                mock.patch('trollflow2.plugins.DataQuery'),\
+        with mock.patch('trollflow2.plugins.compute_writer_results') as compute_writer_results, \
+                mock.patch('trollflow2.plugins.DataQuery'), \
                 mock.patch('os.rename'):
             save_datasets(job)
             sd_calls = (job['resampled_scenes']['euron1'].save_dataset.mock_calls
@@ -696,12 +695,12 @@ def fake_scene():
 
 
 def test_save_datasets_callback(tmp_path, caplog, fake_scene):
-    """Test callback functionality for save_datasets
+    """Test callback functionality for save_datasets.
 
     Test that the functionality for a callback after each produced file is
     working correctly in the save_datasets plugin.
     """
-    from trollflow2.plugins import save_datasets, callback_close
+    from trollflow2.plugins import callback_close, save_datasets
 
     job = {}
     job['input_mda'] = input_mda
@@ -709,7 +708,7 @@ def test_save_datasets_callback(tmp_path, caplog, fake_scene):
     logger = logging.getLogger("testlogger")
 
     def testlog(obj, targs, job, fmat_config):
-        """Toy function doing some logging"""
+        """Toy function doing some logging."""
         filename = fmat_config["filename"]
         # ensure computation has indeed completed and file was flushed
         p = pathlib.Path(filename)
@@ -762,10 +761,9 @@ def test_save_datasets_callback(tmp_path, caplog, fake_scene):
 
 
 def test_save_datasets_callback_move_check_products(tmp_path, caplog, fake_scene):
-    """Test that check_products and the callback move can cooperate.
-    """
-    from trollflow2.plugins import save_datasets, callback_close, callback_move
+    """Test that check_products and the callback move can cooperate."""
     from trollflow2.launcher import check_results
+    from trollflow2.plugins import callback_close, callback_move, save_datasets
 
     job = {}
     job['input_mda'] = input_mda
@@ -1205,9 +1203,9 @@ class TestCheckSunlightCoverage(TestCase):
         """Test that the scene and message metadata are merged correctly."""
         from trollflow2.plugins import check_sunlight_coverage
 
-        with mock.patch('trollflow2.plugins.Pass') as ts_pass,\
-                mock.patch('trollflow2.plugins.get_twilight_poly'),\
-                mock.patch('trollflow2.plugins.get_area_def'),\
+        with mock.patch('trollflow2.plugins.Pass') as ts_pass, \
+                mock.patch('trollflow2.plugins.get_twilight_poly'), \
+                mock.patch('trollflow2.plugins.get_area_def'), \
                 mock.patch("trollflow2.plugins._get_sunlight_coverage") as _get_sunlight_coverage:
             _get_sunlight_coverage.return_value = .3
             scene = _get_mocked_scene_with_properties()
@@ -1223,7 +1221,7 @@ class TestCheckSunlightCoverage(TestCase):
         from pyresample.spherical import SphPolygon
 
         from trollflow2.plugins import check_sunlight_coverage
-        with mock.patch('trollflow2.plugins.Pass') as tst_pass,\
+        with mock.patch('trollflow2.plugins.Pass') as tst_pass, \
                 mock.patch('trollflow2.plugins.get_twilight_poly') as twilight:
             tst_pass.return_value.boundary.contour_poly = SphPolygon(np.deg2rad(np.array([(0, 0), (0, 90), (45, 0)])))
             twilight.return_value = SphPolygon(np.deg2rad(np.array([(0, 0), (0, 90), (90, 0)])))
@@ -1237,9 +1235,9 @@ class TestCheckSunlightCoverage(TestCase):
     def test_product_not_loaded(self):
         """Test that product isn't loaded when sunlight coverage is too low."""
         from trollflow2.plugins import check_sunlight_coverage, metadata_alias
-        with mock.patch('trollflow2.plugins.Pass') as ts_pass,\
-                mock.patch('trollflow2.plugins.get_twilight_poly'),\
-                mock.patch('trollflow2.plugins.get_area_def'),\
+        with mock.patch('trollflow2.plugins.Pass') as ts_pass, \
+                mock.patch('trollflow2.plugins.get_twilight_poly'), \
+                mock.patch('trollflow2.plugins.get_area_def'), \
                 mock.patch("trollflow2.plugins._get_sunlight_coverage") as _get_sunlight_coverage:
             job = {}
             scene = _get_mocked_scene_with_properties()
@@ -1260,9 +1258,9 @@ class TestCheckSunlightCoverage(TestCase):
     def test_sunlight_filter(self):
         """Test that product isn't loaded when sunlight coverage is to low."""
         from trollflow2.plugins import check_sunlight_coverage, metadata_alias
-        with mock.patch('trollflow2.plugins.Pass'),\
-                mock.patch('trollflow2.plugins.get_twilight_poly'),\
-                mock.patch('trollflow2.plugins.get_area_def'),\
+        with mock.patch('trollflow2.plugins.Pass'), \
+                mock.patch('trollflow2.plugins.get_twilight_poly'), \
+                mock.patch('trollflow2.plugins.get_area_def'), \
                 mock.patch("trollflow2.plugins._get_sunlight_coverage") as _get_sunlight_coverage:
             job = {}
             scene = _get_mocked_scene_with_properties()
@@ -1425,7 +1423,7 @@ class TestCovers(TestCase):
                "scene": scn}
         job2 = copy.deepcopy(job)
 
-        with mock.patch('trollflow2.plugins.get_scene_coverage') as get_scene_coverage,\
+        with mock.patch('trollflow2.plugins.get_scene_coverage') as get_scene_coverage, \
                 mock.patch('trollflow2.plugins.Pass'):
             get_scene_coverage.return_value = 10.0
             covers(job)
@@ -1443,7 +1441,7 @@ class TestCovers(TestCase):
     def test_scene_coverage(self):
         """Test scene coverage."""
         from trollflow2.plugins import get_scene_coverage
-        with mock.patch('trollflow2.plugins.get_area_def') as get_area_def,\
+        with mock.patch('trollflow2.plugins.get_area_def') as get_area_def, \
                 mock.patch('trollflow2.plugins.Pass') as ts_pass:
             area_coverage = mock.MagicMock()
             area_coverage.return_value = 0.2
@@ -1740,7 +1738,7 @@ class TestOverviews(TestCase):
     def test_add_overviews(self):
         """Test adding overviews."""
         from trollflow2.plugins import add_overviews
-        with mock.patch('trollflow2.plugins.Resampling') as resampling,\
+        with mock.patch('trollflow2.plugins.Resampling') as resampling, \
                 mock.patch('trollflow2.plugins.rasterio') as rasterio:
             # Mock the rasterio.open context manager
             dst = mock.MagicMock()
@@ -1787,6 +1785,19 @@ class TestFilePublisher(TestCase):
             pub.__del__()
             publisher.stop.assert_called()
             assert pub.pub is None
+
+    def test_publisher_is_deleted_from_instance(self):
+        """Real test."""
+        import gc
+
+        from posttroll.testing import patched_publisher
+
+        from trollflow2.plugins import FilePublisher
+        with patched_publisher():
+            file_pub = FilePublisher(nameservers=False, port=2023)
+            publisher = file_pub.pub
+            file_pub.__del__()
+            assert file_pub not in gc.get_referrers(publisher)
 
     def test_filepublisher_with_compose(self):
         """Test filepublisher with compose."""
@@ -1968,7 +1979,7 @@ class TestFilePublisher(TestCase):
 
             pub = FilePublisher()
             NoisyPublisher.assert_called_once()
-            assert pub.pub is NoisyPublisher.return_value.start.return_value
+            assert pub.pub is NoisyPublisher.return_value
             assert mock.call('l2processor', port=0, aliases=None, broadcast_interval=2,
                              nameservers="", min_port=None, max_port=None) in NoisyPublisher.mock_calls
             Publisher.assert_not_called()
@@ -2027,7 +2038,7 @@ class TestFilePublisher(TestCase):
             assert mock.call('l2processor', port=40002, aliases=None, broadcast_interval=2,
                              nameservers=['localhost'], min_port=None, max_port=None) in NoisyPublisher.mock_calls
             Publisher.assert_not_called()
-            assert fpub.pub is NoisyPublisher.return_value.start.return_value
+            assert fpub.pub is NoisyPublisher.return_value
             NoisyPublisher.assert_called_once()
             assert fpub.port == 40002
             assert fpub.nameservers == ['localhost']
@@ -2086,9 +2097,9 @@ class TestFilePublisher(TestCase):
                    'resampled_scenes': {}}
             pub(job)
 
-        nb_.start.return_value.stop.assert_not_called()
+        nb_.stop.assert_not_called()
         del pub
-        nb_.start.return_value.stop.assert_called_once()
+        nb_.stop.assert_called_once()
 
     def test_stopping(self):
         """Test stopping the publisher."""
@@ -2106,9 +2117,9 @@ class TestFilePublisher(TestCase):
                    'resampled_scenes': {}}
             pub(job)
 
-        nb_.start.return_value.stop.assert_not_called()
+        nb_.stop.assert_not_called()
         pub.stop()
-        nb_.start.return_value.stop.assert_called_once()
+        nb_.stop.assert_called_once()
 
 
 class FakeScene(dict):
@@ -2257,7 +2268,9 @@ def test_callback_move(caplog, tmp_path):
 def test_format_decoration():
     """Test that decoration text in fmt_config is formated based on fmat."""
     import datetime
+
     from trollflow2.plugins import format_decoration
+
     # set input data
     fmat = {'orig_platform_name': 'npp',
             'start_time': datetime.datetime(2022, 5, 3, 12, 7, 52)}
@@ -2274,7 +2287,9 @@ def test_format_decoration():
 def test_format_decoration_plain_text():
     """Test that decoration text is plain text if text in fmt_config does not include name of any key in fmat."""
     import datetime
+
     from trollflow2.plugins import format_decoration
+
     # set input data. Text does not include name of any key in fmat.
     fmat = {'orig_platform_name': 'npp',
             'start_time': datetime.datetime(2022, 5, 3, 12, 7, 52)}

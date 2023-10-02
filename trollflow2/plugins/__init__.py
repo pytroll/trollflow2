@@ -23,7 +23,7 @@ import copy
 import datetime as dt
 import os
 import pathlib
-from contextlib import contextmanager, suppress, nullcontext
+from contextlib import contextmanager, nullcontext, suppress
 from logging import getLogger
 from tempfile import NamedTemporaryFile
 from urllib.parse import urlsplit, urlunsplit
@@ -471,14 +471,14 @@ class FilePublisher:
         logger.debug('Starting publisher')
         self.port = kwargs.get('port', 0)
         self.nameservers = kwargs.get('nameservers', "")
-        self._pub_starter = create_publisher_from_dict_config(
+        self.pub = create_publisher_from_dict_config(
             {
                 'port': self.port,
                 'nameservers': self.nameservers,
                 'name': 'l2processor',
             }
         )
-        self.pub = self._pub_starter.start()
+        self.pub.start()
 
     @staticmethod
     def create_message(fmat, mda):
