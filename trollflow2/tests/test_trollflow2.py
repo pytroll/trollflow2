@@ -1803,8 +1803,6 @@ class TestFilePublisher(TestCase):
 
     def test_filepublisher_with_compose(self):
         """Test filepublisher with compose."""
-        from posttroll.message import Message
-        from posttroll.testing import patched_publisher
         from satpy import Scene
         from satpy.tests.utils import make_dataid
 
@@ -1844,8 +1842,6 @@ class TestFilePublisher(TestCase):
 
     def test_filepublisher_without_compose(self):
         """Test filepublisher without compose."""
-        from posttroll.message import Message
-        from posttroll.testing import patched_publisher
         from satpy import Scene
         from satpy.tests.utils import make_dataid
         scn_euron1 = Scene()
