@@ -1,10 +1,12 @@
 """Trollflow2 command line interface."""
 
 import argparse
+import contextlib
 import json
 import logging
 from queue import Queue
 
+import dask.diagnostics
 import yaml
 
 from trollflow2.launcher import logging_on, process_files
@@ -29,6 +31,14 @@ def parse_args(args=None):
     parser.add_argument("-c", "--log-config",
                         help="Log config file (yaml) to use",
                         type=str, required=False, default=None)
+    parser.add_argument("--dask-profiler",
+                        help="Run dask profiler and visualize as bokeh plot, "
+                             "write to file.",
+                        type=str, required=False, default=None)
+    parser.add_argument("--dask-resource-profiler",
+                        help="Run dask resource profiler with indicated timestep in seconds. "
+                             "Requires --dask-profiler.",
+                        type=float, required=False, default=None)
     return parser.parse_args(args)
 
 
@@ -38,10 +48,19 @@ def cli(args=None):
 
     log_config = _read_log_config(args)
 
-    with logging_on(log_config):
+    with contextlib.ExitStack() as stack:
+        stack.enter_context(logging_on(log_config))
         logger.info("Starting Satpy.")
         produced_files = Queue()
+        profs = []
+        if args.dask_profiler:
+            profs.append(stack.enter_context(dask.diagnostics.Profiler()))
+            if args.dask_resource_profiler:
+                profs.append(stack.enter_context(dask.diagnostics.ResourceProfiler(dt=args.dask_resource_profiles)))
         process_files(args.files, json.loads(args.metadata), args.product_list, produced_files)
+        if args.dask_profiler:
+            dask.diagnostics.visualize(
+                    [profs], show=False, save=True, filename=args.dask_profiler)
 
 
 def _read_log_config(args):
