@@ -56,11 +56,11 @@ def cli(args=None):
         if args.dask_profiler:
             profs.append(stack.enter_context(dask.diagnostics.Profiler()))
             if args.dask_resource_profiler:
-                profs.append(stack.enter_context(dask.diagnostics.ResourceProfiler(dt=args.dask_resource_profiles)))
+                profs.append(stack.enter_context(dask.diagnostics.ResourceProfiler(dt=args.dask_resource_profiler)))
         process_files(args.files, json.loads(args.metadata), args.product_list, produced_files)
-        if args.dask_profiler:
-            dask.diagnostics.visualize(
-                    [profs], show=False, save=True, filename=args.dask_profiler)
+    if args.dask_profiler:
+        dask.diagnostics.visualize(
+            profs, show=False, save=True, filename=args.dask_profiler)
 
 
 def _read_log_config(args):
