@@ -1,3 +1,14 @@
+## Version 0.15.1 (2023/12/07)
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR 191](https://github.com/pytroll/trollflow2/pull/191) - Fix call to posttroll publishers' start and stop
+
+In this release 1 pull request was closed.
+
+
 ## Version 0.15.0 (2023/09/25)
 
 ### Issues Closed
