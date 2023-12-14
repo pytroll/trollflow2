@@ -521,9 +521,9 @@ class TestProcess(TestCase):
                                            sendmail=mock.DEFAULT,
                                            expand=mock.DEFAULT,
                                            yaml=mock.DEFAULT,
-                                           message_to_jobs=mock.DEFAULT,
+                                           file_list_to_jobs=mock.DEFAULT,
                                            open=mock.DEFAULT,
-                                           get_dask_client=mock.DEFAULT)
+                                           get_dask_distributed_client=mock.DEFAULT)
         mocks = self.patcher.start()
 
         self.traceback = mocks['traceback']
@@ -538,21 +538,23 @@ class TestProcess(TestCase):
         # Is this necessary?
         self.yaml.YAMLError = YAMLError
 
-        self.get_dask_client = mocks['get_dask_client']
+        self.get_dask_distributed_client = mocks['get_dask_distributed_client']
         # Make a client that has no `.close()` method (for coverage)
         self.client = mock.MagicMock()
         self.client.close.side_effect = AttributeError
-        self.get_dask_client.return_value = self.client
+        self.get_dask_distributed_client.return_value = self.client
 
         self.expand = mocks['expand']
         self.fake_plugin = mock.MagicMock()
         # Return something resembling a config
         self.expand.return_value = {"workers": [{"fun": self.fake_plugin}]}
 
-        self.message_to_jobs = mocks['message_to_jobs']
-        self.message_to_jobs.return_value = {1: {"job1": dict([])}}
+        self.file_list_to_jobs = mocks['file_list_to_jobs']
+        self.file_list_to_jobs.return_value = {1: {"job1": dict([])}}
 
         self.queue = mock.MagicMock()
+
+        self.msg = mock.MagicMock()
 
     def tearDown(self):
         """Tear down the test case."""
@@ -561,49 +563,49 @@ class TestProcess(TestCase):
     def test_plugin_is_stopped_after_processing(self):
         """Test plugin is stopped after processing."""
         self.fake_plugin.stop.assert_not_called()
-        process("msg", "prod_list", self.queue)
+        process(self.msg, "prod_list", self.queue)
         self.fake_plugin.stop.assert_called_once()
 
     def test_product_list_is_opened(self):
         """Test product list is opened."""
-        process("msg", "prod_list", self.queue)
+        process(self.msg, "prod_list", self.queue)
         self.open.assert_called_with("prod_list")
 
     def test_yaml_config_is_read_only_once(self):
         """Test that the yaml config is read only once."""
-        process("msg", "prod_list", self.queue)
+        process(self.msg, "prod_list", self.queue)
         self.yaml.load.assert_called_once()
 
     def test_workers_config_is_passed_down(self):
         """Test that the workers config is used."""
-        process("msg", "prod_list", self.queue)
-        self.message_to_jobs.assert_called_with("msg", {"workers": [{"fun": self.fake_plugin}]})
+        process(self.msg, "prod_list", self.queue)
+        self.file_list_to_jobs.assert_called_with([], {"workers": [{"fun": self.fake_plugin}]}, self.msg.data)
 
     def test_plugin_is_used(self):
         """Test that the plugin is being used."""
-        process("msg", "prod_list", self.queue)
+        process(self.msg, "prod_list", self.queue)
         self.fake_plugin.assert_called_with({'job1': {}, 'processing_priority': 1, 'produced_files': self.queue})
 
     def test_dask_client_is_used(self):
         """Test that the dask client is used."""
-        process("msg", "prod_list", self.queue)
-        self.get_dask_client.assert_called_once()
+        process(self.msg, "prod_list", self.queue)
+        self.get_dask_distributed_client.assert_called_once()
 
     def test_dask_client_is_closed(self):
         """Test that the dask client is closed."""
-        process("msg", "prod_list", self.queue)
+        process(self.msg, "prod_list", self.queue)
         self.client.close.assert_called_once()
 
     def test_plugin_with_no_stop_work(self):
         """Test that plugins with no `stop` method (like regular functions) can be used."""
         self.fake_plugin.stop = mock.MagicMock(side_effect=AttributeError('boo'))
-        process("msg", "prod_list", self.queue)
+        process(self.msg, "prod_list", self.queue)
 
     def test_error_propagation(self):
         """Test that errors are propagated."""
         self.fake_plugin.side_effect = KeyboardInterrupt
         with pytest.raises(KeyboardInterrupt):
-            process("msg", "prod_list", self.queue)
+            process(self.msg, "prod_list", self.queue)
 
     def test_crash_handler_call(self):
         """Test crash hander call.
@@ -615,7 +617,7 @@ class TestProcess(TestCase):
                                              "handlers": [{"fun": self.sendmail}]}}
         self.expand.return_value = crash_handlers
         with pytest.raises(KeyError):
-            process("msg", "prod_list", self.queue)
+            process(self.msg, "prod_list", self.queue)
         config = crash_handlers['crash_handlers']['config']
         self.sendmail.assert_called_once_with(config, 'baz')
 
@@ -623,13 +625,13 @@ class TestProcess(TestCase):
         """Test failure in open() due to a missing config file."""
         self.open.side_effect = IOError
         with pytest.raises(IOError):
-            process("msg", "prod_list", self.queue)
+            process(self.msg, "prod_list", self.queue)
 
     def test_open_bad_yaml(self):
         """Test failure in yaml.load(), e.g. bad formatting."""
         self.open.side_effect = YAMLError
         with pytest.raises(YAMLError):
-            process("msg", "prod_list", self.queue)
+            process(self.msg, "prod_list", self.queue)
 
     def test_timeout_in_running_job(self):
         """Test timeout in running job."""
@@ -642,7 +644,7 @@ class TestProcess(TestCase):
         self.expand.return_value = {"workers": [{"fun": self.fake_plugin, "timeout": 0.05}]}
         with pytest.raises(TimeoutError, match="Timeout for .* expired "
                                                "after 0.1 seconds"):
-            process("msg", "prod_list", self.queue)
+            process(self.msg, "prod_list", self.queue)
         # wait a little to ensure alarm is not raised later
         time.sleep(0.11)
 
@@ -660,20 +662,20 @@ def test_workers_initialized():
         tmp_file.close()
 
         try:
-            with mock.patch("trollflow2.launcher.get_dask_client") as gdc:
-                # `get_dask_client()` is called just after config reading, so if we get there loading worked
+            with mock.patch("trollflow2.launcher.get_dask_distributed_client") as gdc:
+                # `get_dask_distributed_client()` is called just after config reading, so if we get there loading worked
                 gdc.side_effect = StopIteration
                 try:
-                    process("msg", fname, queue)
+                    process(mock.MagicMock(), fname, queue)
                 except StopIteration:
                     pass
         finally:
             os.remove(fname)
 
 
-def test_get_dask_client(caplog):
+def test_get_dask_distributed_clien(caplog):
     """Test getting dask client."""
-    from trollflow2.launcher import get_dask_client
+    from trollflow2.launcher import get_dask_distributed_client
 
     ncores = mock.MagicMock()
     ncores.return_value = {}
@@ -684,7 +686,7 @@ def test_get_dask_client(caplog):
     # No client configured
     config = {}
     with caplog.at_level(logging.DEBUG):
-        res = get_dask_client(config)
+        res = get_dask_distributed_client(config)
     assert "Distributed processing not configured" in caplog.text
     caplog.clear()
     assert res is None
@@ -695,7 +697,7 @@ def test_get_dask_client(caplog):
                                    }
               }
     with caplog.at_level(logging.WARNING):
-        res = get_dask_client(config)
+        res = get_dask_distributed_client(config)
     assert "No workers available, reverting to default scheduler" in caplog.text
     caplog.clear()
     assert res is None
@@ -705,13 +707,13 @@ def test_get_dask_client(caplog):
     # The scheduler had no workers, the client doesn't have `.close()`
     client.close.side_effect = AttributeError
     with caplog.at_level(logging.WARNING):
-        res = get_dask_client(config)
+        res = get_dask_distributed_client(config)
     assert res is None
 
     # Config is valid, scheduler has workers
     ncores.return_value = {'a': 1, 'b': 1}
     with caplog.at_level(logging.DEBUG):
-        res = get_dask_client(config)
+        res = get_dask_distributed_client(config)
     assert "Using dask distributed client" in caplog.text
     caplog.clear()
     assert res is client
@@ -720,7 +722,7 @@ def test_get_dask_client(caplog):
     # Scheduler couldn't connect to workers
     client_class.side_effect = OSError
     with caplog.at_level(logging.ERROR):
-        res = get_dask_client(config)
+        res = get_dask_distributed_client(config)
     assert "Scheduler not found, reverting to default scheduler" in caplog.text
     caplog.clear()
     assert res is None
