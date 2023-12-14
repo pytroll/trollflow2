@@ -3,6 +3,7 @@
 import argparse
 import json
 import logging
+from datetime import datetime
 from queue import Queue
 
 import yaml
@@ -41,7 +42,8 @@ def cli(args=None):
     with logging_on(log_config):
         logger.info("Starting Satpy.")
         produced_files = Queue()
-        process_files(args.files, json.loads(args.metadata), args.product_list, produced_files)
+        process_files(args.files, json.loads(args.metadata, object_hook=datetime_decoder),
+                      args.product_list, produced_files)
 
 
 def _read_log_config(args):
@@ -51,3 +53,25 @@ def _read_log_config(args):
         with open(log_config) as fd:
             log_config = yaml.safe_load(fd.read())
     return log_config
+
+
+def datetime_decoder(dct):
+    """Decode datetimes to python objects."""
+    if isinstance(dct, list):
+        pairs = enumerate(dct)
+    elif isinstance(dct, dict):
+        pairs = dct.items()
+    result = []
+    for key, val in pairs:
+        if isinstance(val, str):
+            try:
+                val = datetime.fromisoformat(val)
+            except ValueError:
+                pass
+        elif isinstance(val, (dict, list)):
+            val = datetime_decoder(val)
+        result.append((key, val))
+    if isinstance(dct, list):
+        return [x[1] for x in result]
+    elif isinstance(dct, dict):
+        return dict(result)
