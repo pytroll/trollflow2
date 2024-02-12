@@ -182,3 +182,24 @@ def duplicate_lines(contents):
     """Make sure there are no duplicate lines."""
     lines = contents.strip().split("\n")
     return len(lines) != len(set(lines))
+
+
+def test_logging_config_without_loggers(tmp_path):
+    """Test that the logs get to a file, even from a subprocess, without duplicate lines."""
+    logfile = tmp_path / "mylog"
+    LOG_CONFIG_TO_FILE = {'version': 1,
+                          'formatters': {'simple': {'format': '%(asctime)s - %(name)s - %(levelname)s - %(message)s'}},
+                          'handlers': {'file': {'class': 'logging.FileHandler',
+                                                'filename': logfile,
+                                                'formatter': 'simple'}},
+                          "root": {"level": "DEBUG"}
+                          }
+
+    with logging_on(LOG_CONFIG_TO_FILE):
+        run_subprocess(["foo1", "foo2"])
+    with open(logfile) as fd:
+        file_contents = fd.read()
+
+    assert not duplicate_lines(file_contents)
+    assert "root debug" not in file_contents
+    assert "root info" not in file_contents
