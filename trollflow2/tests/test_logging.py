@@ -27,8 +27,8 @@ from unittest import mock
 
 import pytest
 
-from trollflow2.logging import (create_logged_process, logging_on,
-                                queued_logging)
+from trollflow2.logging import (DEFAULT_LOG_CONFIG, create_logged_process,
+                                logging_on, queued_logging)
 
 
 def test_queued_logging_has_a_listener():
@@ -129,6 +129,7 @@ def run_subprocess(loggers):
     proc = create_logged_process(target=fun, args=(loggers,))
     proc.start()
     proc.join()
+    return proc
 
 
 @queued_logging
@@ -192,7 +193,7 @@ def test_logging_config_without_loggers(tmp_path):
                           'handlers': {'file': {'class': 'logging.FileHandler',
                                                 'filename': logfile,
                                                 'formatter': 'simple'}},
-                          "root": {"level": "DEBUG"}
+                          "root": {"level": "DEBUG", "handlers": ["file"]}
                           }
 
     with logging_on(LOG_CONFIG_TO_FILE):
@@ -201,5 +202,15 @@ def test_logging_config_without_loggers(tmp_path):
         file_contents = fd.read()
 
     assert not duplicate_lines(file_contents)
-    assert "root debug" not in file_contents
-    assert "root info" not in file_contents
+    assert "root debug" in file_contents
+    assert "root info" in file_contents
+    assert "root warning" in file_contents
+
+
+def test_default_logging_config_works_with_subprocesses():
+    """Test that the default log config works."""
+    LOG_CONFIG_TO_FILE = DEFAULT_LOG_CONFIG
+
+    with logging_on(LOG_CONFIG_TO_FILE):
+        proc = run_subprocess(["foo1", "foo2"])
+    assert proc.exitcode == 0

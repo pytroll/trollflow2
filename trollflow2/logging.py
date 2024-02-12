@@ -129,6 +129,8 @@ def remove_handlers_from_config(config):
     config.pop("handlers", None)
     for logger in config.get("loggers", []):
         config["loggers"][logger].pop("handlers", None)
+    if config.get("root", None):
+        config["root"].pop("handlers", None)
 
 
 def queued_logging(func):
