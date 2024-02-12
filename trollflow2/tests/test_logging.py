@@ -185,7 +185,7 @@ def duplicate_lines(contents):
 
 
 def test_logging_config_without_loggers(tmp_path):
-    """Test that the logs get to a file, even from a subprocess, without duplicate lines."""
+    """Test that the log configs without loggers work."""
     logfile = tmp_path / "mylog"
     LOG_CONFIG_TO_FILE = {'version': 1,
                           'formatters': {'simple': {'format': '%(asctime)s - %(name)s - %(levelname)s - %(message)s'}},
