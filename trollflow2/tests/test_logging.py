@@ -207,10 +207,18 @@ def test_logging_config_without_loggers(tmp_path):
     assert "root warning" in file_contents
 
 
-def test_default_logging_config_works_with_subprocesses():
+def test_default_logging_config_works_with_subprocesses(capsys):
     """Test that the default log config works."""
     LOG_CONFIG_TO_FILE = DEFAULT_LOG_CONFIG
-
+    captured = capsys.readouterr()
     with logging_on(LOG_CONFIG_TO_FILE):
         proc = run_subprocess(["foo1", "foo2"])
+    captured = capsys.readouterr()
     assert proc.exitcode == 0
+    err = captured.err
+    assert not duplicate_lines(err)
+    assert "root debug" in err
+    assert "root info" in err
+    assert "root warning" in err
+    assert "foo1 debug" in err
+    assert "foo2 debug" in err
