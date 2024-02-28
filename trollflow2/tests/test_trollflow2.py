@@ -284,7 +284,7 @@ YAML_FILE_PUBLISHER = """
 !!python/object:trollflow2.plugins.FilePublisher {port: 40002, nameservers: [localhost]}
 """
 
-SCENE_START_TIME = dt.datetime.utcnow()
+SCENE_START_TIME = dt.datetime.now(dt.UTC)
 SCENE_END_TIME = SCENE_START_TIME + dt.timedelta(minutes=15)
 JOB_INPUT_MDA_START_TIME = SCENE_START_TIME + dt.timedelta(seconds=10)
 
@@ -1563,7 +1563,8 @@ class TestCheckMetadata(TestCase):
         """Test that new data are discarded."""
         from trollflow2.plugins import AbortProcessing, check_metadata
         with mock.patch('trollflow2.plugins.get_config_value') as get_config_value:
-            job = {'product_list': None, 'input_mda': {'start_time': dt.datetime.utcnow() - dt.timedelta(minutes=90)}}
+            job = {'product_list': None,
+                   'input_mda': {'start_time': dt.datetime.now(dt.UTC) - dt.timedelta(minutes=90)}}
             get_config_value.return_value = {'start_time': +60}
             with self.assertRaises(AbortProcessing):
                 check_metadata(job)
