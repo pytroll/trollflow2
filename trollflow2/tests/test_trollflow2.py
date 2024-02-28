@@ -1554,7 +1554,8 @@ class TestCheckMetadata(TestCase):
             job = {'product_list': None, 'input_mda': {'start_time': dt.datetime(2020, 3, 18)}}
             self.assertIsNone(check_metadata(job))
             get_config_value.return_value = {'start_time': -2e6}
-            self.assertIsNone(check_metadata(job))
+            with self.assertRaises(AbortProcessing):
+                check_metadata(job)
             get_config_value.return_value = {'start_time': -60}
             with self.assertRaises(AbortProcessing):
                 check_metadata(job)
