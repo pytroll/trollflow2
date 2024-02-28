@@ -1551,7 +1551,7 @@ class TestCheckMetadata(TestCase):
         from trollflow2.plugins import AbortProcessing, check_metadata
         with mock.patch('trollflow2.plugins.get_config_value') as get_config_value:
             get_config_value.return_value = None
-            job = {'product_list': None, 'input_mda': {'start_time': dt.datetime(2020, 3, 18)}}
+            job = {'product_list': None, 'input_mda': {'start_time': dt.datetime(2020, 3, 18, tzinfo=dt.UTC)}}
             self.assertIsNone(check_metadata(job))
             get_config_value.return_value = {'start_time': -2e6}
             self.assertIsNone(check_metadata(job))
