@@ -40,7 +40,7 @@ from posttroll.message import Message
 from posttroll.publisher import create_publisher_from_dict_config
 from pyorbital.astronomy import sun_zenith_angle
 from pyresample.area_config import AreaNotFound
-from pyresample.boundary import AreaDefBoundary, Boundary
+from pyresample.boundary import Boundary
 from pyresample.geometry import get_geostationary_bounding_box
 from rasterio.enums import Resampling
 from satpy import Scene
@@ -856,7 +856,7 @@ def _get_sunlight_coverage(area_def, start_time, overpass=None):
             *get_geostationary_bounding_box(area_def,
                                             nb_points=100)).contour_poly
     else:
-        adp = AreaDefBoundary(area_def, frequency=100).contour_poly
+        adp = area_def.boundary(vertices_per_side=100).contour_poly
     poly = get_twilight_poly(start_time)
     if overpass is not None:
         ovp = overpass.boundary.contour_poly
