@@ -1,3 +1,27 @@
+## Version 0.15.3 (2024/02/29)
+
+### Issues Closed
+
+* [Issue 197](https://github.com/pytroll/trollflow2/issues/197) - Valid log config fails in trollflow2 ([PR 199](https://github.com/pytroll/trollflow2/pull/199) by [@mraspaud](https://github.com/mraspaud))
+* [Issue 192](https://github.com/pytroll/trollflow2/issues/192) - trollflow2 fails with KeyError when trying to process a message ([PR 199](https://github.com/pytroll/trollflow2/pull/199) by [@mraspaud](https://github.com/mraspaud))
+* [Issue 183](https://github.com/pytroll/trollflow2/issues/183) - Subprocess crash when using custom log config ([PR 199](https://github.com/pytroll/trollflow2/pull/199) by [@mraspaud](https://github.com/mraspaud))
+
+In this release 3 issues were closed.
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR 201](https://github.com/pytroll/trollflow2/pull/201) - Fix test failures
+* [PR 199](https://github.com/pytroll/trollflow2/pull/199) - Fix logging to handler config without loggers ([197](https://github.com/pytroll/trollflow2/issues/197), [192](https://github.com/pytroll/trollflow2/issues/192), [183](https://github.com/pytroll/trollflow2/issues/183))
+
+#### Features added
+
+* [PR 200](https://github.com/pytroll/trollflow2/pull/200) - Update CI to use Python 3.10 - 3.12
+
+In this release 3 pull requests were closed.
+
+
 ## Version 0.15.1 (2023/12/07)
 
 ### Pull Requests Merged
