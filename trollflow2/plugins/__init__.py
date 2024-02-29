@@ -684,7 +684,7 @@ def check_metadata(job):
                            key)
             continue
         if key == 'start_time':
-            time_diff = dt.datetime.now(dt.UTC) - mda[key]
+            time_diff = dt.datetime.now(dt.timezone.utc) - mda[key]
             if time_diff > abs(dt.timedelta(minutes=val)):
                 age = "older" if val < 0 else "newer"
                 raise AbortProcessing(

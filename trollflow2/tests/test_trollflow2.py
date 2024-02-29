@@ -284,7 +284,7 @@ YAML_FILE_PUBLISHER = """
 !!python/object:trollflow2.plugins.FilePublisher {port: 40002, nameservers: [localhost]}
 """
 
-SCENE_START_TIME = dt.datetime.now(dt.UTC)
+SCENE_START_TIME = dt.datetime.now(dt.timezone.utc)
 SCENE_END_TIME = SCENE_START_TIME + dt.timedelta(minutes=15)
 JOB_INPUT_MDA_START_TIME = SCENE_START_TIME + dt.timedelta(seconds=10)
 
@@ -1550,7 +1550,7 @@ class TestCheckMetadata(TestCase):
         from trollflow2.plugins import AbortProcessing, check_metadata
         with mock.patch('trollflow2.plugins.get_config_value') as get_config_value:
             get_config_value.return_value = None
-            job = {'product_list': None, 'input_mda': {'start_time': dt.datetime(2020, 3, 18, tzinfo=dt.UTC)}}
+            job = {'product_list': None, 'input_mda': {'start_time': dt.datetime(2020, 3, 18, tzinfo=dt.timezone.utc)}}
             assert check_metadata(job) is None
             get_config_value.return_value = {'start_time': -60}
             with self.assertRaises(AbortProcessing):
@@ -1561,7 +1561,7 @@ class TestCheckMetadata(TestCase):
         from trollflow2.plugins import AbortProcessing, check_metadata
         with mock.patch('trollflow2.plugins.get_config_value') as get_config_value:
             job = {'product_list': None,
-                   'input_mda': {'start_time': dt.datetime.now(dt.UTC) - dt.timedelta(minutes=90)}}
+                   'input_mda': {'start_time': dt.datetime.now(dt.timezone.utc) - dt.timedelta(minutes=90)}}
             get_config_value.return_value = {'start_time': +60}
             with self.assertRaises(AbortProcessing):
                 check_metadata(job)
