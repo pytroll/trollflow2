@@ -1109,17 +1109,16 @@ class TestSunlightCovers(TestCase):
     def test_coverage(self):
         """Test sunlight coverage."""
         from trollflow2.plugins import _get_sunlight_coverage
-        with mock.patch('trollflow2.plugins.AreaDefBoundary') as area_def_boundary, \
-                mock.patch('trollflow2.plugins.Boundary') as boundary, \
+        with mock.patch('trollflow2.plugins.Boundary') as boundary, \
                 mock.patch('trollflow2.plugins.get_twilight_poly'), \
                 mock.patch('trollflow2.plugins.get_area_def'), \
                 mock.patch('trollflow2.plugins.get_geostationary_bounding_box'):
 
-            area_def_boundary.return_value.contour_poly.intersection.return_value.area.return_value = 0.02
             boundary.return_value.contour_poly.intersection.return_value.area.return_value = 0.02
-            area_def_boundary.return_value.contour_poly.area.return_value = 0.2
-            start_time = dt.datetime(2019, 4, 7, 20, 8)
             adef = mock.MagicMock(proj_dict={'proj': 'stere'})
+            adef.boundary.return_value.contour_poly.intersection.return_value.area.return_value = 0.02
+            adef.boundary.return_value.contour_poly.area.return_value = 0.2
+            start_time = dt.datetime(2019, 4, 7, 20, 8)
             res = _get_sunlight_coverage(adef, start_time)
             np.testing.assert_allclose(res, 0.1)
             boundary.assert_not_called()
