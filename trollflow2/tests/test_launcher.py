@@ -382,11 +382,11 @@ class TestRun(TestCase):
     def test_run_does_not_call_process_directly(self):
         """Test that process is called through Process."""
         from trollflow2.launcher import Runner
-        with mock.patch('trollflow2.launcher.yaml.load'),\
-                mock.patch('trollflow2.launcher.open'),\
-                mock.patch('trollflow2.launcher.generate_messages') as generate_messages,\
-                mock.patch('trollflow2.launcher.process') as process,\
-                mock.patch('trollflow2.launcher.check_results'),\
+        with mock.patch('trollflow2.launcher.yaml.load'), \
+                mock.patch('trollflow2.launcher.open'), \
+                mock.patch('trollflow2.launcher.generate_messages') as generate_messages, \
+                mock.patch('trollflow2.launcher.process') as process, \
+                mock.patch('trollflow2.launcher.check_results'), \
                 mock.patch('multiprocessing.get_context'):
             generate_messages.side_effect = ['foo', KeyboardInterrupt]
             prod_list = {'product_list': {}}
@@ -400,8 +400,8 @@ class TestRun(TestCase):
     def test_run_relies_on_listener(self):
         """Test running relies on listener."""
         from trollflow2.launcher import Runner
-        with mock.patch('trollflow2.launcher.yaml.load') as yaml_load,\
-                mock.patch('trollflow2.launcher.open'),\
+        with mock.patch('trollflow2.launcher.yaml.load') as yaml_load, \
+                mock.patch('trollflow2.launcher.open'), \
                 mock.patch('multiprocessing.get_context') as get_context, \
                 mock.patch('trollflow2.launcher.ListenerContainer') as lc_:
             msg = mock.MagicMock()
@@ -420,7 +420,7 @@ class TestRun(TestCase):
                 runner.run()
             except KeyboardInterrupt:
                 pass
-            listener.output_queue.called_once()
+            listener.output_queue.get.assert_called_once()
             lc_.assert_called_with(addresses=None, nameserver='localhost',
                                    topics=['/topic1', '/topic2'])
             # Subscriber topics are removed from config
@@ -451,9 +451,9 @@ class TestRun(TestCase):
 def run_on_a_simple_product_list(config):
     """Run a simple (fake) product list."""
     from trollflow2.launcher import Runner
-    with mock.patch('trollflow2.launcher.yaml.load') as yaml_load,\
-            mock.patch('trollflow2.launcher.open'),\
-            mock.patch('multiprocessing.get_context') as get_context,\
+    with mock.patch('trollflow2.launcher.yaml.load') as yaml_load, \
+            mock.patch('trollflow2.launcher.open'), \
+            mock.patch('multiprocessing.get_context') as get_context, \
             mock.patch('trollflow2.launcher.ListenerContainer') as lc_:
 
         msg = mock.MagicMock()
@@ -486,8 +486,8 @@ class TestInterruptRun(TestCase):
     def test_run_keyboard_interrupt(self):
         """Test interrupting the run with a ctrl-C."""
         from trollflow2.launcher import Runner
-        with mock.patch('trollflow2.launcher.yaml.load'),\
-                mock.patch('trollflow2.launcher.open'),\
+        with mock.patch('trollflow2.launcher.yaml.load'), \
+                mock.patch('trollflow2.launcher.open'), \
                 mock.patch('trollflow2.launcher.ListenerContainer') as lc_:
             listener = mock.MagicMock()
             get = mock.Mock()
