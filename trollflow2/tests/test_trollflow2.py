@@ -284,7 +284,7 @@ YAML_FILE_PUBLISHER = """
 !!python/object:trollflow2.plugins.FilePublisher {port: 40002, nameservers: [localhost]}
 """
 
-SCENE_START_TIME = dt.datetime.utcnow()
+SCENE_START_TIME = dt.datetime.now(dt.timezone.utc)
 SCENE_END_TIME = SCENE_START_TIME + dt.timedelta(minutes=15)
 JOB_INPUT_MDA_START_TIME = SCENE_START_TIME + dt.timedelta(seconds=10)
 
@@ -1109,17 +1109,16 @@ class TestSunlightCovers(TestCase):
     def test_coverage(self):
         """Test sunlight coverage."""
         from trollflow2.plugins import _get_sunlight_coverage
-        with mock.patch('trollflow2.plugins.AreaDefBoundary') as area_def_boundary, \
-                mock.patch('trollflow2.plugins.Boundary') as boundary, \
+        with mock.patch('trollflow2.plugins.Boundary') as boundary, \
                 mock.patch('trollflow2.plugins.get_twilight_poly'), \
                 mock.patch('trollflow2.plugins.get_area_def'), \
                 mock.patch('trollflow2.plugins.get_geostationary_bounding_box'):
 
-            area_def_boundary.return_value.contour_poly.intersection.return_value.area.return_value = 0.02
             boundary.return_value.contour_poly.intersection.return_value.area.return_value = 0.02
-            area_def_boundary.return_value.contour_poly.area.return_value = 0.2
-            start_time = dt.datetime(2019, 4, 7, 20, 8)
             adef = mock.MagicMock(proj_dict={'proj': 'stere'})
+            adef.boundary.return_value.contour_poly.intersection.return_value.area.return_value = 0.02
+            adef.boundary.return_value.contour_poly.area.return_value = 0.2
+            start_time = dt.datetime(2019, 4, 7, 20, 8)
             res = _get_sunlight_coverage(adef, start_time)
             np.testing.assert_allclose(res, 0.1)
             boundary.assert_not_called()
@@ -1551,7 +1550,7 @@ class TestCheckMetadata(TestCase):
         from trollflow2.plugins import AbortProcessing, check_metadata
         with mock.patch('trollflow2.plugins.get_config_value') as get_config_value:
             get_config_value.return_value = None
-            job = {'product_list': None, 'input_mda': {'start_time': dt.datetime(2020, 3, 18)}}
+            job = {'product_list': None, 'input_mda': {'start_time': dt.datetime(2020, 3, 18, tzinfo=dt.timezone.utc)}}
             assert check_metadata(job) is None
             get_config_value.return_value = {'start_time': -20e6}
             assert check_metadata(job) is None
@@ -1563,7 +1562,8 @@ class TestCheckMetadata(TestCase):
         """Test that new data are discarded."""
         from trollflow2.plugins import AbortProcessing, check_metadata
         with mock.patch('trollflow2.plugins.get_config_value') as get_config_value:
-            job = {'product_list': None, 'input_mda': {'start_time': dt.datetime.utcnow() - dt.timedelta(minutes=90)}}
+            job = {'product_list': None,
+                   'input_mda': {'start_time': dt.datetime.now(dt.timezone.utc) - dt.timedelta(minutes=90)}}
             get_config_value.return_value = {'start_time': +60}
             with self.assertRaises(AbortProcessing):
                 check_metadata(job)

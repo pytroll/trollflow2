@@ -25,14 +25,9 @@
 # are not necessary
 """Base module for trollflow2."""
 
+from importlib.metadata import version
 from multiprocessing import Manager
-
-from pkg_resources import DistributionNotFound, get_distribution
 
 MP_MANAGER = Manager()
 
-try:
-    __version__ = get_distribution(__name__).version
-except DistributionNotFound:
-    # package is not installed
-    pass
+__version__ = version(__name__)
