@@ -711,14 +711,18 @@ def test_save_datasets_callback(tmp_path, caplog, fake_scene):
 
     def testlog(obj, targs, job, fmat_config):
         """Toy function doing some logging."""
+        import warnings
+
         filename = fmat_config["filename"]
         # ensure computation has indeed completed and file was flushed
         p = pathlib.Path(filename)
         logger.info(f"Wrote {filename} successfully, {p.stat().st_size:d} bytes")
         assert p.exists()
-        with rasterio.open(filename) as src:
-            arr = src.read(1)
-            assert arr[5, 5] == 142
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", message="Dataset has no geotransform")
+            with rasterio.open(filename) as src:
+                arr = src.read(1)
+                assert arr[5, 5] == 142
         return obj
 
     form = [
