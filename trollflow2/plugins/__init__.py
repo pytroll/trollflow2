@@ -851,7 +851,7 @@ def check_sunlight_coverage(job):
 
 def _get_sunlight_coverage(area_def, start_time, overpass=None):
     """Get the sunlight coverage of *area_def* at *start_time* as a value between 0 and 1."""
-    if area_def.proj_dict.get('proj') == 'geos':
+    if area_def.is_geostationary:
         adp = Boundary(
             *get_geostationary_bounding_box(area_def,
                                             nb_points=100)).contour_poly
