@@ -1119,14 +1119,14 @@ class TestSunlightCovers(TestCase):
                 mock.patch('trollflow2.plugins.get_geostationary_bounding_box'):
 
             boundary.return_value.contour_poly.intersection.return_value.area.return_value = 0.02
-            adef = mock.MagicMock(proj_dict={'proj': 'stere'})
+            adef = mock.MagicMock(is_geostationary=False)
             adef.boundary.return_value.contour_poly.intersection.return_value.area.return_value = 0.02
             adef.boundary.return_value.contour_poly.area.return_value = 0.2
             start_time = dt.datetime(2019, 4, 7, 20, 8)
             res = _get_sunlight_coverage(adef, start_time)
             np.testing.assert_allclose(res, 0.1)
             boundary.assert_not_called()
-            adef = mock.MagicMock(proj_dict={'proj': 'geos'})
+            adef = mock.MagicMock(is_geostationary=True)
             res = _get_sunlight_coverage(adef, start_time)
             boundary.assert_called()
 
