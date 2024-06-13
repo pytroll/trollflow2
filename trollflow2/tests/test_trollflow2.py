@@ -2307,8 +2307,8 @@ def local_test_file(tmp_path):
     return fname
 
 
-def test_fsspec_cache_method_file(local_test_file):
-    """Test that the configured cache method is applied to the URI of a single file."""
+def test_use_fsspec_cache(local_test_file):
+    """Test that the configured cache method is applied to the given input files."""
     import fsspec
     from satpy.readers import FSFile
 
