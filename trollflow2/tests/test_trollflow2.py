@@ -2298,5 +2298,36 @@ def test_format_decoration_plain_text():
     assert format_decoration(fmat, fmat_config) == fmat_config
 
 
+@pytest.fixture
+def local_test_file(tmp_path):
+    """Create a local test file for fsspec tests."""
+    fname = tmp_path / "file.nc"
+    with open(fname, "w") as fid:
+        fid.write("42\n")
+    return fname
+
+
+def test_fsspec_cache_method_file(local_test_file):
+    """Test that the configured cache method is applied to the URI of a single file."""
+    import fsspec
+    from satpy.readers import FSFile
+
+    from trollflow2.plugins import use_fsspec_cache
+
+    input_filenames = [f"file://{os.fspath(local_test_file)}"]
+    job = {
+        "product_list": {
+            "fsspec_cache": "simplecache",
+            "fsspec_cache_dir": "/tmp/simplecache",
+        },
+        "input_filenames": input_filenames,
+    }
+    use_fsspec_cache(job)
+
+    for f in job["input_filenames"]:
+        assert isinstance(f, FSFile)
+        assert isinstance(f._fs, fsspec.implementations.cached.SimpleCacheFileSystem)
+
+
 if __name__ == '__main__':
     unittest.main()
