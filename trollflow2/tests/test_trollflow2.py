@@ -29,6 +29,7 @@ import os
 import pathlib
 import queue
 import unittest
+from contextlib import suppress
 from functools import partial
 from unittest import mock
 
@@ -2318,7 +2319,6 @@ def test_use_fsspec_cache(local_test_file):
     job = {
         "product_list": {
             "fsspec_cache": "simplecache",
-            "fsspec_cache_dir": "/tmp/simplecache",
         },
         "input_filenames": input_filenames,
     }
@@ -2327,6 +2327,30 @@ def test_use_fsspec_cache(local_test_file):
     for f in job["input_filenames"]:
         assert isinstance(f, FSFile)
         assert isinstance(f._fs, fsspec.implementations.cached.SimpleCacheFileSystem)
+
+
+@pytest.mark.parametrize("fsspec_cache", ("blockcache", "filecache", "simplecache"))
+def test_use_fsspec_cache_dir(local_test_file, tmp_path, fsspec_cache):
+    """Test that the configured cache directory is used."""
+    from trollflow2.plugins import use_fsspec_cache
+
+    input_filenames = [f"file://{os.fspath(local_test_file)}"]
+    cache_dir = os.fspath(tmp_path / "cache")
+    job = {
+        "product_list": {
+            "fsspec_cache": fsspec_cache,
+            "fsspec_cache_dir": cache_dir,
+        },
+        "input_filenames": input_filenames,
+    }
+    use_fsspec_cache(job)
+
+    # Read the file and chech the cache directory to see the cache is used
+    # For blockcache we need to ignore the AttributeError
+    with suppress(AttributeError):
+        with job["input_filenames"][0].open("r") as fid:
+            _ = fid.read()
+    assert os.listdir(cache_dir)
 
 
 if __name__ == '__main__':
