@@ -2308,38 +2308,33 @@ def local_test_file(tmp_path):
     return fname
 
 
-def test_use_fsspec_cache(local_test_file):
+def _get_fsspec_job(tmp_path, test_file, fsspec_cache, use_cache_dir=True):
+    input_filenames = [f"file://{os.fspath(test_file)}"]
+    product_list = {"fsspec_cache": fsspec_cache}
+    if use_cache_dir:
+        cache_dir = os.fspath(tmp_path / fsspec_cache)
+        product_list["fsspec_cache_dir"] = cache_dir
+    job = {
+        "product_list": product_list,
+        "input_filenames": input_filenames,
+    }
+    return job
+
+
+def test_use_fsspec_cache(local_test_file, tmp_path):
     """Test that the configured cache method is applied to the given input files."""
     import fsspec
     from satpy.readers import FSFile
 
     from trollflow2.plugins import use_fsspec_cache
 
-    input_filenames = [f"file://{os.fspath(local_test_file)}"]
-    job = {
-        "product_list": {
-            "fsspec_cache": "simplecache",
-        },
-        "input_filenames": input_filenames,
-    }
+    job = _get_fsspec_job(tmp_path, local_test_file, "simplecache", use_cache_dir=False)
+
     use_fsspec_cache(job)
 
     for f in job["input_filenames"]:
         assert isinstance(f, FSFile)
         assert isinstance(f._fs, fsspec.implementations.cached.SimpleCacheFileSystem)
-
-
-def _get_fsspec_job(tmp_path, test_file, fsspec_cache):
-    input_filenames = [f"file://{os.fspath(test_file)}"]
-    cache_dir = os.fspath(tmp_path / fsspec_cache)
-    job = {
-        "product_list": {
-            "fsspec_cache": fsspec_cache,
-            "fsspec_cache_dir": cache_dir,
-        },
-        "input_filenames": input_filenames,
-    }
-    return job
 
 
 def _access_fsspec_file(fname):

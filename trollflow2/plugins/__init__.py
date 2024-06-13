@@ -1125,15 +1125,16 @@ def use_fsspec_cache(job):
     cache_dir = job["product_list"].get("fsspec_cache_dir")
     filenames = job["input_filenames"]
     cached_filenames = [f"{cache}::{f}" for f in filenames]
-    if cache == "blockcache":
-        open_files = fsspec.open_files(cached_filenames,
-                                       blockcache={"cache_storage": cache_dir})
-    elif cache == "filecache":
-        open_files = fsspec.open_files(cached_filenames,
-                                       filecache={"cache_storage": cache_dir})
-    elif cache == "simplecache":
-        open_files = fsspec.open_files(cached_filenames,
-                                       simplecache={"cache_storage": cache_dir})
+    if cache_dir:
+        if cache == "blockcache":
+            open_files = fsspec.open_files(cached_filenames,
+                                           blockcache={"cache_storage": cache_dir})
+        elif cache == "filecache":
+            open_files = fsspec.open_files(cached_filenames,
+                                           filecache={"cache_storage": cache_dir})
+        elif cache == "simplecache":
+            open_files = fsspec.open_files(cached_filenames,
+                                           simplecache={"cache_storage": cache_dir})
     else:
         open_files = fsspec.open_files(cached_filenames)
     fs_files = [FSFile(open_file) for open_file in open_files]
