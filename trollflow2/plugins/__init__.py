@@ -1138,3 +1138,12 @@ def use_fsspec_cache(job):
         open_files = fsspec.open_files(cached_filenames)
     fs_files = [FSFile(open_file) for open_file in open_files]
     job["input_filenames"] = fs_files
+
+
+def clear_fsspec_cache(job):
+    """Clear all files in fsspec cache directory."""
+    filenames = job["input_filenames"]
+
+    for f in filenames:
+        if hasattr(f, "_fs"):
+            f._fs.clear_cache()

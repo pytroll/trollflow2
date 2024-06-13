@@ -2329,13 +2329,9 @@ def test_use_fsspec_cache(local_test_file):
         assert isinstance(f._fs, fsspec.implementations.cached.SimpleCacheFileSystem)
 
 
-@pytest.mark.parametrize("fsspec_cache", ("blockcache", "filecache", "simplecache"))
-def test_use_fsspec_cache_dir(local_test_file, tmp_path, fsspec_cache):
-    """Test that the configured cache directory is used."""
-    from trollflow2.plugins import use_fsspec_cache
-
-    input_filenames = [f"file://{os.fspath(local_test_file)}"]
-    cache_dir = os.fspath(tmp_path / "cache")
+def _get_fsspec_job(tmp_path, test_file, fsspec_cache):
+    input_filenames = [f"file://{os.fspath(test_file)}"]
+    cache_dir = os.fspath(tmp_path / fsspec_cache)
     job = {
         "product_list": {
             "fsspec_cache": fsspec_cache,
@@ -2343,14 +2339,48 @@ def test_use_fsspec_cache_dir(local_test_file, tmp_path, fsspec_cache):
         },
         "input_filenames": input_filenames,
     }
-    use_fsspec_cache(job)
+    return job
 
-    # Read the file and chech the cache directory to see the cache is used
+
+def _access_fsspec_file(fname):
     # For blockcache we need to ignore the AttributeError
     with suppress(AttributeError):
-        with job["input_filenames"][0].open("r") as fid:
+        with fname.open("r") as fid:
             _ = fid.read()
-    assert os.listdir(cache_dir)
+
+
+@pytest.mark.parametrize("fsspec_cache", ("blockcache", "filecache", "simplecache"))
+def test_use_fsspec_cache_dir(local_test_file, tmp_path, fsspec_cache):
+    """Test that the configured cache directory is used."""
+    from trollflow2.plugins import use_fsspec_cache
+
+    job = _get_fsspec_job(tmp_path, local_test_file, fsspec_cache)
+
+    use_fsspec_cache(job)
+
+    # Access the file and check the data has been cached
+    _access_fsspec_file(job["input_filenames"][0])
+
+    assert os.listdir(job["product_list"]["fsspec_cache_dir"])
+
+
+@pytest.mark.parametrize("fsspec_cache", ("blockcache", "filecache", "simplecache"))
+def test_clear_fsspec_cache(tmp_path, local_test_file, fsspec_cache):
+    """Test clearing fsspec created caches."""
+    from trollflow2.plugins import clear_fsspec_cache, use_fsspec_cache
+
+    # Access some data and use fsspec caching
+    job = _get_fsspec_job(tmp_path, local_test_file, fsspec_cache)
+    use_fsspec_cache(job)
+    _access_fsspec_file(job["input_filenames"][0])
+    # Make sure the caches exist
+    assert os.listdir(job["product_list"]["fsspec_cache_dir"])
+
+    clear_fsspec_cache(job)
+
+    # simplecache cleaning removes the whole cache directory so we need to account for that
+    with suppress(FileNotFoundError):
+        assert os.listdir(job["product_list"]["fsspec_cache_dir"]) == []
 
 
 if __name__ == '__main__':
