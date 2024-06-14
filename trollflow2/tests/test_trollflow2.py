@@ -2311,10 +2311,10 @@ def local_test_file(tmp_path):
 
 def _get_fsspec_job(tmp_path, test_file, fsspec_cache, use_cache_dir=True):
     input_filenames = [f"file://{os.fspath(test_file)}"]
-    product_list = {"fsspec_cache": fsspec_cache}
+    product_list = {"fsspec_cache": {"type": fsspec_cache}}
     if use_cache_dir:
         cache_dir = os.fspath(tmp_path / fsspec_cache)
-        product_list["fsspec_cache_dir"] = cache_dir
+        product_list["fsspec_cache"]["options"] = {"cache_storage": cache_dir}
     job = {
         "product_list": product_list,
         "input_filenames": input_filenames,
@@ -2357,7 +2357,7 @@ def test_use_fsspec_cache_dir(local_test_file, tmp_path, fsspec_cache):
     # Access the file and check the data has been cached
     _access_fsspec_file(job["input_filenames"][0])
 
-    assert os.listdir(job["product_list"]["fsspec_cache_dir"])
+    assert os.listdir(job["product_list"]["fsspec_cache"]["options"]["cache_storage"])
 
 
 @pytest.mark.parametrize("fsspec_cache", ("blockcache", "filecache", "simplecache"))
@@ -2370,13 +2370,13 @@ def test_clear_fsspec_cache(tmp_path, local_test_file, fsspec_cache):
     use_fsspec_cache(job)
     _access_fsspec_file(job["input_filenames"][0])
     # Make sure the caches exist
-    assert os.listdir(job["product_list"]["fsspec_cache_dir"])
+    assert os.listdir(job["product_list"]["fsspec_cache"]["options"]["cache_storage"])
 
     clear_fsspec_cache(job)
 
     # simplecache cleaning removes the whole cache directory so we need to account for that
     with suppress(FileNotFoundError):
-        assert os.listdir(job["product_list"]["fsspec_cache_dir"]) == []
+        assert os.listdir(job["product_list"]["fsspec_cache"]["options"]["cache_storage"]) == []
 
 
 if __name__ == '__main__':
