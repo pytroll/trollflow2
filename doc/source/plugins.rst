@@ -363,7 +363,7 @@ configuration mechanism.
 Caching remotely read data
 **************************
 
-The ``use_fsspec_cache`` plugin can be used to turn on cachcing for remotely read files. See below for
+The ``use_fsspec_cache`` plugin can be used to turn on caching for remotely read files. See below for
 cache cleaning.
 
 Settings used from the product list:
