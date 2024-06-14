@@ -2019,6 +2019,7 @@ class TestFilePublisher(TestCase):
 
             _ = FilePublisher(port=40000, nameservers=False)
             NoisyPublisher.assert_not_called()
+            Publisher.assert_called_once()
             assert "tcp://*:40000" in Publisher.mock_calls[0].args
             assert Publisher.mock_calls[0].kwargs["name"] == "l2processor"
 
