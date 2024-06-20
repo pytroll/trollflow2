@@ -20,7 +20,7 @@
 # are not necessary
 """Tools for product list operations."""
 
-import dpath.util
+import dpath
 
 
 def plist_iter(product_list, base_mda=None, level=None):
@@ -88,11 +88,11 @@ def get_config_value(config, path, key, default=None):
     num = len(path_parts)
     for i in range(num, 1, -1):
         pwd = "/".join(path_parts[:i] + [key])
-        vals = dpath.util.values(config, pwd)
+        vals = dpath.values(config, pwd)
         if len(vals) > 0:
             return vals[0]
 
-    vals = dpath.util.values(config, "/common/" + key)
+    vals = dpath.values(config, "/common/" + key)
     if len(vals) > 0:
         return vals[0]
 

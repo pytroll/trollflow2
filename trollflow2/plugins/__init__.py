@@ -33,14 +33,14 @@ with suppress(ImportError):
 
 import dask
 import dask.array as da
-import dpath.util
+import dpath
 import rasterio
 from dask.delayed import Delayed
 from posttroll.message import Message
 from posttroll.publisher import create_publisher_from_dict_config
 from pyorbital.astronomy import sun_zenith_angle
 from pyresample.area_config import AreaNotFound
-from pyresample.boundary import AreaDefBoundary, Boundary
+from pyresample.boundary import Boundary
 from pyresample.geometry import get_geostationary_bounding_box
 from rasterio.enums import Resampling
 from satpy import Scene
@@ -92,8 +92,6 @@ def create_scene(job):
 
 def load_composites(job):
     """Load composites given in the job's product_list."""
-    # composites = set().union(*(set(d.keys())
-    #                            for d in dpath.util.values(job['product_list'], '/product_list/areas/*/products')))
     composites_by_res = {}
     for flat_prod_cfg, _prod_cfg in plist_iter(job['product_list']['product_list'], level='product'):
         res = flat_prod_cfg.get('resolution', DEFAULT)
@@ -649,7 +647,7 @@ def _check_overall_coverage_for_area(
             "Area coverage %.2f %% below threshold %.2f %%",
             cov, min_coverage)
         logger.info("Removing area %s from the worklist", area)
-        dpath.util.delete(product_list, area_path)
+        dpath.delete(product_list, area_path)
 
     else:
         logger.debug(f"Area coverage {cov:.2f}% above threshold "
@@ -686,7 +684,7 @@ def check_metadata(job):
                            key)
             continue
         if key == 'start_time':
-            time_diff = dt.datetime.utcnow() - mda[key]
+            time_diff = dt.datetime.now(dt.timezone.utc) - mda[key]
             if time_diff > abs(dt.timedelta(minutes=val)):
                 age = "older" if val < 0 else "newer"
                 raise AbortProcessing(
@@ -748,7 +746,7 @@ def sza_check(job):
                 if sunzen < limit:
                     logger.info("Sun zenith angle too small for nighttime "
                                 "product '%s', product removed.", product)
-                    dpath.util.delete(product_list, prod_path)
+                    dpath.delete(product_list, prod_path)
                 continue
 
             # Check daytime limit
@@ -758,12 +756,12 @@ def sza_check(job):
                 if sunzen > limit:
                     logger.info("Sun zenith angle too large for daytime "
                                 "product '%s', product removed.", product)
-                    dpath.util.delete(product_list, prod_path)
+                    dpath.delete(product_list, prod_path)
                 continue
 
         if len(product_list['product_list']['areas'][area]['products']) == 0:
             logger.info("Removing empty area: %s", area)
-            dpath.util.delete(product_list, '/product_list/areas/%s' % area)
+            dpath.delete(product_list, '/product_list/areas/%s' % area)
 
 
 def check_sunlight_coverage(job):
@@ -843,22 +841,22 @@ def check_sunlight_coverage(job):
                 logger.info("Not enough sunlight coverage for "
                             f"product '{product!s}', removed. Needs at least "
                             f"{min_day:.1f}%, got {coverage[check_pass]:.1%}.")
-                dpath.util.delete(product_list, prod_path)
+                dpath.delete(product_list, prod_path)
             if max_day is not None and coverage[check_pass] > (max_day / 100.0):
                 logger.info("Too much sunlight coverage for "
                             f"product '{product!s}', removed. Needs at most "
                             f"{max_day:.1f}%, got {coverage[check_pass]:.1%}.")
-                dpath.util.delete(product_list, prod_path)
+                dpath.delete(product_list, prod_path)
 
 
 def _get_sunlight_coverage(area_def, start_time, overpass=None):
     """Get the sunlight coverage of *area_def* at *start_time* as a value between 0 and 1."""
-    if area_def.proj_dict.get('proj') == 'geos':
+    if area_def.is_geostationary:
         adp = Boundary(
             *get_geostationary_bounding_box(area_def,
                                             nb_points=100)).contour_poly
     else:
-        adp = AreaDefBoundary(area_def, frequency=100).contour_poly
+        adp = area_def.boundary(vertices_per_side=100).contour_poly
     poly = get_twilight_poly(start_time)
     if overpass is not None:
         ovp = overpass.boundary.contour_poly
