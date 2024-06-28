@@ -359,3 +359,33 @@ Settings:
 The S3 connection options are handled by the
 `fsspec <https://filesystem-spec.readthedocs.io/en/latest/features.html#configuration>`_
 configuration mechanism.
+
+Caching remotely read data
+**************************
+
+The ``use_fsspec_cache`` plugin can be used to turn on caching for remotely read files. See below for
+cache cleaning.
+
+Settings used from the product list:
+  - ``fsspec_cache`` - dictionary of the following options
+    - ``type`` - name of the cache implementation. Can be one of ``blockcache``, ``filecache`` or
+    ``simplecache``
+    - ``options`` - keyword arguments passed to the select cache ``type``
+
+To use ``simplecache`` and store the caches in ``/tmp/caches`` use this:
+
+.. code-block::
+
+  fsspec_cache:
+    type: simplecache
+    options:
+      cache_storage: /tmp/caches
+
+For other options, see `fsspec API <https://filesystem-spec.readthedocs.io/en/latest/api.html>`_
+documentation for ``SimpleCacheFileSystem``, ``WholeFileCacheFileSystem`` and ``BlockCache``, respecively.
+
+Cleaning file cache
+*******************
+
+If remotely read files are cached, this plugin can be used to automatically clean the caches.
+No additional settings are available.
