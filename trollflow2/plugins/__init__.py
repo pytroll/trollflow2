@@ -1138,5 +1138,5 @@ def clear_fsspec_cache(job):
     filenames = job["input_filenames"]
 
     for f in filenames:
-        if hasattr(f, "_fs"):
-            f._fs.clear_cache()
+        if hasattr(f, "fs"):
+            f.fs.clear_cache()
