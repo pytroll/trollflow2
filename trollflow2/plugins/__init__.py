@@ -1114,3 +1114,29 @@ def callback_close(obj, targs, job, fmat_config):
         for targ in targs:
             targ.close()
     return obj
+
+
+def use_fsspec_cache(job):
+    """Use the caching from fsspec for (remote) files."""
+    import fsspec
+    from satpy.readers import FSFile
+
+    cache = job["product_list"]["fsspec_cache"]["type"]
+    cache_options = job["product_list"]["fsspec_cache"].get("options")
+    filenames = job["input_filenames"]
+    cached_filenames = [f"{cache}::{f}" for f in filenames]
+    kwargs = {}
+    if cache_options:
+        kwargs[cache] = cache_options
+    open_files = fsspec.open_files(cached_filenames, **kwargs)
+    fs_files = [FSFile(open_file) for open_file in open_files]
+    job["input_filenames"] = fs_files
+
+
+def clear_fsspec_cache(job):
+    """Clear all files in fsspec cache directory."""
+    filenames = job["input_filenames"]
+
+    for f in filenames:
+        if hasattr(f, "fs"):
+            f.fs.clear_cache()
