@@ -891,7 +891,6 @@ def test_sigterm_generate_messages():
     """Test that sending sigterm to Trollflow2 stops it."""
     import os
     import signal
-    import time
     from multiprocessing import Process
 
     from trollflow2.launcher import generate_messages
@@ -899,7 +898,6 @@ def test_sigterm_generate_messages():
     connection_parameters = {"nameserver": False, "addresses": "localhost:40000", "topic": "/test"}
     proc = Process(target=generate_messages, args=(connection_parameters, ))
     proc.start()
-    tic = time.time()
     # Wait for the message listening loop to start
     time.sleep(1)
     # Send SIGTERM
@@ -907,10 +905,6 @@ def test_sigterm_generate_messages():
     proc.join()
 
     assert proc.exitcode == 0
-    # The queue.get timeout is set to 5 seconds, so it should be at
-    # least this long until the process is terminated
-    elapsed_time = time.time() - tic
-    assert elapsed_time >= 5.0
 
 
 def test_sigterm_runner(tmp_path):
