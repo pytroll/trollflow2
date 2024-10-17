@@ -918,7 +918,7 @@ def test_sigterm_runner(lc_, tmp_path, caplog):
     """Test that sending sigterm to Trollflow2 stops it."""
     import os
     import signal
-    from multiprocessing import Process
+    from multiprocessing import Process, set_start_method
 
     from posttroll.message import Message
 
@@ -935,6 +935,8 @@ def test_sigterm_runner(lc_, tmp_path, caplog):
 
     connection_parameters = {}
     runner = Runner(product_list, connection_parameters)
+
+    set_start_method("spawn")
     proc = Process(target=runner.run)
     proc.start()
     tic = time.time()
