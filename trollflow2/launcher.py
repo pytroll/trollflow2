@@ -146,7 +146,18 @@ def _check_local_file(saved_file):
 def generate_messages(connection_parameters):
     """Generate messages using a ListenerContainer."""
     listener = _create_listener_from_connection_parameters(connection_parameters)
-    while True:
+    keep_looping = True
+
+    def _signal_handler(signum, frame):
+        nonlocal keep_looping
+        logger.info(
+            "Caught signal to stop processing new messages and to terminate Trollflow2.")
+        keep_looping = False
+        listener.stop()
+
+    signal.signal(signal.SIGTERM, _signal_handler)
+
+    while keep_looping:
         try:
             msg = listener.output_queue.get(True, 5)
             if msg.type in VALID_MESSAGE_TYPES:
