@@ -24,11 +24,10 @@
 
 import sys
 
-from trollflow2.launcher import launch
-
 
 def main():
     """Launch trollflow2."""
+    from trollflow2.launcher import launch
     launch(sys.argv[1:])
 
 

@@ -29,6 +29,7 @@ import os
 import pathlib
 import queue
 import unittest
+from contextlib import suppress
 from functools import partial
 from unittest import mock
 
@@ -284,7 +285,7 @@ YAML_FILE_PUBLISHER = """
 !!python/object:trollflow2.plugins.FilePublisher {port: 40002, nameservers: [localhost]}
 """
 
-SCENE_START_TIME = dt.datetime.utcnow()
+SCENE_START_TIME = dt.datetime.now(dt.timezone.utc)
 SCENE_END_TIME = SCENE_START_TIME + dt.timedelta(minutes=15)
 JOB_INPUT_MDA_START_TIME = SCENE_START_TIME + dt.timedelta(seconds=10)
 
@@ -711,14 +712,18 @@ def test_save_datasets_callback(tmp_path, caplog, fake_scene):
 
     def testlog(obj, targs, job, fmat_config):
         """Toy function doing some logging."""
+        import warnings
+
         filename = fmat_config["filename"]
         # ensure computation has indeed completed and file was flushed
         p = pathlib.Path(filename)
         logger.info(f"Wrote {filename} successfully, {p.stat().st_size:d} bytes")
         assert p.exists()
-        with rasterio.open(filename) as src:
-            arr = src.read(1)
-            assert arr[5, 5] == 142
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", message="Dataset has no geotransform")
+            with rasterio.open(filename) as src:
+                arr = src.read(1)
+                assert arr[5, 5] == 142
         return obj
 
     form = [
@@ -1109,21 +1114,20 @@ class TestSunlightCovers(TestCase):
     def test_coverage(self):
         """Test sunlight coverage."""
         from trollflow2.plugins import _get_sunlight_coverage
-        with mock.patch('trollflow2.plugins.AreaDefBoundary') as area_def_boundary, \
-                mock.patch('trollflow2.plugins.Boundary') as boundary, \
+        with mock.patch('trollflow2.plugins.Boundary') as boundary, \
                 mock.patch('trollflow2.plugins.get_twilight_poly'), \
                 mock.patch('trollflow2.plugins.get_area_def'), \
                 mock.patch('trollflow2.plugins.get_geostationary_bounding_box'):
 
-            area_def_boundary.return_value.contour_poly.intersection.return_value.area.return_value = 0.02
             boundary.return_value.contour_poly.intersection.return_value.area.return_value = 0.02
-            area_def_boundary.return_value.contour_poly.area.return_value = 0.2
+            adef = mock.MagicMock(is_geostationary=False)
+            adef.boundary.return_value.contour_poly.intersection.return_value.area.return_value = 0.02
+            adef.boundary.return_value.contour_poly.area.return_value = 0.2
             start_time = dt.datetime(2019, 4, 7, 20, 8)
-            adef = mock.MagicMock(proj_dict={'proj': 'stere'})
             res = _get_sunlight_coverage(adef, start_time)
             np.testing.assert_allclose(res, 0.1)
             boundary.assert_not_called()
-            adef = mock.MagicMock(proj_dict={'proj': 'geos'})
+            adef = mock.MagicMock(is_geostationary=True)
             res = _get_sunlight_coverage(adef, start_time)
             boundary.assert_called()
 
@@ -1551,7 +1555,7 @@ class TestCheckMetadata(TestCase):
         from trollflow2.plugins import AbortProcessing, check_metadata
         with mock.patch('trollflow2.plugins.get_config_value') as get_config_value:
             get_config_value.return_value = None
-            job = {'product_list': None, 'input_mda': {'start_time': dt.datetime(2020, 3, 18)}}
+            job = {'product_list': None, 'input_mda': {'start_time': dt.datetime(2020, 3, 18, tzinfo=dt.timezone.utc)}}
             assert check_metadata(job) is None
             get_config_value.return_value = {'start_time': -20e6}
             assert check_metadata(job) is None
@@ -1563,7 +1567,8 @@ class TestCheckMetadata(TestCase):
         """Test that new data are discarded."""
         from trollflow2.plugins import AbortProcessing, check_metadata
         with mock.patch('trollflow2.plugins.get_config_value') as get_config_value:
-            job = {'product_list': None, 'input_mda': {'start_time': dt.datetime.utcnow() - dt.timedelta(minutes=90)}}
+            job = {'product_list': None,
+                   'input_mda': {'start_time': dt.datetime.now(dt.timezone.utc) - dt.timedelta(minutes=90)}}
             get_config_value.return_value = {'start_time': +60}
             with self.assertRaises(AbortProcessing):
                 check_metadata(job)
@@ -2018,7 +2023,9 @@ class TestFilePublisher(TestCase):
 
             _ = FilePublisher(port=40000, nameservers=False)
             NoisyPublisher.assert_not_called()
-            Publisher.assert_called_once_with('tcp://*:40000', name='l2processor', min_port=None, max_port=None)
+            call = Publisher.mock_calls[0]
+            assert call.args == ('tcp://*:40000',)
+            assert call.kwargs["name"] == "l2processor"
 
     def test_filepublisher_kwargs(self):
         """Test filepublisher keyword argument usage.
@@ -2296,6 +2303,85 @@ def test_format_decoration_plain_text():
                    'decorate': {'decorate': [{'text': {'txt': '{wrong_key_name:%Y-%m-%d %H:%M}',
                                               'align': {'top_bottom': 'top', 'left_right': 'right'}}}]}}
     assert format_decoration(fmat, fmat_config) == fmat_config
+
+
+@pytest.fixture
+def local_test_file(tmp_path):
+    """Create a local test file for fsspec tests."""
+    fname = tmp_path / "file.nc"
+    with open(fname, "w") as fid:
+        fid.write("42\n")
+    return fname
+
+
+def _get_fsspec_job(tmp_path, test_file, fsspec_cache, use_cache_dir=True):
+    input_filenames = [f"file://{os.fspath(test_file)}"]
+    product_list = {"fsspec_cache": {"type": fsspec_cache}}
+    if use_cache_dir:
+        cache_dir = os.fspath(tmp_path / fsspec_cache)
+        product_list["fsspec_cache"]["options"] = {"cache_storage": cache_dir}
+    job = {
+        "product_list": product_list,
+        "input_filenames": input_filenames,
+    }
+    return job
+
+
+def test_use_fsspec_cache(local_test_file, tmp_path):
+    """Test that the configured cache method is applied to the given input files."""
+    import fsspec
+    from satpy.readers import FSFile
+
+    from trollflow2.plugins import use_fsspec_cache
+
+    job = _get_fsspec_job(tmp_path, local_test_file, "simplecache", use_cache_dir=False)
+
+    use_fsspec_cache(job)
+
+    for f in job["input_filenames"]:
+        assert isinstance(f, FSFile)
+        assert isinstance(f._fs, fsspec.implementations.cached.SimpleCacheFileSystem)
+
+
+def _access_fsspec_file(fname):
+    # For blockcache we need to ignore the AttributeError
+    with suppress(AttributeError):
+        with fname.open("r") as fid:
+            _ = fid.read()
+
+
+@pytest.mark.parametrize("fsspec_cache", ("blockcache", "filecache", "simplecache"))
+def test_use_fsspec_cache_dir(local_test_file, tmp_path, fsspec_cache):
+    """Test that the configured cache directory is used."""
+    from trollflow2.plugins import use_fsspec_cache
+
+    job = _get_fsspec_job(tmp_path, local_test_file, fsspec_cache)
+
+    use_fsspec_cache(job)
+
+    # Access the file and check the data has been cached
+    _access_fsspec_file(job["input_filenames"][0])
+
+    assert os.listdir(job["product_list"]["fsspec_cache"]["options"]["cache_storage"])
+
+
+@pytest.mark.parametrize("fsspec_cache", ("blockcache", "filecache", "simplecache"))
+def test_clear_fsspec_cache(tmp_path, local_test_file, fsspec_cache):
+    """Test clearing fsspec created caches."""
+    from trollflow2.plugins import clear_fsspec_cache, use_fsspec_cache
+
+    # Access some data and use fsspec caching
+    job = _get_fsspec_job(tmp_path, local_test_file, fsspec_cache)
+    use_fsspec_cache(job)
+    _access_fsspec_file(job["input_filenames"][0])
+    # Make sure the caches exist
+    assert os.listdir(job["product_list"]["fsspec_cache"]["options"]["cache_storage"])
+
+    clear_fsspec_cache(job)
+
+    # simplecache cleaning removes the whole cache directory so we need to account for that
+    with suppress(FileNotFoundError):
+        assert os.listdir(job["product_list"]["fsspec_cache"]["options"]["cache_storage"]) == []
 
 
 if __name__ == '__main__':

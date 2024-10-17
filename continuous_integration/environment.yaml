@@ -6,7 +6,7 @@ dependencies:
   - pytest
   - pytest-cov
   - pyyaml
-  - dpath
+  - dpath>=2.1.0
   - trollsift
   - numpy
   - satpy>=0.32.0
