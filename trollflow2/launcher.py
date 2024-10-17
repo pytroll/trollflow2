@@ -153,7 +153,6 @@ def generate_messages(connection_parameters):
         logger.info(
             "Caught signal to stop processing new messages and to terminate Trollflow2.")
         keep_looping = False
-        listener.stop()
 
     signal.signal(signal.SIGTERM, _signal_handler)
 
@@ -165,10 +164,11 @@ def generate_messages(connection_parameters):
                 logger.debug(f"{str(msg)}")
                 yield msg
         except KeyboardInterrupt:
-            listener.stop()
-            return
+            break
         except Empty:
             continue
+
+    listener.stop()
 
 
 def _create_listener_from_connection_parameters(connection_parameters):
