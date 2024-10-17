@@ -907,19 +907,33 @@ def test_sigterm_generate_messages():
     assert proc.exitcode == 0
 
 
-def test_sigterm_runner(tmp_path):
+def _fake_queue_logged_process(msg, prod_list, produced_files, **kwargs):
+    time.sleep(5.0)
+
+
+@mock.patch("trollflow2.launcher.ListenerContainer")
+@mock.patch("trollflow2.launcher.queue_logged_process",
+            new=_fake_queue_logged_process)
+def test_sigterm_runner(lc_, tmp_path, caplog):
     """Test that sending sigterm to Trollflow2 stops it."""
     import os
     import signal
-    import time
     from multiprocessing import Process
 
+    from posttroll.message import Message
+
     from trollflow2.launcher import Runner
+
+    msg = Message('/my/topic', atype='file', data={'filename': 'foo'})
+    listener = mock.MagicMock()
+    listener.output_queue.get.return_value = msg
+    lc_.return_value = listener
 
     product_list = tmp_path / "trollflow2.yaml"
     with open(product_list, "w") as fid:
         fid.write(yaml_test1)
-    connection_parameters = {"nameserver": False, "addresses": "localhost:40000", "topic": "/test"}
+
+    connection_parameters = {}
     runner = Runner(product_list, connection_parameters)
     proc = Process(target=runner.run)
     proc.start()
@@ -931,10 +945,10 @@ def test_sigterm_runner(tmp_path):
     proc.join()
 
     assert proc.exitcode == 0
-    # The queue.get timeout is set to 5 seconds, so it should be at
-    # least this long until the process is terminated
+    # The fake processing takes 5 seconds, so it should be at least
+    # this long until the process is terminated
     elapsed_time = time.time() - tic
-    assert elapsed_time >= 5.0
+    assert elapsed_time > 5.0
 
 
 if __name__ == '__main__':
