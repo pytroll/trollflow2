@@ -887,15 +887,15 @@ def test_generate_messages():
             assert msg.type in VALID_MESSAGE_TYPES
 
 
-def test_sigterm_generate_messages():
+def test_sigterm_generate_messages(tmp_path):
     """Test that sending sigterm to Trollflow2 stops it."""
     import os
     import signal
     from multiprocessing import Process
 
     from trollflow2.launcher import generate_messages
-
-    connection_parameters = {"nameserver": False, "addresses": "localhost:40000", "topic": "/test"}
+    ipc_path = os.fspath(tmp_path / "my_pipe")
+    connection_parameters = {"nameserver": False, "addresses": f"ipc://{ipc_path}", "topic": "/test"}
     proc = Process(target=generate_messages, args=(connection_parameters, ))
     proc.start()
     # Wait for the message listening loop to start
