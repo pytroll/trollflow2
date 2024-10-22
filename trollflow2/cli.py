@@ -55,12 +55,12 @@ def _read_log_config(args):
     return log_config
 
 
-def datetime_decoder(dct):
+def datetime_decoder(datetimes):
     """Decode datetimes to python objects."""
-    if isinstance(dct, list):
-        pairs = enumerate(dct)
-    elif isinstance(dct, dict):
-        pairs = dct.items()
+    if isinstance(datetimes, list):
+        pairs = enumerate(datetimes)
+    elif isinstance(datetimes, dict):
+        pairs = datetimes.items()
     result = []
     for key, val in pairs:
         if isinstance(val, str):
@@ -71,7 +71,7 @@ def datetime_decoder(dct):
         elif isinstance(val, (dict, list)):
             val = datetime_decoder(val)
         result.append((key, val))
-    if isinstance(dct, list):
+    if isinstance(datetimes, list):
         return [x[1] for x in result]
-    elif isinstance(dct, dict):
+    elif isinstance(datetimes, dict):
         return dict(result)
