@@ -914,7 +914,7 @@ def _fake_queue_logged_process(msg, prod_list, produced_files, **kwargs):
 @mock.patch("trollflow2.launcher.ListenerContainer")
 @mock.patch("trollflow2.launcher.queue_logged_process",
             new=_fake_queue_logged_process)
-def test_sigterm_runner(lc_, tmp_path, caplog):
+def test_sigterm_runner(lc_, tmp_path):
     """Test that sending sigterm to Trollflow2 stops it."""
     import os
     import signal
