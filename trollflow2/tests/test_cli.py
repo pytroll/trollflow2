@@ -2,9 +2,11 @@
 
 import json
 import os
+from datetime import datetime
 from unittest import mock
 
 import pytest
+from trollsift import compose
 
 from trollflow2.cli import cli, parse_args
 from trollflow2.tests.test_launcher import pnuus_log_config
@@ -34,6 +36,29 @@ product_list:
             productname: night_fog
 
 workers: []
+"""
+
+yaml_test_load_save = """
+product_list:
+  output_dir: &output_dir
+    {output_dir}
+  publish_topic: /MSG_0deg/L3
+  reader: satpy_cf_nc
+  fname_pattern:
+    "{file_pattern}"
+  formats:
+    - format: tif
+      writer: geotiff
+  areas:
+      null:
+        products:
+          chanel_5: {{}}
+
+workers:
+  - fun: !!python/name:trollflow2.plugins.create_scene
+  - fun: !!python/name:trollflow2.plugins.load_composites
+  - fun: !!python/name:trollflow2.plugins.resample
+  - fun: !!python/name:trollflow2.plugins.save_datasets
 """
 
 
@@ -124,3 +149,50 @@ def test_cli_dask_profiler(product_list_filename, tmp_path):
              os.fspath(proffile), "--dask-resource-profiler", "0.1",
              "-m", json.dumps({"food": "soy"}), "aquafaba", "tempeh"])
     assert proffile.exists()
+
+    
+def test_full_chain_cli_is_creating_output_file(tmp_path):
+    """Test that the full chain cli is creating an output file."""
+    start_time = datetime(2022, 2, 2, 11, 22)
+    end_time = datetime(2022, 2, 2, 11, 23)
+    attrs = dict(start_time=start_time, platform_name="sat1", sensor="nose", end_time=end_time)
+
+    data_filename = create_cf_data_file(attrs, tmp_path)
+
+    product_list = "my_product_list.yaml"
+    files = [data_filename]
+    product_list_filename = os.fspath(tmp_path / product_list)
+    output_file_pattern = "{start_time:%Y%m%d_%H%M}_{platform_name}_{product}.{format}"
+    with open(product_list_filename, "w") as fd:
+        fd.write(yaml_test_load_save.format(file_pattern=output_file_pattern,
+                                            output_dir=tmp_path))
+    cli(["-p", os.fspath(product_list_filename), "-m", json.dumps(attrs, default=datetime_encoder), *files])
+
+    attrs.update({"product": "chanel_5", "format": "tif"})
+
+    expected_filename = tmp_path / compose(output_file_pattern, attrs)
+
+    assert os.path.exists(expected_filename)
+
+
+def create_cf_data_file(attrs, tmp_path):
+    """Create a data file for satpy to read."""
+    import xarray as xr
+    from satpy import Scene
+    scn = Scene()
+
+    scn["chanel_5"] = xr.DataArray([[0, 1, 2], [3, 4, 5]], dims=["y", "x"], attrs=attrs)
+
+    data_filepattern = str(tmp_path / "{platform_name}-{sensor}-{start_time:%Y%m%d%H%M%S}-{end_time:%Y%m%d%H%M%S}.nc")
+
+    scn.save_dataset("chanel_5", filename=data_filepattern, writer="cf")
+
+    return compose(data_filepattern, attrs)
+
+
+def datetime_encoder(obj):
+    """Encode datetimes into iso format."""
+    try:
+        return obj.isoformat()
+    except AttributeError:
+        raise TypeError(repr(obj) + " is not JSON serializable")

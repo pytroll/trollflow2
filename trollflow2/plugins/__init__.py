@@ -18,10 +18,12 @@
 
 """Trollflow2 plugins."""
 
+import collections.abc
 import copy
 import datetime as dt
 import os
-from contextlib import contextmanager, suppress
+import pathlib
+from contextlib import contextmanager, nullcontext, suppress
 from logging import getLogger
 from tempfile import NamedTemporaryFile
 from urllib.parse import urlsplit, urlunsplit
@@ -30,19 +32,21 @@ with suppress(ImportError):
     import hdf5plugin  # noqa
 
 import dask
-import dpath.util
+import dask.array as da
+import dpath
 import rasterio
+from dask.delayed import Delayed
 from posttroll.message import Message
 from posttroll.publisher import create_publisher_from_dict_config
 from pyorbital.astronomy import sun_zenith_angle
 from pyresample.area_config import AreaNotFound
-from pyresample.boundary import AreaDefBoundary, Boundary
+from pyresample.boundary import Boundary
 from pyresample.geometry import get_geostationary_bounding_box
 from rasterio.enums import Resampling
 from satpy import Scene
 from satpy.resample import get_area_def
 from satpy.version import version as satpy_version
-from satpy.writers import compute_writer_results
+from satpy.writers import compute_writer_results, group_results_by_output_file
 from trollsift import compose
 
 from trollflow2.dict_tools import get_config_value, plist_iter
@@ -88,8 +92,6 @@ def create_scene(job):
 
 def load_composites(job):
     """Load composites given in the job's product_list."""
-    # composites = set().union(*(set(d.keys())
-    #                            for d in dpath.util.values(job['product_list'], '/product_list/areas/*/products')))
     composites_by_res = {}
     for flat_prod_cfg, _prod_cfg in plist_iter(job['product_list']['product_list'], level='product'):
         res = flat_prod_cfg.get('resolution', DEFAULT)
@@ -313,6 +315,23 @@ def save_datasets(job):
     ``staging_zone`` directory, such that the filename written to the
     headers remains meaningful.
 
+    The product list may contain a ``call_on_done`` parameter.
+    This parameter has effect if and only if ``eager_writing`` is False
+    (which is the default).  It should contain a list of references
+    to callables.  Upon computation time, each callable will be
+    called with four arguments: the result of ``save_dataset``,
+    targets (if applicable), the full job dictionary, and the
+    dictionary describing the format config and output filename
+    that was written.  The parameter ``targets`` is set to None
+    if using a writer where :meth:`~satpy.Scene.save_datasets`
+    does not return this.  The callables must return again the
+    ``save_dataset`` return value (possibly altered).  This callback
+    could be used, for example, to ship products as soon as they are
+    successfully produced.
+
+    Three built-in are provided with Trollflow2: :func:`callback_close`,
+    :func:`callback_move` and :func:`callback_log`.
+
     Other arguments defined in the job list (either directly under
     ``product_list``, or under ``formats``) are passed on to the satpy writer.  The
     arguments ``use_tmp_file``, ``staging_zone``, ``output_dir``,
@@ -323,14 +342,107 @@ def save_datasets(job):
     base_config = job['input_mda'].copy()
     base_config.pop('dataset', None)
     eager_writing = job['product_list']['product_list'].get("eager_writing", False)
-    with renamed_files() as renames:
+    early_moving = job['product_list']['product_list'].get("early_moving", False)
+    call_on_done = job["product_list"]["product_list"].get("call_on_done", None)
+    if call_on_done is not None:
+        callbacks = [dask.delayed(c) for c in call_on_done]
+    else:
+        callbacks = None
+    if early_moving:
+        cm = nullcontext({})
+    else:
+        cm = renamed_files()
+    with cm as renames:
         for fmat, fmat_config in plist_iter(job['product_list']['product_list'], base_config):
-            obj = save_dataset(scns, fmat, fmat_config, renames, compute=eager_writing)
-            if obj is not None:
-                objs.append(obj)
+            late_saver = save_dataset(scns, fmat, fmat_config, renames, compute=eager_writing)
+            late_saver = _apply_callbacks(late_saver, callbacks, job, fmat_config)
+            if late_saver is not None:
+                objs.append(late_saver)
                 job['produced_files'].put(fmat_config['filename'])
         if not eager_writing:
             compute_writer_results(objs)
+
+
+def _apply_callbacks(late_saver, callbacks, *args):
+    """Apply callbacks if there are any.
+
+    If we are using callbacks via the ``call_on_done`` parameter, wrap
+    ``late_saver`` with those iteratively.  If not, return ``late_saver`` as is.
+    Here, ``late_saver`` is whatever :meth:`satpy.Scene.save_datasets`
+    returns.
+    """
+    if callbacks is None:
+        return late_saver
+    if isinstance(late_saver, Delayed):
+        return _apply_callbacks_to_delayed(late_saver, callbacks, None, *args)
+    if isinstance(late_saver, collections.abc.Sequence) and len(late_saver) == 2:
+        if isinstance(late_saver[0], collections.abc.Sequence):
+            return _apply_callbacks_to_multiple_sources_and_targets(late_saver, callbacks, *args)
+        return _apply_callbacks_to_single_source_and_target(late_saver, callbacks, *args)
+    raise ValueError(
+        "Unrecognised return value type from ``save_datasets``, "
+        "don't know how to apply wrappers.")
+
+
+def _apply_callbacks_to_delayed(delayed, callbacks, *args):
+    """Recursively apply the callbacks to the delayed object.
+
+    Args:
+        delayed: dask Delayed object to which callbacks are applied
+        callbacks: list of dask Delayed objects to apply
+        *args: remaining arguments passed to callbacks
+
+    Returns:
+        delayed type with callbacks applied
+    """
+    delayed = callbacks[0](delayed, *args)
+    for callback in callbacks[1:]:
+        delayed = callback(delayed, *args)
+    return delayed
+
+
+def _apply_callbacks_to_multiple_sources_and_targets(late_saver, callbacks, *args):
+    """Apply callbacks to multiple sources/targets pairs.
+
+    Taking source/target pairs such as returned by
+    :meth:`satpy.Scene.save_datasets`, split those by file and turn them all in
+    delayed types by calling :func:`dask.array.store`, then apply callbacks.
+
+    Args:
+        late_saver: tuple of ``(sources, targets)`` such as may be returned
+            by :meth:`satpy.Scene.save_datasets`.
+        callbacks: list of dask Delayed objects to apply
+        *args: remaining arguments passed to callbacks
+
+    Returns:
+        list of delayed types
+    """
+    delayeds = []
+    for (src, targ) in group_results_by_output_file(*late_saver):
+        delayed = da.store(src, targ, compute=False)
+        delayeds.append(_apply_callbacks_to_delayed(delayed, callbacks, targ, *args))
+    return delayeds
+
+
+def _apply_callbacks_to_single_source_and_target(late_saver, callbacks, *args):
+    """Apply callbacks to single source/target pairs.
+
+    Taking a single source/target pair such as may be returned by
+    :meth:`satpy.Scene.save_datasets`, turn this into a delayed type
+    type by calling :func:`dask.array.store`, then apply callbacks.
+
+    Args:
+        late_saver: tuple of ``(source, target)`` such as may be returned
+            by :meth:`satpy.Scene.save_datasets`.
+        callbacks: list of dask Delayed objects to apply
+        *args: remaining arguments passed to callbacks
+
+    Returns:
+        delayed types
+    """
+    (src, targ) = late_saver
+    delayed = da.store(src, targ, compute=False)
+    return _apply_callbacks_to_delayed(delayed, callbacks, [targ], *args)
 
 
 def product_missing_from_scene(product, scene):
@@ -357,14 +469,14 @@ class FilePublisher:
         logger.debug('Starting publisher')
         self.port = kwargs.get('port', 0)
         self.nameservers = kwargs.get('nameservers', "")
-        self._pub_starter = create_publisher_from_dict_config(
+        self.pub = create_publisher_from_dict_config(
             {
                 'port': self.port,
                 'nameservers': self.nameservers,
                 'name': 'l2processor',
             }
         )
-        self.pub = self._pub_starter.start()
+        self.pub.start()
 
     @staticmethod
     def create_message(fmat, mda):
@@ -535,7 +647,7 @@ def _check_overall_coverage_for_area(
             "Area coverage %.2f %% below threshold %.2f %%",
             cov, min_coverage)
         logger.info("Removing area %s from the worklist", area)
-        dpath.util.delete(product_list, area_path)
+        dpath.delete(product_list, area_path)
 
     else:
         logger.debug(f"Area coverage {cov:.2f}% above threshold "
@@ -572,7 +684,7 @@ def check_metadata(job):
                            key)
             continue
         if key == 'start_time':
-            time_diff = dt.datetime.utcnow() - mda[key]
+            time_diff = dt.datetime.now(dt.timezone.utc) - mda[key]
             if time_diff > abs(dt.timedelta(minutes=val)):
                 age = "older" if val < 0 else "newer"
                 raise AbortProcessing(
@@ -634,7 +746,7 @@ def sza_check(job):
                 if sunzen < limit:
                     logger.info("Sun zenith angle too small for nighttime "
                                 "product '%s', product removed.", product)
-                    dpath.util.delete(product_list, prod_path)
+                    dpath.delete(product_list, prod_path)
                 continue
 
             # Check daytime limit
@@ -644,12 +756,12 @@ def sza_check(job):
                 if sunzen > limit:
                     logger.info("Sun zenith angle too large for daytime "
                                 "product '%s', product removed.", product)
-                    dpath.util.delete(product_list, prod_path)
+                    dpath.delete(product_list, prod_path)
                 continue
 
         if len(product_list['product_list']['areas'][area]['products']) == 0:
             logger.info("Removing empty area: %s", area)
-            dpath.util.delete(product_list, '/product_list/areas/%s' % area)
+            dpath.delete(product_list, '/product_list/areas/%s' % area)
 
 
 def check_sunlight_coverage(job):
@@ -729,22 +841,22 @@ def check_sunlight_coverage(job):
                 logger.info("Not enough sunlight coverage for "
                             f"product '{product!s}', removed. Needs at least "
                             f"{min_day:.1f}%, got {coverage[check_pass]:.1%}.")
-                dpath.util.delete(product_list, prod_path)
+                dpath.delete(product_list, prod_path)
             if max_day is not None and coverage[check_pass] > (max_day / 100.0):
                 logger.info("Too much sunlight coverage for "
                             f"product '{product!s}', removed. Needs at most "
                             f"{max_day:.1f}%, got {coverage[check_pass]:.1%}.")
-                dpath.util.delete(product_list, prod_path)
+                dpath.delete(product_list, prod_path)
 
 
 def _get_sunlight_coverage(area_def, start_time, overpass=None):
     """Get the sunlight coverage of *area_def* at *start_time* as a value between 0 and 1."""
-    if area_def.proj_dict.get('proj') == 'geos':
+    if area_def.is_geostationary:
         adp = Boundary(
             *get_geostationary_bounding_box(area_def,
                                             nb_points=100)).contour_poly
     else:
-        adp = AreaDefBoundary(area_def, frequency=100).contour_poly
+        adp = area_def.boundary(vertices_per_side=100).contour_poly
     poly = get_twilight_poly(start_time)
     if overpass is not None:
         ovp = overpass.boundary.contour_poly
@@ -941,3 +1053,88 @@ def _product_meets_min_valid_data_fraction(
     logger.debug(f"Found {rel_valid:%}>{min_frac:%}, keeping "
                  f"{prod_name:s} for area {area_name:s} in the worklist")
     return True
+
+
+def callback_log(obj, targs, job, fmat_config):
+    """Log written files as callback for save_datasets call_on_done.
+
+    Callback function that can be used with the :func:`save_datasets`
+    ``call_on_done`` functionality.  Will log a message with loglevel INFO to
+    report that the filename was written successfully along with its size.
+
+    If using :func:`callback_move` in combination with
+    :func:`callback_log`, you must call :func:`callback_log` AFTER
+    :func:`callback_move`, because the logger looks for the final
+    destination of the file, not the temporary one.
+    """
+    filename = fmat_config["filename"]
+    size = os.path.getsize(filename)
+    logger.info(f"Wrote {filename:s} successfully, total {size:d} bytes.")
+    return obj
+
+
+def callback_move(obj, targs, job, fmat_config):
+    """Move files as a callback by save_datasets call_on_done.
+
+    Callback function that can be used with the :func:`save_datasets`
+    ``call_on_done`` functionality.  Moves the file to the directory indicated
+    with ``output_dir`` in the configuration.  This directory will be
+    created if needed.
+
+    This callback must be used with ``staging_zone`` and ``early_moving`` MUST
+    be set in the configuration.  If used in combination with
+    :func:`callback_log`, you must call :func:`callback_log` AFTER
+    :func:`callback_move`, because the logger looks for the final destination
+    of the file, not the temporary one.
+    """
+    destfile = pathlib.Path(fmat_config["filename"])
+    srcdir = pathlib.Path(job["product_list"]["product_list"]["staging_zone"])
+    srcfile = srcdir / destfile.name
+    logger.debug(f"Moving {srcfile!s} to {destfile!s}")
+    srcfile.rename(destfile)
+    return obj
+
+
+def callback_close(obj, targs, job, fmat_config):
+    """Close files as a callback where needed.
+
+    When using callbacks with writers that return a ``(src, target)`` pair for
+    ``da.store``, satpy doesn't close the file until after computation is
+    completed.  That means there may be data that have been computed, but not
+    yet written to disk.  This is normally the case for the geotiff writer.
+    For callbacks that depend on the files to be complete, the file should be
+    closed first.  This callback should be prepended in this case.
+
+    If passed a ``dask.Delayed`` object, this callback does nothing.  If passed
+    a ``(src, targ)`` pair, it closes the target.
+    """
+    if targs:
+        for targ in targs:
+            targ.close()
+    return obj
+
+
+def use_fsspec_cache(job):
+    """Use the caching from fsspec for (remote) files."""
+    import fsspec
+    from satpy.readers import FSFile
+
+    cache = job["product_list"]["fsspec_cache"]["type"]
+    cache_options = job["product_list"]["fsspec_cache"].get("options")
+    filenames = job["input_filenames"]
+    cached_filenames = [f"{cache}::{f}" for f in filenames]
+    kwargs = {}
+    if cache_options:
+        kwargs[cache] = cache_options
+    open_files = fsspec.open_files(cached_filenames, **kwargs)
+    fs_files = [FSFile(open_file) for open_file in open_files]
+    job["input_filenames"] = fs_files
+
+
+def clear_fsspec_cache(job):
+    """Clear all files in fsspec cache directory."""
+    filenames = job["input_filenames"]
+
+    for f in filenames:
+        if hasattr(f, "fs"):
+            f.fs.clear_cache()

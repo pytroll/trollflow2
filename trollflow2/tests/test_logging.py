@@ -27,8 +27,8 @@ from unittest import mock
 
 import pytest
 
-from trollflow2.logging import (create_logged_process, logging_on,
-                                queued_logging)
+from trollflow2.logging import (DEFAULT_LOG_CONFIG, create_logged_process,
+                                logging_on, queued_logging)
 
 
 def test_queued_logging_has_a_listener():
@@ -129,6 +129,7 @@ def run_subprocess(loggers):
     proc = create_logged_process(target=fun, args=(loggers,))
     proc.start()
     proc.join()
+    return proc
 
 
 @queued_logging
@@ -182,3 +183,42 @@ def duplicate_lines(contents):
     """Make sure there are no duplicate lines."""
     lines = contents.strip().split("\n")
     return len(lines) != len(set(lines))
+
+
+def test_logging_config_without_loggers(tmp_path):
+    """Test that the log configs without loggers work."""
+    logfile = tmp_path / "mylog"
+    LOG_CONFIG_TO_FILE = {'version': 1,
+                          'formatters': {'simple': {'format': '%(asctime)s - %(name)s - %(levelname)s - %(message)s'}},
+                          'handlers': {'file': {'class': 'logging.FileHandler',
+                                                'filename': logfile,
+                                                'formatter': 'simple'}},
+                          "root": {"level": "DEBUG", "handlers": ["file"]}
+                          }
+
+    with logging_on(LOG_CONFIG_TO_FILE):
+        run_subprocess(["foo1", "foo2"])
+    with open(logfile) as fd:
+        file_contents = fd.read()
+
+    assert not duplicate_lines(file_contents)
+    assert "root debug" in file_contents
+    assert "root info" in file_contents
+    assert "root warning" in file_contents
+
+
+def test_default_logging_config_works_with_subprocesses(capsys):
+    """Test that the default log config works."""
+    LOG_CONFIG_TO_FILE = DEFAULT_LOG_CONFIG
+    captured = capsys.readouterr()
+    with logging_on(LOG_CONFIG_TO_FILE):
+        proc = run_subprocess(["foo1", "foo2"])
+    captured = capsys.readouterr()
+    assert proc.exitcode == 0
+    err = captured.err
+    assert not duplicate_lines(err)
+    assert "root debug" in err
+    assert "root info" in err
+    assert "root warning" in err
+    assert "foo1 debug" in err
+    assert "foo2 debug" in err

@@ -4,6 +4,7 @@ import argparse
 import contextlib
 import json
 import logging
+from datetime import datetime
 from queue import Queue
 
 import dask.diagnostics
@@ -57,7 +58,8 @@ def cli(args=None):
             profs.append(stack.enter_context(dask.diagnostics.Profiler()))
             if args.dask_resource_profiler:
                 profs.append(stack.enter_context(dask.diagnostics.ResourceProfiler(dt=args.dask_resource_profiler)))
-        process_files(args.files, json.loads(args.metadata), args.product_list, produced_files)
+        process_files(args.files, json.loads(args.metadata, object_hook=datetime_decoder),
+                      args.product_list, produced_files)
     if args.dask_profiler:
         dask.diagnostics.visualize(
             profs, show=False, save=True, filename=args.dask_profiler)
@@ -70,3 +72,25 @@ def _read_log_config(args):
         with open(log_config) as fd:
             log_config = yaml.safe_load(fd.read())
     return log_config
+
+
+def datetime_decoder(datetimes):
+    """Decode datetimes to python objects."""
+    if isinstance(datetimes, list):
+        pairs = enumerate(datetimes)
+    elif isinstance(datetimes, dict):
+        pairs = datetimes.items()
+    result = []
+    for key, val in pairs:
+        if isinstance(val, str):
+            try:
+                val = datetime.fromisoformat(val)
+            except ValueError:
+                pass
+        elif isinstance(val, (dict, list)):
+            val = datetime_decoder(val)
+        result.append((key, val))
+    if isinstance(datetimes, list):
+        return [x[1] for x in result]
+    elif isinstance(datetimes, dict):
+        return dict(result)

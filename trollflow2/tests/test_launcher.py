@@ -382,11 +382,11 @@ class TestRun(TestCase):
     def test_run_does_not_call_process_directly(self):
         """Test that process is called through Process."""
         from trollflow2.launcher import Runner
-        with mock.patch('trollflow2.launcher.yaml.load'),\
-                mock.patch('trollflow2.launcher.open'),\
-                mock.patch('trollflow2.launcher.generate_messages') as generate_messages,\
-                mock.patch('trollflow2.launcher.process') as process,\
-                mock.patch('trollflow2.launcher.check_results'),\
+        with mock.patch('trollflow2.launcher.yaml.load'), \
+                mock.patch('trollflow2.launcher.open'), \
+                mock.patch('trollflow2.launcher.generate_messages') as generate_messages, \
+                mock.patch('trollflow2.launcher.process') as process, \
+                mock.patch('trollflow2.launcher.check_results'), \
                 mock.patch('multiprocessing.get_context'):
             generate_messages.side_effect = ['foo', KeyboardInterrupt]
             prod_list = {'product_list': {}}
@@ -400,8 +400,8 @@ class TestRun(TestCase):
     def test_run_relies_on_listener(self):
         """Test running relies on listener."""
         from trollflow2.launcher import Runner
-        with mock.patch('trollflow2.launcher.yaml.load') as yaml_load,\
-                mock.patch('trollflow2.launcher.open'),\
+        with mock.patch('trollflow2.launcher.yaml.load') as yaml_load, \
+                mock.patch('trollflow2.launcher.open'), \
                 mock.patch('multiprocessing.get_context') as get_context, \
                 mock.patch('trollflow2.launcher.ListenerContainer') as lc_:
             msg = mock.MagicMock()
@@ -420,7 +420,7 @@ class TestRun(TestCase):
                 runner.run()
             except KeyboardInterrupt:
                 pass
-            listener.output_queue.called_once()
+            listener.output_queue.get.assert_called_once()
             lc_.assert_called_with(addresses=None, nameserver='localhost',
                                    topics=['/topic1', '/topic2'])
             # Subscriber topics are removed from config
@@ -451,9 +451,9 @@ class TestRun(TestCase):
 def run_on_a_simple_product_list(config):
     """Run a simple (fake) product list."""
     from trollflow2.launcher import Runner
-    with mock.patch('trollflow2.launcher.yaml.load') as yaml_load,\
-            mock.patch('trollflow2.launcher.open'),\
-            mock.patch('multiprocessing.get_context') as get_context,\
+    with mock.patch('trollflow2.launcher.yaml.load') as yaml_load, \
+            mock.patch('trollflow2.launcher.open'), \
+            mock.patch('multiprocessing.get_context') as get_context, \
             mock.patch('trollflow2.launcher.ListenerContainer') as lc_:
 
         msg = mock.MagicMock()
@@ -486,8 +486,8 @@ class TestInterruptRun(TestCase):
     def test_run_keyboard_interrupt(self):
         """Test interrupting the run with a ctrl-C."""
         from trollflow2.launcher import Runner
-        with mock.patch('trollflow2.launcher.yaml.load'),\
-                mock.patch('trollflow2.launcher.open'),\
+        with mock.patch('trollflow2.launcher.yaml.load'), \
+                mock.patch('trollflow2.launcher.open'), \
                 mock.patch('trollflow2.launcher.ListenerContainer') as lc_:
             listener = mock.MagicMock()
             get = mock.Mock()
@@ -887,6 +887,71 @@ def test_generate_messages():
         lc_.return_value = listener
         for msg in generate_messages(connection_parameters=dict(topic=['/topic3'])):
             assert msg.type in VALID_MESSAGE_TYPES
+
+
+def test_sigterm_generate_messages(tmp_path):
+    """Test that sending sigterm to Trollflow2 stops it."""
+    import os
+    import signal
+    from multiprocessing import Process
+
+    from trollflow2.launcher import generate_messages
+    ipc_path = os.fspath(tmp_path / "my_pipe")
+    connection_parameters = {"nameserver": False, "addresses": f"ipc://{ipc_path}", "topic": "/test"}
+    proc = Process(target=generate_messages, args=(connection_parameters, ))
+    proc.start()
+    # Wait for the message listening loop to start
+    time.sleep(1)
+    # Send SIGTERM
+    os.kill(proc.pid, signal.SIGTERM)
+    proc.join()
+
+    assert proc.exitcode == 0
+
+
+def _fake_queue_logged_process(msg, prod_list, produced_files, **kwargs):
+    time.sleep(5.0)
+
+
+@mock.patch("trollflow2.launcher.ListenerContainer")
+@mock.patch("trollflow2.launcher.queue_logged_process",
+            new=_fake_queue_logged_process)
+def test_sigterm_runner(lc_, tmp_path):
+    """Test that sending sigterm to Trollflow2 stops it."""
+    import os
+    import signal
+    from multiprocessing import Process
+
+    from posttroll.message import Message
+
+    from trollflow2.launcher import Runner
+
+    msg = Message('/my/topic', atype='file', data={'filename': 'foo'})
+    listener = mock.MagicMock()
+    listener.output_queue.get.return_value = msg
+    lc_.return_value = listener
+
+    product_list = tmp_path / "trollflow2.yaml"
+    with open(product_list, "w") as fid:
+        fid.write(yaml_test1)
+
+    connection_parameters = {}
+    runner = Runner(product_list, connection_parameters)
+
+    proc = Process(target=runner.run)
+    proc.start()
+    tic = time.time()
+    # Wait for the message listening loop to start
+    time.sleep(1)
+    # Send SIGTERM
+    os.kill(proc.pid, signal.SIGTERM)
+    proc.join()
+
+    assert proc.exitcode == 0
+    # The fake processing takes 5 seconds, so it should be at least
+    # this long until the process is terminated
+    elapsed_time = time.time() - tic
+    assert elapsed_time > 5.0
 
 
 if __name__ == '__main__':

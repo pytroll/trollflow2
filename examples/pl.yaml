@@ -66,6 +66,11 @@ product_list: &product_list
   # # pass extra keyword arguments to Scene.load
   # scene_load_kwargs:
   #   upper_right_corner: "NE"
+  # call_on_done:
+  #   - !!python/name:trollflow2.plugins.callback_close
+  #   - !!python/name:trollflow2.plugins.callback_move
+  #   - !!python/name:trollflow2.plugins.callback_log
+  # early_moving: True  # must be set with callback_move; see docs for details
 
   areas:
     omerc_bb:

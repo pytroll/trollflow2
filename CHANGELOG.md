@@ -1,3 +1,74 @@
+## Version 0.15.3 (2024/02/29)
+
+### Issues Closed
+
+* [Issue 197](https://github.com/pytroll/trollflow2/issues/197) - Valid log config fails in trollflow2 ([PR 199](https://github.com/pytroll/trollflow2/pull/199) by [@mraspaud](https://github.com/mraspaud))
+* [Issue 192](https://github.com/pytroll/trollflow2/issues/192) - trollflow2 fails with KeyError when trying to process a message ([PR 199](https://github.com/pytroll/trollflow2/pull/199) by [@mraspaud](https://github.com/mraspaud))
+* [Issue 183](https://github.com/pytroll/trollflow2/issues/183) - Subprocess crash when using custom log config ([PR 199](https://github.com/pytroll/trollflow2/pull/199) by [@mraspaud](https://github.com/mraspaud))
+
+In this release 3 issues were closed.
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR 201](https://github.com/pytroll/trollflow2/pull/201) - Fix test failures
+* [PR 199](https://github.com/pytroll/trollflow2/pull/199) - Fix logging to handler config without loggers ([197](https://github.com/pytroll/trollflow2/issues/197), [192](https://github.com/pytroll/trollflow2/issues/192), [183](https://github.com/pytroll/trollflow2/issues/183))
+
+#### Features added
+
+* [PR 200](https://github.com/pytroll/trollflow2/pull/200) - Update CI to use Python 3.10 - 3.12
+
+In this release 3 pull requests were closed.
+
+
+## Version 0.15.1 (2023/12/07)
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR 191](https://github.com/pytroll/trollflow2/pull/191) - Fix call to posttroll publishers' start and stop
+
+In this release 1 pull request was closed.
+
+
+## Version 0.15.0 (2023/09/25)
+
+### Issues Closed
+
+* [Issue 161](https://github.com/pytroll/trollflow2/issues/161) - Decorate product with scene metadata ([PR 162](https://github.com/pytroll/trollflow2/pull/162) by [@nedelceo](https://github.com/nedelceo))
+* [Issue 160](https://github.com/pytroll/trollflow2/issues/160) - Eager processing for faster and more continuous image delivery ([PR 168](https://github.com/pytroll/trollflow2/pull/168) by [@gerritholl](https://github.com/gerritholl))
+
+In this release 2 issues were closed.
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR 171](https://github.com/pytroll/trollflow2/pull/171) - Fix tests for pyresample's spherical update
+
+#### Features added
+
+* [PR 174](https://github.com/pytroll/trollflow2/pull/174) - Update logging
+* [PR 173](https://github.com/pytroll/trollflow2/pull/173) - Make it possible to disable nameserver in FilePublisher
+* [PR 172](https://github.com/pytroll/trollflow2/pull/172) - Only yield msgs with valid msg types in generate_messages
+* [PR 168](https://github.com/pytroll/trollflow2/pull/168) - Add callback functionality for dask-delayed dataset saving ([160](https://github.com/pytroll/trollflow2/issues/160))
+* [PR 164](https://github.com/pytroll/trollflow2/pull/164) - Create dependabot.yml
+* [PR 162](https://github.com/pytroll/trollflow2/pull/162) - Add format_decoration ([161](https://github.com/pytroll/trollflow2/issues/161))
+* [PR 159](https://github.com/pytroll/trollflow2/pull/159) - Handle setting subscriber nameserver to False
+* [PR 158](https://github.com/pytroll/trollflow2/pull/158) - Add a plugin to upload the generated images to S3
+* [PR 151](https://github.com/pytroll/trollflow2/pull/151) - Add checking for incoming data age
+* [PR 150](https://github.com/pytroll/trollflow2/pull/150) - Adapt remote (fsspec) file reading for newer pytroll-collector changes
+* [PR 148](https://github.com/pytroll/trollflow2/pull/148) - Import hdf5plugin for JLS decompression support if available
+
+#### Documentation changes
+
+* [PR 174](https://github.com/pytroll/trollflow2/pull/174) - Update logging
+
+In this release 13 pull requests were closed.
+
+
 ## Version 0.14.0 (2022/07/20)
 
 ### Issues Closed
