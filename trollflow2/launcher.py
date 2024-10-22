@@ -158,7 +158,7 @@ def generate_messages(connection_parameters):
 
     while keep_looping:
         try:
-            msg = listener.output_queue.get(True, 5)
+            msg = listener.output_queue.get(True, 1)
             if msg.type in VALID_MESSAGE_TYPES:
                 logger.info("New message received.")
                 logger.debug(f"{str(msg)}")
