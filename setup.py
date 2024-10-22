@@ -65,5 +65,7 @@ setup(name=NAME,
       tests_require=['pytest', 'mock', 'rasterio'],
       python_requires='>=3.9',
       test_suite='trollflow2.tests.suite',
-      use_scm_version=True
+      use_scm_version=True,
+      entry_points={
+          'console_scripts': ['satpy_cli = trollflow2.cli:cli',]}
       )
