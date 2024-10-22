@@ -38,7 +38,6 @@ product_list:
 workers: []
 """
 
-
 yaml_test_load_save = """
 product_list:
   output_dir: &output_dir
@@ -61,6 +60,16 @@ workers:
   - fun: !!python/name:trollflow2.plugins.resample
   - fun: !!python/name:trollflow2.plugins.save_datasets
 """
+
+
+@pytest.fixture
+def product_list_filename(tmp_path):
+    """Filename for a test product list, with contents."""
+    product_list = "my_product_list.yaml"
+    filename = os.fspath(tmp_path / product_list)
+    with open(filename, "w") as fd:
+        fd.write(yaml_test_noop)
+    return filename
 
 
 def test_arg_parsing():
@@ -117,13 +126,9 @@ def test_cli_raises_an_error_when_product_list_is_empty(tmp_path, caplog, empty_
     assert "check YAML file" in caplog.text
 
 
-def test_cli_starts_processing_when_files_are_provided(tmp_path):
+def test_cli_starts_processing_when_files_are_provided(tmp_path, product_list_filename):
     """Test that the cli start processing when files are provided."""
-    product_list = "my_product_list.yaml"
     files = ["file1", "file2"]
-    product_list_filename = os.fspath(tmp_path / product_list)
-    with open(product_list_filename, "w") as fd:
-        fd.write(yaml_test_noop)
     from trollflow2.launcher import process_files
     new_process = mock.Mock(wraps=process_files)
     mda = {"dish": "pizza"}
@@ -133,6 +138,19 @@ def test_cli_starts_processing_when_files_are_provided(tmp_path):
     new_process.assert_called_once_with(files, mda, product_list_filename, q_mock.return_value)
 
 
+def test_cli_dask_profiler(product_list_filename, tmp_path):
+    """Test that dask profiles are written."""
+    from trollflow2.launcher import process_files
+    new_process = mock.Mock(wraps=process_files)
+    proffile = tmp_path / "dask-prof.html"
+    with (mock.patch("trollflow2.cli.process_files", new=new_process),
+          mock.patch("trollflow2.cli.Queue")):
+        cli(["-p", os.fspath(product_list_filename), "--dask-profiler",
+             os.fspath(proffile), "--dask-resource-profiler", "0.1",
+             "-m", json.dumps({"food": "soy"}), "aquafaba", "tempeh"])
+    assert proffile.exists()
+
+    
 def test_full_chain_cli_is_creating_output_file(tmp_path):
     """Test that the full chain cli is creating an output file."""
     start_time = datetime(2022, 2, 2, 11, 22)
