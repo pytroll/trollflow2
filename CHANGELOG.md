@@ -1,3 +1,24 @@
+###############################################################################
+## Version 0.16.0 (2024/10/22)
+
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR 207](https://github.com/pytroll/trollflow2/pull/207) - Fix tests for upcoming posttroll version
+
+#### Features added
+
+* [PR 217](https://github.com/pytroll/trollflow2/pull/217) - Add handling for SIGTERM
+* [PR 205](https://github.com/pytroll/trollflow2/pull/205) - Add plugins for fsspec caching and cache cleaning
+* [PR 202](https://github.com/pytroll/trollflow2/pull/202) - Reduce test warnings
+* [PR 184](https://github.com/pytroll/trollflow2/pull/184) - Add a Command Line Interface
+
+In this release 5 pull requests were closed.
+
+###############################################################################
+
 ## Version 0.15.3 (2024/02/29)
 
 ### Issues Closed
