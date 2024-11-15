@@ -1347,9 +1347,9 @@ class TestCovers(TestCase):
         """Test that the plugin complains when multiple sensors are provided."""
         from trollflow2.plugins import covers
 
-        with mock.patch('trollflow2.plugins.get_scene_coverage') as get_scene_coverage, \
+        with mock.patch('trollflow2.plugins._get_scene_coverage') as _get_scene_coverage, \
                 mock.patch('trollflow2.plugins.Pass'):
-            get_scene_coverage.return_value = 10.0
+            _get_scene_coverage.return_value = 10.0
             scn = _get_mocked_scene_with_properties()
             job = {"product_list": self.product_list,
                    "input_mda": {"platform_name": "platform",
@@ -1365,9 +1365,9 @@ class TestCovers(TestCase):
         """Test that the plugin complains when multiple sensors are provided."""
         from trollflow2.plugins import covers
 
-        with mock.patch('trollflow2.plugins.get_scene_coverage') as get_scene_coverage, \
+        with mock.patch('trollflow2.plugins._get_scene_coverage') as _get_scene_coverage, \
                 mock.patch('trollflow2.plugins.Pass'):
-            get_scene_coverage.return_value = 10.0
+            _get_scene_coverage.return_value = 10.0
             scn = _get_mocked_scene_with_properties()
             job = {"product_list": self.product_list,
                    "input_mda": {"platform_name": "platform",
@@ -1383,19 +1383,19 @@ class TestCovers(TestCase):
         """Test that the scene and message metadata are merged correctly."""
         from trollflow2.plugins import covers
 
-        with mock.patch('trollflow2.plugins.get_scene_coverage') as get_scene_coverage, \
+        with mock.patch('trollflow2.plugins._get_scene_coverage') as _get_scene_coverage, \
                 mock.patch('trollflow2.plugins.Pass'):
-            get_scene_coverage.return_value = 10.0
+            _get_scene_coverage.return_value = 10.0
             scn = _get_mocked_scene_with_properties()
             job = {"product_list": self.product_list,
                    "input_mda": {"platform_name": "platform"},
                    "scene": scn}
             covers(job)
-            get_scene_coverage.assert_called_with(job["input_mda"]["platform_name"],
-                                                  scn.start_time,
-                                                  scn.end_time,
-                                                  list(scn.sensor_names)[0],
-                                                  "omerc_bb")
+            _get_scene_coverage.assert_called_with(job["input_mda"]["platform_name"],
+                                                   scn.start_time,
+                                                   scn.end_time,
+                                                   list(scn.sensor_names)[0],
+                                                   "omerc_bb")
 
     def test_covers(self):
         """Test coverage."""
@@ -1429,14 +1429,14 @@ class TestCovers(TestCase):
                "scene": scn}
         job2 = copy.deepcopy(job)
 
-        with mock.patch('trollflow2.plugins.get_scene_coverage') as get_scene_coverage, \
+        with mock.patch('trollflow2.plugins._get_scene_coverage') as _get_scene_coverage, \
                 mock.patch('trollflow2.plugins.Pass'):
-            get_scene_coverage.return_value = 10.0
+            _get_scene_coverage.return_value = 10.0
             covers(job)
-            get_scene_coverage.assert_called_with(input_mda['platform_name'],
-                                                  input_mda['start_time'],
-                                                  input_mda['end_time'],
-                                                  'avhrr-4', 'omerc_bb')
+            _get_scene_coverage.assert_called_with(input_mda['platform_name'],
+                                                   input_mda['start_time'],
+                                                   input_mda['end_time'],
+                                                   'avhrr-4', 'omerc_bb')
 
             del job2["product_list"]["product_list"]["areas"]["euron1"]["min_coverage"]
             del job2["product_list"]["product_list"]["min_coverage"]
@@ -1446,7 +1446,7 @@ class TestCovers(TestCase):
 
     def test_scene_coverage(self):
         """Test scene coverage."""
-        from trollflow2.plugins import get_scene_coverage
+        from trollflow2.plugins import _get_scene_coverage
         with mock.patch('trollflow2.plugins.get_area_def') as get_area_def, \
                 mock.patch('trollflow2.plugins.Pass') as ts_pass:
             area_coverage = mock.MagicMock()
@@ -1455,7 +1455,7 @@ class TestCovers(TestCase):
             overpass.area_coverage = area_coverage
             ts_pass.return_value = overpass
             get_area_def.return_value = 6
-            res = get_scene_coverage(1, 2, 3, 4, 5)
+            res = _get_scene_coverage(1, 2, 3, 4, 5)
             self.assertEqual(res, 100 * 0.2)
             ts_pass.assert_called_with(1, 2, 3, instrument=4)
             get_area_def.assert_called_with(5)
@@ -2185,7 +2185,7 @@ def test_valid_filter(caplog, sc_3a_3b):
     job2 = copy.deepcopy(job)
     prods2 = job2['product_list']['product_list']['areas']['euron1']['products']
 
-    with mock.patch("trollflow2.plugins.get_scene_coverage") as tpg, \
+    with mock.patch("trollflow2.plugins._get_scene_coverage") as tpg, \
             caplog.at_level(logging.DEBUG):
         tpg.return_value = 100
         check_valid_data_fraction(job)
