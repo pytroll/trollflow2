@@ -100,7 +100,8 @@ def load_composites(job):
         else:
             composites_by_res.setdefault(res, set()).add(flat_prod_cfg['product'])
 
-    logger.info(f"Loading {len(composites_by_res)} composites.")
+    num_composites = sum([len(composites_by_res[d]) for d in composites_by_res])
+    logger.info(f"Loading {num_composites} composites.")
 
     scn = job['scene']
     generate = job['product_list']['product_list'].get('delay_composites', True) is False
