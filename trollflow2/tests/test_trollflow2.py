@@ -2215,6 +2215,22 @@ def test_valid_filter_zero_coverage(caplog, sc_3a_3b):
         assert "IR037" not in prods
 
 
+def test_valid_filter_no_trollsched(caplog, monkeypatch, sc_3a_3b):
+    """Test filter for minimum fraction of valid data with full coverage."""
+    monkeypatch.setattr("trollsched.spherical.get_twilight_poly", None)
+    from trollflow2.plugins import check_valid_data_fraction
+
+    job, prods = _create_valid_filter_job_and_prods(sc_3a_3b)
+
+    with mock.patch("trollflow2.plugins._get_scene_coverage") as tpg, \
+            caplog.at_level(logging.DEBUG):
+        tpg.return_value = 100
+        check_valid_data_fraction(job)
+
+    assert "Trollsched import failed" in caplog.text
+    assert "Keeping all products" in caplog.text
+
+
 def _create_valid_filter_job_and_prods(sc_3a_3b):
     from trollflow2.launcher import yaml
     product_list = yaml.safe_load(yaml_test3)
