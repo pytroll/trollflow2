@@ -968,6 +968,11 @@ def check_valid_data_fraction(job):
     """
     logger.info("Checking valid data fraction.")
 
+    if get_twilight_poly is None:
+        logger.error("Trollsched import failed, calculation of valid data fraction not possible")
+        logger.info("Keeping all products")
+        return
+
     exp_cov = {}
     # As stated, this will trigger a computation.  To prevent computing
     # multiple times, we should persist everything that needs to be persisted,
