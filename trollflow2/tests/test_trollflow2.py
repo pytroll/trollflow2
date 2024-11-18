@@ -2223,7 +2223,10 @@ def test_valid_filter_zero_coverage(caplog, sc_3a_3b):
 
 def test_valid_filter_no_trollsched(caplog, monkeypatch, sc_3a_3b):
     """Test filter for minimum fraction of valid data with full coverage."""
+    # This is needed when only this test is run
     monkeypatch.setattr("trollsched.spherical.get_twilight_poly", None)
+    # ... and this when all the tests are run
+    monkeypatch.setattr("trollflow2.plugins.get_twilight_poly", None)
     from trollflow2.plugins import check_valid_data_fraction
 
     job, prods = _create_valid_filter_job_and_prods(sc_3a_3b)
