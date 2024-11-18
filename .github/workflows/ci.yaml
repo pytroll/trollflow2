@@ -68,7 +68,7 @@ jobs:
           pytest --cov=trollflow2 trollflow2/tests --cov-report=xml
 
       - name: Upload unittest coverage to Codecov
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
           flags: unittests
           file: ./coverage.xml
