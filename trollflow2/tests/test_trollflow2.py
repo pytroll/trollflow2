@@ -293,6 +293,11 @@ JOB_INPUT_MDA_START_TIME = SCENE_START_TIME + dt.timedelta(seconds=10)
 class TestSaveDatasets(TestCase):
     """Test case for saving datasets."""
 
+    @pytest.fixture(autouse=True)
+    def inject_fixtures(self, tmp_path):
+        """Inject pytest fixtures."""
+        self._tmp_path = tmp_path
+
     def test_prepared_filename(self):
         """Test the `prepared_filename` context."""
         from trollflow2.plugins import prepared_filename
@@ -580,6 +585,7 @@ class TestSaveDatasets(TestCase):
         from trollflow2.plugins import save_datasets
         job = _create_job_for_save_datasets()
 
+        output_dir = self._tmp_path / "örülök, hogy megismerhetem"
         product_list = {
             "fname_pattern": "name.tif",
             "use_tmp_file": True,
@@ -596,7 +602,7 @@ class TestSaveDatasets(TestCase):
                                  "PhysicUnit": "no",
                                  "PhysicValue": "yes",
                                  "SatelliteNameID": 0,
-                                 "output_dir": "örülök, hogy megismerhetem",
+                                 "output_dir": str(output_dir),
                                  "fname_pattern": "viszontlátásra",
                                  "dispatch": {},
                                  "use_tmp_file": False,
