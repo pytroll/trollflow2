@@ -273,16 +273,6 @@ Options:
    than defined, the data are not processed for this area.  By default
    process all areas.
 
-Platform name check
-*******************
-
-The ``check_platform`` plugin can be used to check that the platform
-name in the incoming message is in the configured list of platforms.
-The best place for this plugin is before any data handling is done.
-
-Options:
- - ``processed_platforms: null`` - A list of allowed platform names.  By
-   default (``null``) all platforms are processed.
 
 Metadata checks
 ***************

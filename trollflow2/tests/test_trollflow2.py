@@ -293,6 +293,11 @@ JOB_INPUT_MDA_START_TIME = SCENE_START_TIME + dt.timedelta(seconds=10)
 class TestSaveDatasets(TestCase):
     """Test case for saving datasets."""
 
+    @pytest.fixture(autouse=True)
+    def inject_fixtures(self, tmp_path):
+        """Inject pytest fixtures."""
+        self._tmp_path = tmp_path
+
     def test_prepared_filename(self):
         """Test the `prepared_filename` context."""
         from trollflow2.plugins import prepared_filename
@@ -580,6 +585,7 @@ class TestSaveDatasets(TestCase):
         from trollflow2.plugins import save_datasets
         job = _create_job_for_save_datasets()
 
+        output_dir = self._tmp_path / "örülök, hogy megismerhetem"
         product_list = {
             "fname_pattern": "name.tif",
             "use_tmp_file": True,
@@ -596,7 +602,7 @@ class TestSaveDatasets(TestCase):
                                  "PhysicUnit": "no",
                                  "PhysicValue": "yes",
                                  "SatelliteNameID": 0,
-                                 "output_dir": "örülök, hogy megismerhetem",
+                                 "output_dir": str(output_dir),
                                  "fname_pattern": "viszontlátásra",
                                  "dispatch": {},
                                  "use_tmp_file": False,
@@ -1360,9 +1366,9 @@ class TestCovers(TestCase):
         """Test that the plugin complains when multiple sensors are provided."""
         from trollflow2.plugins import covers
 
-        with mock.patch('trollflow2.plugins.get_scene_coverage') as get_scene_coverage, \
+        with mock.patch('trollflow2.plugins._get_scene_coverage') as _get_scene_coverage, \
                 mock.patch('trollflow2.plugins.Pass'):
-            get_scene_coverage.return_value = 10.0
+            _get_scene_coverage.return_value = 10.0
             scn = _get_mocked_scene_with_properties()
             job = {"product_list": self.product_list,
                    "input_mda": {"platform_name": "platform",
@@ -1378,9 +1384,9 @@ class TestCovers(TestCase):
         """Test that the plugin complains when multiple sensors are provided."""
         from trollflow2.plugins import covers
 
-        with mock.patch('trollflow2.plugins.get_scene_coverage') as get_scene_coverage, \
+        with mock.patch('trollflow2.plugins._get_scene_coverage') as _get_scene_coverage, \
                 mock.patch('trollflow2.plugins.Pass'):
-            get_scene_coverage.return_value = 10.0
+            _get_scene_coverage.return_value = 10.0
             scn = _get_mocked_scene_with_properties()
             job = {"product_list": self.product_list,
                    "input_mda": {"platform_name": "platform",
@@ -1396,19 +1402,19 @@ class TestCovers(TestCase):
         """Test that the scene and message metadata are merged correctly."""
         from trollflow2.plugins import covers
 
-        with mock.patch('trollflow2.plugins.get_scene_coverage') as get_scene_coverage, \
+        with mock.patch('trollflow2.plugins._get_scene_coverage') as _get_scene_coverage, \
                 mock.patch('trollflow2.plugins.Pass'):
-            get_scene_coverage.return_value = 10.0
+            _get_scene_coverage.return_value = 10.0
             scn = _get_mocked_scene_with_properties()
             job = {"product_list": self.product_list,
                    "input_mda": {"platform_name": "platform"},
                    "scene": scn}
             covers(job)
-            get_scene_coverage.assert_called_with(job["input_mda"]["platform_name"],
-                                                  scn.start_time,
-                                                  scn.end_time,
-                                                  list(scn.sensor_names)[0],
-                                                  "omerc_bb")
+            _get_scene_coverage.assert_called_with(job["input_mda"]["platform_name"],
+                                                   scn.start_time,
+                                                   scn.end_time,
+                                                   list(scn.sensor_names)[0],
+                                                   "omerc_bb")
 
     def test_covers(self):
         """Test coverage."""
@@ -1442,14 +1448,14 @@ class TestCovers(TestCase):
                "scene": scn}
         job2 = copy.deepcopy(job)
 
-        with mock.patch('trollflow2.plugins.get_scene_coverage') as get_scene_coverage, \
+        with mock.patch('trollflow2.plugins._get_scene_coverage') as _get_scene_coverage, \
                 mock.patch('trollflow2.plugins.Pass'):
-            get_scene_coverage.return_value = 10.0
+            _get_scene_coverage.return_value = 10.0
             covers(job)
-            get_scene_coverage.assert_called_with(input_mda['platform_name'],
-                                                  input_mda['start_time'],
-                                                  input_mda['end_time'],
-                                                  'avhrr-4', 'omerc_bb')
+            _get_scene_coverage.assert_called_with(input_mda['platform_name'],
+                                                   input_mda['start_time'],
+                                                   input_mda['end_time'],
+                                                   'avhrr-4', 'omerc_bb')
 
             del job2["product_list"]["product_list"]["areas"]["euron1"]["min_coverage"]
             del job2["product_list"]["product_list"]["min_coverage"]
@@ -1459,7 +1465,7 @@ class TestCovers(TestCase):
 
     def test_scene_coverage(self):
         """Test scene coverage."""
-        from trollflow2.plugins import get_scene_coverage
+        from trollflow2.plugins import _get_scene_coverage
         with mock.patch('trollflow2.plugins.get_area_def') as get_area_def, \
                 mock.patch('trollflow2.plugins.Pass') as ts_pass:
             area_coverage = mock.MagicMock()
@@ -1468,7 +1474,7 @@ class TestCovers(TestCase):
             overpass.area_coverage = area_coverage
             ts_pass.return_value = overpass
             get_area_def.return_value = 6
-            res = get_scene_coverage(1, 2, 3, 4, 5)
+            res = _get_scene_coverage(1, 2, 3, 4, 5)
             self.assertEqual(res, 100 * 0.2)
             ts_pass.assert_called_with(1, 2, 3, instrument=4)
             get_area_def.assert_called_with(5)
@@ -2181,24 +2187,13 @@ def sc_3a_3b():
     return scene
 
 
-def test_valid_filter(caplog, sc_3a_3b):
-    """Test filter for minimum fraction of valid data."""
-    from trollflow2.launcher import yaml
+def test_valid_filter_full_coverage(caplog, sc_3a_3b):
+    """Test filter for minimum fraction of valid data with full coverage."""
     from trollflow2.plugins import check_valid_data_fraction
-    product_list = yaml.safe_load(yaml_test3)
 
-    job = {}
-    job['scene'] = sc_3a_3b
-    job['product_list'] = product_list.copy()
-    job['input_mda'] = input_mda.copy()
-    job['resampled_scenes'] = {"euron1": sc_3a_3b}
-    prods = job['product_list']['product_list']['areas']['euron1']['products']
-    for p in ("NIR016", "IR037", "absent"):
-        prods[p] = {"min_valid_data_fraction": 40}
-    job2 = copy.deepcopy(job)
-    prods2 = job2['product_list']['product_list']['areas']['euron1']['products']
+    job, prods = _create_valid_filter_job_and_prods(sc_3a_3b)
 
-    with mock.patch("trollflow2.plugins.get_scene_coverage") as tpg, \
+    with mock.patch("trollflow2.plugins._get_scene_coverage") as tpg, \
             caplog.at_level(logging.DEBUG):
         tpg.return_value = 100
         check_valid_data_fraction(job)
@@ -2207,18 +2202,71 @@ def test_valid_filter(caplog, sc_3a_3b):
         assert "removing NIR016 for area euron1" in caplog.text
         assert "keeping IR037 for area euron1" in caplog.text
         assert "product absent not found, already removed" in caplog.text
-        tpg.reset_mock()
+
+
+def test_valid_filter_small_coverage(caplog, sc_3a_3b):
+    """Test filter for minimum fraction of valid data with small coverage."""
+    from trollflow2.plugins import check_valid_data_fraction
+
+    job, prods = _create_valid_filter_job_and_prods(sc_3a_3b)
+
+    with mock.patch("trollflow2.plugins._get_scene_coverage") as tpg, \
+            caplog.at_level(logging.DEBUG):
         tpg.return_value = 1
-        check_valid_data_fraction(job2)
+        check_valid_data_fraction(job)
         assert "inaccurate coverage estimate suspected!" in caplog.text
-        assert "NIR016" in prods2
-        assert "IR037" in prods2
-        tpg.reset_mock()
+        assert "NIR016" in prods
+        assert "IR037" in prods
+
+
+def test_valid_filter_zero_coverage(caplog, sc_3a_3b):
+    """Test filter for minimum fraction of valid data without any coverage."""
+    from trollflow2.plugins import check_valid_data_fraction
+
+    job, prods = _create_valid_filter_job_and_prods(sc_3a_3b)
+
+    with mock.patch("trollflow2.plugins._get_scene_coverage") as tpg, \
+            caplog.at_level(logging.DEBUG):
         tpg.return_value = 0
-        check_valid_data_fraction(job2)
+        check_valid_data_fraction(job)
         assert "no expected coverage at all, removing" in caplog.text
-        assert "NIR016" not in prods2
-        assert "IR037" not in prods2
+        assert "NIR016" not in prods
+        assert "IR037" not in prods
+
+
+def test_valid_filter_no_trollsched(caplog, monkeypatch, sc_3a_3b):
+    """Test filter for minimum fraction of valid data with full coverage."""
+    # This is needed when only this test is run
+    monkeypatch.setattr("trollsched.spherical.get_twilight_poly", None)
+    # ... and this when all the tests are run
+    monkeypatch.setattr("trollflow2.plugins.get_twilight_poly", None)
+    from trollflow2.plugins import check_valid_data_fraction
+
+    job, prods = _create_valid_filter_job_and_prods(sc_3a_3b)
+
+    with mock.patch("trollflow2.plugins._get_scene_coverage") as tpg, \
+            caplog.at_level(logging.DEBUG):
+        tpg.return_value = 100
+        check_valid_data_fraction(job)
+
+    assert "Trollsched import failed" in caplog.text
+    assert "Keeping all products" in caplog.text
+
+
+def _create_valid_filter_job_and_prods(sc_3a_3b):
+    from trollflow2.launcher import yaml
+    product_list = yaml.safe_load(yaml_test3)
+    job = {}
+    job['scene'] = sc_3a_3b
+    job['product_list'] = product_list.copy()
+    job['input_mda'] = input_mda.copy()
+    job['resampled_scenes'] = {"euron1": sc_3a_3b}
+
+    prods = job['product_list']['product_list']['areas']['euron1']['products']
+    for p in ("NIR016", "IR037", "absent"):
+        prods[p] = {"min_valid_data_fraction": 40}
+
+    return job, prods
 
 
 def test_persisted(sc_3a_3b):

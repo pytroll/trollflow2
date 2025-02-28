@@ -640,8 +640,8 @@ def _check_overall_coverage_for_area(
     Helper for covers().
     """
     area_path = "/product_list/areas/%s" % area
-    cov = get_scene_coverage(platform_name, start_time, end_time,
-                             sensor, area)
+    cov = _get_scene_coverage(platform_name, start_time, end_time,
+                              sensor, area)
     product_list['product_list']['areas'][area]['area_coverage_percent'] = cov
     if cov < min_coverage:
         logger.info(
@@ -655,7 +655,7 @@ def _check_overall_coverage_for_area(
                      f"{min_coverage:.2f}% - Carry on with {area:s}")
 
 
-def get_scene_coverage(platform_name, start_time, end_time, sensor, area_id):
+def _get_scene_coverage(platform_name, start_time, end_time, sensor, area_id):
     """Get scene area coverage in percentages."""
     overpass = Pass(platform_name, start_time, end_time, instrument=sensor)
     area_def = get_area_def(area_id)
@@ -969,6 +969,11 @@ def check_valid_data_fraction(job):
     """
     logger.info("Checking valid data fraction.")
 
+    if get_twilight_poly is None:
+        logger.error("Trollsched import failed, calculation of valid data fraction not possible")
+        logger.info("Keeping all products")
+        return
+
     exp_cov = {}
     # As stated, this will trigger a computation.  To prevent computing
     # multiple times, we should persist everything that needs to be persisted,
@@ -1029,8 +1034,8 @@ def _product_meets_min_valid_data_fraction(
     end_time = prod.attrs["end_time"]
     sensor = prod.attrs["sensor"]
     if area_name not in exp_cov:
-        # get_scene_coverage uses %, convert to fraction
-        exp_cov[area_name] = get_scene_coverage(
+        # _get_scene_coverage uses %, convert to fraction
+        exp_cov[area_name] = _get_scene_coverage(
             platform_name, start_time, end_time, sensor, area_name)/100
     exp_valid = exp_cov[area_name]
     if exp_valid == 0:

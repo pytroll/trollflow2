@@ -91,8 +91,6 @@ Example
                 fname_pattern: "{start_time:%Y%m%d_%H%M}_{platform_name:s}_{productname:s}_{variant:s}.{format}"
 
   workers:
-    - fun: !!python/name:trollflow2.plugins.check_platform
-    - fun: !!python/name:trollflow2.plugins.check_sensor
     - fun: !!python/name:trollflow2.plugins.create_scene
     - fun: !!python/name:trollflow2.plugins.check_sunlight_coverage
     - fun: !!python/name:trollflow2.plugins.covers
