@@ -850,6 +850,11 @@ class TestCreateScene(TestCase):
 class TestLoadComposites(TestCase):
     """Test case for loading composites."""
 
+    @pytest.fixture(autouse=True)
+    def inject_fixtures(self, caplog):
+        """Inject fixtures."""
+        self._caplog = caplog
+
     def setUp(self):
         """Set up the test case."""
         super().setUp()
@@ -861,7 +866,9 @@ class TestLoadComposites(TestCase):
         from trollflow2.plugins import DEFAULT, load_composites
         scn = _get_mocked_scene_with_properties()
         job = {"product_list": self.product_list, "scene": scn}
-        load_composites(job)
+        with self._caplog.at_level(logging.INFO):
+            load_composites(job)
+        assert "Loading 3 composites." in self._caplog.text
         scn.load.assert_called_with({'ct', 'cloudtype', 'cloud_top_height'}, resolution=DEFAULT, generate=False)
 
     def test_load_composites_with_config(self):
@@ -871,7 +878,9 @@ class TestLoadComposites(TestCase):
         self.product_list['product_list']['resolution'] = 1000
         self.product_list['product_list']['delay_composites'] = False
         job = {"product_list": self.product_list, "scene": scn}
-        load_composites(job)
+        with self._caplog.at_level(logging.INFO):
+            load_composites(job)
+        assert "Loading 3 composites." in self._caplog.text
         scn.load.assert_called_with({'ct', 'cloudtype', 'cloud_top_height'}, resolution=1000, generate=True)
 
     def test_load_composites_with_different_resolutions(self):
@@ -882,7 +891,9 @@ class TestLoadComposites(TestCase):
         self.product_list['product_list']['areas']['euron1']['resolution'] = 500
         self.product_list['product_list']['delay_composites'] = False
         job = {"product_list": self.product_list, "scene": scn}
-        load_composites(job)
+        with self._caplog.at_level(logging.INFO):
+            load_composites(job)
+        assert "Loading 4 composites." in self._caplog.text
         scn.load.assert_any_call({'cloudtype', 'ct', 'cloud_top_height'}, resolution=1000, generate=True)
         scn.load.assert_any_call({'cloud_top_height'}, resolution=500, generate=True)
 
@@ -892,7 +903,9 @@ class TestLoadComposites(TestCase):
         scn = _get_mocked_scene_with_properties()
         self.product_list['product_list']['scene_load_kwargs'] = {"upper_right_corner": "NE"}
         job = {"product_list": self.product_list, "scene": scn}
-        load_composites(job)
+        with self._caplog.at_level(logging.INFO):
+            load_composites(job)
+        assert "Loading 3 composites." in self._caplog.text
         scn.load.assert_called_with(
             {'ct', 'cloudtype', 'cloud_top_height'},
             resolution=DEFAULT, generate=False, upper_right_corner="NE")
