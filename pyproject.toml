@@ -7,7 +7,7 @@ name = "trollflow2"
 dynamic = ["version"]
 description = "Pytroll workflow execution framework"
 readme = "README.md"
-license = { text = "GPLv3" }
+license = { text = "GPLv3+" }
 requires-python = ">=3.9"
 authors = [
     { name = "Martin Raspaud", email = "martin.raspaud@smhi.se" },
