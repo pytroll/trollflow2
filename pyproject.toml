@@ -1,6 +1,5 @@
 [build-system]
-requires = ["hatchling",
-"hatch-vcs"]
+requires = ["hatchling", "hatch-vcs"]
 build-backend = "hatchling.build"
 
 [project]
@@ -8,7 +7,7 @@ name = "trollflow2"
 dynamic = ["version"]
 description = "Pytroll workflow execution framework"
 readme = "README.md"
-license = ""
+license = { text = "GPLv3" }
 requires-python = ">=3.9"
 authors = [
     { name = "Martin Raspaud", email = "martin.raspaud@smhi.se" },
@@ -35,6 +34,12 @@ satpy_cli = "trollflow2.cli:cli"
 
 [project.urls]
 Homepage = "https://github.com/pytroll/trollflow2"
+
+[project.optional-dependencies]
+test = [
+    "pytest>=8.3.5",
+    "rasterio>=1.4.3",
+]
 
 [tool.hatch.version]
 source = "vcs"
