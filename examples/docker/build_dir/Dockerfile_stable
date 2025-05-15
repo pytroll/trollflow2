@@ -7,6 +7,7 @@ RUN conda config --add channels conda-forge && \
     conda config --set channel_priority true && \
     conda update --all && \
     conda install -c conda-forge satpy \
+    dask">=2025.3" \
     pyresample \
     pykdtree \
     trollimage \
@@ -16,7 +17,7 @@ RUN conda config --add channels conda-forge && \
     gdal \
     h5py \
     ipython \
-    pyinotify \
+    watchdog \
     pyzmq \
     h5netcdf \
     netifaces \
