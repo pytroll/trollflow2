@@ -12,3 +12,4 @@ The following people have made contributions to this project:
 - [Paulo Medeiros (paulovcmedeiros)](https://github.com/paulovcmedeiros)
 - [Ondrej Nedelcev (nedelceo)](https://github.com/nedelceo)
 - [Martin Raspaud (mraspaud)](https://github.com/mraspaud)
+- [Dario Stelitano (bornagain1981)](https://github.com/bornagain1981)
