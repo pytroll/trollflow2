@@ -44,10 +44,17 @@ from pyresample.boundary import Boundary
 from pyresample.geometry import get_geostationary_bounding_box
 from rasterio.enums import Resampling
 from satpy import Scene
-from satpy.resample import get_area_def
 from satpy.version import version as satpy_version
-from satpy.writers import compute_writer_results, group_results_by_output_file
 from trollsift import compose
+
+if satpy_version >= "0.59.0":
+    from satpy.area import get_area_def
+    from satpy.writers.core.compute import (compute_writer_results,
+                                            group_results_by_output_file)
+else:
+    from satpy.resample import get_area_def
+    from satpy.writers import compute_writer_results
+    from satpy.writers import group_results_by_output_file
 
 from trollflow2.dict_tools import get_config_value, plist_iter
 
@@ -1123,7 +1130,10 @@ def callback_close(obj, targs, job, fmat_config):
 def use_fsspec_cache(job):
     """Use the caching from fsspec for (remote) files."""
     import fsspec
-    from satpy.readers import FSFile
+    if satpy_version >= "0.57.0":
+        from satpy.readers.core.remote import FSFile
+    else:
+        from satpy.readers import FSFile
 
     cache = job["product_list"]["fsspec_cache"]["type"]
     cache_options = job["product_list"]["fsspec_cache"].get("options")

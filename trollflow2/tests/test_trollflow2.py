@@ -2391,7 +2391,7 @@ def _get_fsspec_job(tmp_path, test_file, fsspec_cache, use_cache_dir=True):
 def test_use_fsspec_cache(local_test_file, tmp_path):
     """Test that the configured cache method is applied to the given input files."""
     import fsspec
-    from satpy.readers import FSFile
+    from satpy.readers.core.remote import FSFile
 
     from trollflow2.plugins import use_fsspec_cache
 
