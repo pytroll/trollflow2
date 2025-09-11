@@ -376,6 +376,11 @@ def _apply_callbacks(writer_results, callbacks, *args):
         return writer_results
     sources, targets, to_be_computed = split_results([writer_results])
     results_with_callbacks = []
+    if sources and not targets:
+        # Satpy 0.58 with trollimage 1.27.0 returns Array as sources list only
+        # Satpy 0.59+ returns these in "to_be_computed" list instead
+        to_be_computed.extend(sources)
+        sources = []
     if to_be_computed:
         for computable_result in to_be_computed:
             result_with_callbacks = _apply_callbacks_to_delayed(computable_result, callbacks, None, *args)
