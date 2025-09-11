@@ -40,10 +40,11 @@ satpy_cli = "trollflow2.cli:cli"
 [project.urls]
 Homepage = "https://github.com/pytroll/trollflow2"
 
-[project.optional-dependencies]
+[dependency-groups]
 test = [
     "pytest>=8.3.5",
     "rasterio>=1.4.3",
+    "pytroll-schedule",
 ]
 
 [tool.hatch.version]
