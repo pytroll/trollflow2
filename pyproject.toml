@@ -11,6 +11,7 @@ license = { text = "GPLv3+" }
 requires-python = ">=3.9"
 authors = [
     { name = "Martin Raspaud", email = "martin.raspaud@smhi.se" },
+    { name = "Panu Lahtinen" },
 ]
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -31,6 +32,7 @@ dependencies = [
 
 [project.scripts]
 satpy_cli = "trollflow2.cli:cli"
+"satpy_launcher.py" = "trollflow2.satpy_launcher:main"
 
 [project.urls]
 Homepage = "https://github.com/pytroll/trollflow2"
