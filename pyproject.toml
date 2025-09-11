@@ -1,0 +1,60 @@
+[build-system]
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
+
+[project]
+name = "trollflow2"
+dynamic = ["version"]
+description = "Pytroll workflow execution framework"
+readme = "README.md"
+license = "GPL-3.0-or-later"
+license-files = ["LICENSE"]
+requires-python = ">=3.11"
+authors = [
+    { name = "Adam Dybbroe" },
+    { name = "Gerrit Holl" },
+    { name = "Panu Lahtinen" },
+    { name = "Paulo Medeiros" },
+    { name = "Ondrej Nedelcev" },
+    { name = "Martin Raspaud", email = "martin.raspaud@smhi.se" },
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Topic :: Scientific/Engineering",
+]
+dependencies = [
+    "dpath>=2.1.0",
+    "posttroll>=1.10.0",
+    "pyorbital",
+    "pyyaml",
+    "satpy>=0.32.0",
+    "trollsift",
+]
+
+[project.scripts]
+satpy_cli = "trollflow2.cli:cli"
+"satpy_launcher.py" = "trollflow2.satpy_launcher:main"
+
+[project.urls]
+Homepage = "https://github.com/pytroll/trollflow2"
+
+[dependency-groups]
+test = [
+    "pytest>=8.3.5",
+    "rasterio>=1.4.3",
+    "pytroll-schedule",
+]
+
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.build.hooks.vcs]
+version-file = "trollflow2/_version.py"
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/trollflow2",
+]
