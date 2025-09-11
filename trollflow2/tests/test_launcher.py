@@ -27,7 +27,6 @@ import logging
 import os
 import queue
 import time
-import unittest
 from contextlib import contextmanager
 
 import pytest
@@ -131,7 +130,7 @@ workers:
 """
 
 
-class TestGetAreaPriorities(TestCase):
+class TestGetAreaPriorities:
     """Test case for area priorities."""
 
     def test_get_area_priorities(self):
@@ -140,16 +139,16 @@ class TestGetAreaPriorities(TestCase):
         prodlist = yaml.load(yaml_test1, Loader=UnsafeLoader)
 
         priorities = get_area_priorities(prodlist)
-        self.assertTrue(1 in priorities)
-        self.assertTrue(isinstance(priorities[1], list))
-        self.assertTrue('euron1' in priorities[1])
-        self.assertTrue(999 in priorities)
-        self.assertTrue(isinstance(priorities[999], list))
-        self.assertTrue('omerc_bb' in priorities[999])
-        self.assertTrue('germ' in priorities[999])
+        assert 1 in priorities
+        assert isinstance(priorities[1], list)
+        assert 'euron1' in priorities[1]
+        assert 999 in priorities
+        assert isinstance(priorities[999], list)
+        assert 'omerc_bb' in priorities[999]
+        assert 'germ' in priorities[999]
 
 
-class TestMessageToJobs(TestCase):
+class TestMessageToJobs:
     """Test case for converting a message to jobs."""
 
     def test_message_to_jobs(self):
@@ -160,22 +159,18 @@ class TestMessageToJobs(TestCase):
         msg.data = {'uri': 'foo'}
 
         jobs = message_to_jobs(msg, prodlist)
-        self.assertEqual(set(jobs.keys()), {1, 999})
+        assert set(jobs.keys()) == {1, 999}
         for i in jobs.keys():
-            self.assertEqual(set(jobs[i].keys()),
-                             {'input_filenames', 'input_mda', 'product_list'})
-            self.assertEqual(jobs[i]['input_filenames'], ['foo'])
-            self.assertEqual(jobs[i]['input_mda'], msg.data)
-            self.assertEqual(set(jobs[i]['product_list'].keys()),
-                             {'product_list'})
-        self.assertEqual(set(jobs[1]['product_list']['product_list']['areas'].keys()),
-                         set(['euron1']))
-        self.assertEqual(set(jobs[999]['product_list']['product_list']['areas'].keys()),
-                         set(['germ', 'omerc_bb']))
+            assert set(jobs[i].keys()) == {'input_filenames', 'input_mda', 'product_list'}
+            assert jobs[i]['input_filenames'] == ['foo']
+            assert jobs[i]['input_mda'] == msg.data
+            assert set(jobs[i]['product_list'].keys()) == {'product_list'}
+        assert set(jobs[1]['product_list']['product_list']['areas'].keys()) == set(['euron1'])
+        assert set(jobs[999]['product_list']['product_list']['areas'].keys()) == set(['germ', 'omerc_bb'])
 
         prodlist['product_list']['areas']['germ']['priority'] = None
         jobs = message_to_jobs(msg, prodlist)
-        self.assertTrue('germ' in jobs[999]['product_list']['product_list']['areas'])
+        assert'germ' in jobs[999]['product_list']['product_list']['areas']
 
     def test_message_to_jobs_minimal(self):
         """Test converting a message to minimal jobs."""
@@ -199,17 +194,59 @@ class TestMessageToJobs(TestCase):
                                         'overview': {'formats': [{'format': 'tif',
                                                                   'writer': 'geotiff'}],
                                                      'productname': 'overview'}}})])
-        self.assertDictEqual(jobs[999]['product_list']['product_list']['areas'], expected)
-        self.assertIn('output_dir', jobs[999]['product_list']['product_list'])
+        assert jobs[999]['product_list']['product_list']['areas'] == expected
+        assert 'output_dir' in jobs[999]['product_list']['product_list']
         # Test that the formats are not the same object
         prods = jobs[999]['product_list']['product_list']['areas']['euro4']['products']
-        self.assertFalse(prods['overview']['formats'][0] is
-                         prods['natural_color']['formats'][0])
+        assert prods['overview']['formats'][0] is not prods['natural_color']['formats'][0]
         prods['overview']['formats'][0]['foo'] = 'bar'
-        self.assertFalse('foo' in prods['natural_color']['formats'][0])
+        assert 'foo' not in prods['natural_color']['formats'][0]
+
+
+    def test_message_to_jobs_with_real_fsspec(self, tmp_path):
+        """Test transforming a message containing file system specification, without mocking."""
+        import json
+
+        from trollflow2.launcher import message_to_jobs
+        innerpath = ("S3A_OL_2_WFR____20201210T080758_20201210T080936_20201210T103707"
+                     "_0097_066_078_1980_MAR_O_NR_002.SEN3/Oa01_reflectance.nc")
+        prefix = "somedir"
+        path = tmp_path / prefix / innerpath
+
+        path.parent.parent.mkdir()
+        path.parent.mkdir()
+        data = "very important data"
+        with path.open("w") as fp:
+          fp.write(data)
+        from zipfile import ZipFile
+        zfilename = tmp_path / ("S3A_OL_2_WFR____20201210T080758_20201210T080936_20201210T103707_"
+                                "0097_066_078_1980_MAR_O_NR_002.zip")
+
+        with ZipFile(zfilename, "w") as zf:
+            zf.write(path, arcname=prefix + "/" + innerpath)
+
+        fs = {"cls": "fsspec.implementations.zip:ZipFileSystem", "protocol": "zip", "args": [], "target_options": {},
+              "target_protocol": "file", "fo": str(zfilename)}
+        jsonfs = json.dumps(fs)
+        filename = str(path)  # noqa
+        msg_data = {"dataset": [{"filesystem": fs,
+                                 "uid": innerpath,
+                                 "uri": "zip://" + prefix + "/" + innerpath,  # noqa
+                                 "path": prefix + "/" + innerpath,
+                                 }]
+                    }
+
+        msg = mock.MagicMock()
+        msg.data = msg_data
+        prodlist = yaml.load(yaml_test_minimal, Loader=UnsafeLoader)
+        jobs = message_to_jobs(msg, prodlist)
+        upath = jobs[999]['input_filenames'][0]
+        assert upath.open("r").read() == data
+        assert upath.fs.to_json() == jsonfs
+
 
     def test_message_to_jobs_fsspec(self):
-        """Test transforming a message containing filesystem specification."""
+        """Test transforming a message containing file system specification."""
         with mock.patch.dict('sys.modules', {'fsspec': mock.MagicMock(),
                                              'fsspec.spec': mock.MagicMock(),
                                              'satpy': mock.MagicMock(),
@@ -952,7 +989,3 @@ def test_sigterm_runner(lc_, tmp_path):
     # this long until the process is terminated
     elapsed_time = time.time() - tic
     assert elapsed_time > 5.0
-
-
-if __name__ == '__main__':
-    unittest.main()
