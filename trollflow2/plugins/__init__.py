@@ -46,7 +46,7 @@ from rasterio.enums import Resampling
 from satpy import Scene
 from satpy.resample import get_area_def
 from satpy.version import version as satpy_version
-from satpy.writers import compute_writer_results, group_results_by_output_file
+from satpy.writers import compute_writer_results, group_results_by_output_file, split_results
 from trollsift import compose
 
 from trollflow2.dict_tools import get_config_value, plist_iter
@@ -355,34 +355,37 @@ def save_datasets(job):
         cm = renamed_files()
     with cm as renames:
         for fmat, fmat_config in plist_iter(job['product_list']['product_list'], base_config):
-            late_saver = save_dataset(scns, fmat, fmat_config, renames, compute=eager_writing)
-            late_saver = _apply_callbacks(late_saver, callbacks, job, fmat_config)
-            if late_saver is not None:
-                objs.append(late_saver)
+            writer_results = save_dataset(scns, fmat, fmat_config, renames, compute=eager_writing)
+            results_with_callbacks = _apply_callbacks(writer_results, callbacks, job, fmat_config)
+            if results_with_callbacks is not None:
+                objs.append(results_with_callbacks)
                 job['produced_files'].put(fmat_config['filename'])
         if not eager_writing:
             compute_writer_results(objs)
 
 
-def _apply_callbacks(late_saver, callbacks, *args):
+def _apply_callbacks(writer_results, callbacks, *args):
     """Apply callbacks if there are any.
 
     If we are using callbacks via the ``call_on_done`` parameter, wrap
-    ``late_saver`` with those iteratively.  If not, return ``late_saver`` as is.
-    Here, ``late_saver`` is whatever :meth:`satpy.Scene.save_datasets`
+    ``writer_results`` with those iteratively.  If not, return ``writer_results`` as is.
+    Here, ``writer_results`` is whatever :meth:`satpy.Scene.save_datasets`
     returns.
     """
     if callbacks is None:
-        return late_saver
-    if isinstance(late_saver, Delayed):
-        return _apply_callbacks_to_delayed(late_saver, callbacks, None, *args)
-    if isinstance(late_saver, collections.abc.Sequence) and len(late_saver) == 2:
-        if isinstance(late_saver[0], collections.abc.Sequence):
-            return _apply_callbacks_to_multiple_sources_and_targets(late_saver, callbacks, *args)
-        return _apply_callbacks_to_single_source_and_target(late_saver, callbacks, *args)
-    raise ValueError(
-        "Unrecognised return value type from ``save_datasets``, "
-        "don't know how to apply wrappers.")
+        return writer_results
+    sources, targets, to_be_computed = split_results([writer_results])
+    results_with_callbacks = []
+    if to_be_computed:
+        for computable_result in to_be_computed:
+            result_with_callbacks = _apply_callbacks_to_delayed(computable_result, callbacks, None, *args)
+            results_with_callbacks.append(result_with_callbacks)
+    if sources:
+        store_delayeds = _apply_callbacks_to_multiple_sources_and_targets(sources, targets, callbacks, *args)
+        results_with_callbacks.extend(store_delayeds)
+    if not results_with_callbacks:
+        raise ValueError("Writer didn't return anything to be computed")
+    return results_with_callbacks
 
 
 def _apply_callbacks_to_delayed(delayed, callbacks, *args):
@@ -402,7 +405,7 @@ def _apply_callbacks_to_delayed(delayed, callbacks, *args):
     return delayed
 
 
-def _apply_callbacks_to_multiple_sources_and_targets(late_saver, callbacks, *args):
+def _apply_callbacks_to_multiple_sources_and_targets(sources, targets, callbacks, *args):
     """Apply callbacks to multiple sources/targets pairs.
 
     Taking source/target pairs such as returned by
@@ -419,31 +422,10 @@ def _apply_callbacks_to_multiple_sources_and_targets(late_saver, callbacks, *arg
         list of delayed types
     """
     delayeds = []
-    for (src, targ) in group_results_by_output_file(*late_saver):
+    for (src, targ) in group_results_by_output_file(sources, targets):
         delayed = da.store(src, targ, compute=False)
         delayeds.append(_apply_callbacks_to_delayed(delayed, callbacks, targ, *args))
     return delayeds
-
-
-def _apply_callbacks_to_single_source_and_target(late_saver, callbacks, *args):
-    """Apply callbacks to single source/target pairs.
-
-    Taking a single source/target pair such as may be returned by
-    :meth:`satpy.Scene.save_datasets`, turn this into a delayed type
-    type by calling :func:`dask.array.store`, then apply callbacks.
-
-    Args:
-        late_saver: tuple of ``(source, target)`` such as may be returned
-            by :meth:`satpy.Scene.save_datasets`.
-        callbacks: list of dask Delayed objects to apply
-        *args: remaining arguments passed to callbacks
-
-    Returns:
-        delayed types
-    """
-    (src, targ) = late_saver
-    delayed = da.store(src, targ, compute=False)
-    return _apply_callbacks_to_delayed(delayed, callbacks, [targ], *args)
 
 
 def product_missing_from_scene(product, scene):
