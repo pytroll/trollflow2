@@ -151,7 +151,7 @@ GLOBAL_RESAMPLER_DEFAULTS = {
 def resample(job):
     """Resample the scene to some areas."""
     product_list = job['product_list']
-    resampler = _get_plugin_conf(product_list, "/", {"resampler": "nearest"})["resampler"]
+    resampler = _get_plugin_conf(product_list, "/product_list", {"resampler": "nearest"})["resampler"]
     defaults = RESAMPLER_DEFAULT_OPTIONS.get(resampler, GLOBAL_RESAMPLER_DEFAULTS)
     conf = _get_plugin_conf(product_list, '/product_list', defaults)
     job['resampled_scenes'] = {}

@@ -1066,23 +1066,40 @@ class TestResample:
 
     def test_resampler_with_only_named_kwargs(self):
         """Test that resamplers like EWA without **kwargs are called correctly."""
-        from trollflow2.plugins import resample
+        from trollflow2.plugins import RESAMPLER_DEFAULT_OPTIONS, resample
 
+        opts = RESAMPLER_DEFAULT_OPTIONS["ewa"]
         prod_list = self.product_list.copy()
-        prod_list["resampler"] = "ewa"
+        prod_list["product_list"]["resampler"] = "ewa"
+        for k in opts.keys():
+            prod_list["product_list"][k] = 42
         scn = _get_mocked_scene_with_properties()
-        scn.resample = _mock_ewa
+        scn.resample = _mock_ewa_with_assert_42
         job = {"scene": scn, "product_list": prod_list}
         resample(job)
 
 
-def _mock_ewa(data, cache_dir=None, mask_area=None,
-              rows_per_scan=None, persist=False, chunks=None, fill_value=None,
-              weight_count=10000, weight_min=0.01, weight_distance_max=1.0,
-              weight_delta_max=10.0, weight_sum_min=-1.0,
-              maximum_weight_mode=None):
-    """Mimic EWAs .resample() functuin call without **kwargs."""
-    pass
+def _mock_ewa_with_assert_42(data, cache_dir=None, mask_area=None,
+                             rows_per_scan=None, persist=False, chunks=None, fill_value=None,
+                             weight_count=10000, weight_min=0.01, weight_distance_max=1.0,
+                             weight_delta_max=10.0, weight_sum_min=-1.0,
+                             maximum_weight_mode=None):
+    """Mimic EWAs .resample() function call without **kwargs.
+
+    Also assert all the values are actually 42.
+    """
+    assert cache_dir == 42
+    assert mask_area == 42
+    assert rows_per_scan == 42
+    assert persist == 42
+    assert chunks == 42
+    assert fill_value == 42
+    assert weight_count == 42
+    assert weight_min == 42
+    assert weight_distance_max == 42
+    assert weight_delta_max == 42
+    assert weight_sum_min == 42
+    assert maximum_weight_mode == 42
 
 
 class TestResampleNullArea(TestCase):
