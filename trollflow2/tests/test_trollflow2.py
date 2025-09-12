@@ -693,7 +693,7 @@ def fake_scene():
     fake_scene = make_fake_scene(
         {"dragon_top_height": (dat := xr.DataArray(
             dims=("y", "x"),
-            data=da.arange(x*x).reshape(x, x))),
+            data=da.arange(x*x).reshape(x, x).rechunk(5))),
          "penguin_bottom_height": dat,
          "kraken_depth": dat},
         daskify=True,
