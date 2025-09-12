@@ -87,7 +87,7 @@ def get_test_message(test_message_file):
     return msg
 
 
-def check_results(produced_files, start_time, exitcode):
+def check_results(produced_files, start_time: datetime, exitcode: int):
     """Make sure the composites have been saved."""
     end_time = datetime.now()
     error_detected = False
@@ -307,7 +307,9 @@ def _extract_filenames(msg):
     """
     filesystems = list(gen_dict_extract(msg.data, 'filesystem'))
     if filesystems:
-        filenames = [filename for filename in gen_dict_extract(msg.data, 'uid')]
+        filenames = [filename for filename in gen_dict_extract(msg.data, 'path')]
+        if not filenames:
+            filenames = [filename for filename in gen_dict_extract(msg.data, 'uid')]
         to_open = _create_fs_files(filenames, filesystems)
     else:
         to_open = [uri for uri in gen_dict_extract(msg.data, 'uri')]
