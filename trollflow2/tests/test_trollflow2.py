@@ -1064,6 +1064,26 @@ class TestResample:
                          mask_area=False,
                          epsilon=0.0) in scn.resample.mock_calls
 
+    def test_resampler_with_only_named_kwargs(self):
+        """Test that resamplers like EWA without **kwargs are called correctly."""
+        from trollflow2.plugins import resample
+
+        prod_list = self.product_list.copy()
+        prod_list["resampler"] = "ewa"
+        scn = _get_mocked_scene_with_properties()
+        scn.resample = _mock_ewa
+        job = {"scene": scn, "product_list": prod_list}
+        resample(job)
+
+
+def _mock_ewa(data, cache_dir=None, mask_area=None,
+              rows_per_scan=None, persist=False, chunks=None, fill_value=None,
+              weight_count=10000, weight_min=0.01, weight_distance_max=1.0,
+              weight_delta_max=10.0, weight_sum_min=-1.0,
+              maximum_weight_mode=None):
+    """Mimic EWAs .resample() functuin call without **kwargs."""
+    pass
+
 
 class TestResampleNullArea(TestCase):
     """Test case for resampling."""
