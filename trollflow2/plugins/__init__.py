@@ -130,15 +130,37 @@ def aggregate(job):
     job['scene'] = job['scene'].aggregate(**kwargs)
 
 
+RESAMPLER_DEFAULT_OPTIONS = {
+    "ewa": {
+        "cache_dir": None,
+        "mask_area": None,
+        "rows_per_scan": None,
+        "persist": False,
+        "chunks": None,
+        "fill_value": None,
+        "weight_count": 10000,
+        "weight_min": 0.01,
+        "weight_distance_max": 1.0,
+        "weight_delta_max": 10.0,
+        "weight_sum_min": -1.0,
+        "maximum_weight_mode": None,
+    }
+}
+GLOBAL_RESAMPLER_DEFAULTS = {
+    "radius_of_influence": None,
+    "resampler": "nearest",
+    "reduce_data": True,
+    "cache_dir": None,
+    "mask_area": False,
+    "epsilon": 0.0,
+}
+
+
 def resample(job):
     """Resample the scene to some areas."""
-    defaults = {"radius_of_influence": None,
-                "resampler": "nearest",
-                "reduce_data": True,
-                "cache_dir": None,
-                "mask_area": False,
-                "epsilon": 0.0}
     product_list = job['product_list']
+    resampler = _get_plugin_conf(product_list, "/product_list", {"resampler": "nearest"})["resampler"]
+    defaults = RESAMPLER_DEFAULT_OPTIONS.get(resampler, GLOBAL_RESAMPLER_DEFAULTS)
     conf = _get_plugin_conf(product_list, '/product_list', defaults)
     job['resampled_scenes'] = {}
     scn = job['scene']

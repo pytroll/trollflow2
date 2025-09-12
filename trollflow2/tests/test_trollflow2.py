@@ -949,12 +949,11 @@ class TestAggregate(TestCase):
         assert job['scene'] is scn
 
 
-class TestResample(TestCase):
+class TestResample:
     """Test case for resampling."""
 
-    def setUp(self):
+    def setup_method(self):
         """Set up the test case."""
-        super().setUp()
         from yaml import UnsafeLoader
         self.product_list = read_config(raw_string=yaml_test1, Loader=UnsafeLoader)
 
@@ -965,48 +964,44 @@ class TestResample(TestCase):
         scn.resample.return_value = "foo"
         job = {"scene": scn, "product_list": self.product_list}
         resample(job)
-        self.assertTrue(mock.call('omerc_bb',
-                                  radius_of_influence=None,
-                                  resampler="nearest",
-                                  reduce_data=True,
-                                  cache_dir=None,
-                                  mask_area=False,
-                                  epsilon=0.0) in
-                        scn.resample.mock_calls)
-        self.assertTrue(mock.call('germ',
-                                  radius_of_influence=None,
-                                  resampler="nearest",
-                                  reduce_data=True,
-                                  cache_dir=None,
-                                  mask_area=False,
-                                  epsilon=0.0) in
-                        scn.resample.mock_calls)
-        self.assertTrue(mock.call('euron1',
-                                  radius_of_influence=None,
-                                  resampler="nearest",
-                                  reduce_data=True,
-                                  cache_dir=None,
-                                  mask_area=False,
-                                  epsilon=0.0) in
-                        scn.resample.mock_calls)
-        self.assertTrue("resampled_scenes" in job)
+        assert mock.call('omerc_bb',
+                         radius_of_influence=None,
+                         resampler="nearest",
+                         reduce_data=True,
+                         cache_dir=None,
+                         mask_area=False,
+                         epsilon=0.0) in scn.resample.mock_calls
+        assert mock.call('germ',
+                         radius_of_influence=None,
+                         resampler="nearest",
+                         reduce_data=True,
+                         cache_dir=None,
+                         mask_area=False,
+                         epsilon=0.0) in scn.resample.mock_calls
+        assert mock.call('euron1',
+                         radius_of_influence=None,
+                         resampler="nearest",
+                         reduce_data=True,
+                         cache_dir=None,
+                         mask_area=False,
+                         epsilon=0.0) in scn.resample.mock_calls
+        assert "resampled_scenes" in job
         for area in ["omerc_bb", "germ", "euron1"]:
-            self.assertTrue(area in job["resampled_scenes"])
-            self.assertTrue(job["resampled_scenes"][area] == "foo")
+            assert area in job["resampled_scenes"]
+            assert job["resampled_scenes"][area] == "foo"
 
         prod_list = self.product_list.copy()
         prod_list["common"] = {"resampler": "bilinear"}
         prod_list["product_list"]['areas']["euron1"]["reduce_data"] = False
         job = {"product_list": prod_list, "scene": scn}
         resample(job)
-        self.assertTrue(mock.call('euron1',
-                                  radius_of_influence=None,
-                                  resampler="bilinear",
-                                  reduce_data=False,
-                                  cache_dir=None,
-                                  mask_area=False,
-                                  epsilon=0.0) in
-                        scn.resample.mock_calls)
+        assert mock.call('euron1',
+                         radius_of_influence=None,
+                         resampler="bilinear",
+                         reduce_data=False,
+                         cache_dir=None,
+                         mask_area=False,
+                         epsilon=0.0) in scn.resample.mock_calls
 
     def test_resample_satproj(self):
         """Test keeping the satellite projection."""
@@ -1017,27 +1012,25 @@ class TestResample(TestCase):
         job['product_list']['product_list']['areas']['None'] = job['product_list']['product_list']['areas']['germ']
         del job['product_list']['product_list']['areas']['germ']
         resample(job)
-        self.assertTrue(mock.call('omerc_bb',
-                                  radius_of_influence=None,
-                                  resampler="nearest",
-                                  reduce_data=True,
-                                  cache_dir=None,
-                                  mask_area=False,
-                                  epsilon=0.0) in
-                        scn.resample.mock_calls)
-        self.assertTrue(mock.call('euron1',
-                                  radius_of_influence=None,
-                                  resampler="nearest",
-                                  reduce_data=True,
-                                  cache_dir=None,
-                                  mask_area=False,
-                                  epsilon=0.0) in
-                        scn.resample.mock_calls)
-        self.assertTrue(job['resampled_scenes']['None'] is scn)
-        self.assertTrue("resampled_scenes" in job)
+        assert mock.call('omerc_bb',
+                         radius_of_influence=None,
+                         resampler="nearest",
+                         reduce_data=True,
+                         cache_dir=None,
+                         mask_area=False,
+                         epsilon=0.0) in scn.resample.mock_calls
+        assert mock.call('euron1',
+                         radius_of_influence=None,
+                         resampler="nearest",
+                         reduce_data=True,
+                         cache_dir=None,
+                         mask_area=False,
+                         epsilon=0.0) in scn.resample.mock_calls
+        assert job['resampled_scenes']['None'] is scn
+        assert "resampled_scenes" in job
         for area in ["omerc_bb", "euron1"]:
-            self.assertTrue(area in job["resampled_scenes"])
-            self.assertTrue(job["resampled_scenes"][area] == "foo")
+            assert area in job["resampled_scenes"]
+            assert job["resampled_scenes"][area] == "foo"
 
     def test_minmax_area(self):
         """Test the min and max areas."""
@@ -1052,26 +1045,61 @@ class TestResample(TestCase):
         del product_list['product_list']['areas']['euron1']
         job = {"scene": scn, "product_list": product_list.copy()}
         resample(job)
-        self.assertTrue(mock.call(scn.coarsest_area(),
-                                  radius_of_influence=None,
-                                  resampler="nearest",
-                                  reduce_data=True,
-                                  cache_dir=None,
-                                  mask_area=False,
-                                  epsilon=0.0) in
-                        scn.resample.mock_calls)
+        assert mock.call(scn.coarsest_area(),
+                         radius_of_influence=None,
+                         resampler="nearest",
+                         reduce_data=True,
+                         cache_dir=None,
+                         mask_area=False,
+                         epsilon=0.0) in scn.resample.mock_calls
         del product_list['product_list']['areas']['None']['use_coarsest_area']
         product_list['product_list']['areas']['None']['use_finest_area'] = True
         job = {"scene": scn, "product_list": product_list.copy()}
         resample(job)
-        self.assertTrue(mock.call(scn.finest_area(),
-                                  radius_of_influence=None,
-                                  resampler="nearest",
-                                  reduce_data=True,
-                                  cache_dir=None,
-                                  mask_area=False,
-                                  epsilon=0.0) in
-                        scn.resample.mock_calls)
+        assert mock.call(scn.finest_area(),
+                         radius_of_influence=None,
+                         resampler="nearest",
+                         reduce_data=True,
+                         cache_dir=None,
+                         mask_area=False,
+                         epsilon=0.0) in scn.resample.mock_calls
+
+    def test_resampler_with_only_named_kwargs(self):
+        """Test that resamplers like EWA without **kwargs are called correctly."""
+        from trollflow2.plugins import RESAMPLER_DEFAULT_OPTIONS, resample
+
+        opts = RESAMPLER_DEFAULT_OPTIONS["ewa"]
+        prod_list = self.product_list.copy()
+        prod_list["product_list"]["resampler"] = "ewa"
+        for k in opts.keys():
+            prod_list["product_list"][k] = 42
+        scn = _get_mocked_scene_with_properties()
+        scn.resample = _mock_ewa_with_assert_42
+        job = {"scene": scn, "product_list": prod_list}
+        resample(job)
+
+
+def _mock_ewa_with_assert_42(data, cache_dir=None, mask_area=None,
+                             rows_per_scan=None, persist=False, chunks=None, fill_value=None,
+                             weight_count=10000, weight_min=0.01, weight_distance_max=1.0,
+                             weight_delta_max=10.0, weight_sum_min=-1.0,
+                             maximum_weight_mode=None):
+    """Mimic EWAs .resample() function call without **kwargs.
+
+    Also assert all the values are actually 42.
+    """
+    assert cache_dir == 42
+    assert mask_area == 42
+    assert rows_per_scan == 42
+    assert persist == 42
+    assert chunks == 42
+    assert fill_value == 42
+    assert weight_count == 42
+    assert weight_min == 42
+    assert weight_distance_max == 42
+    assert weight_delta_max == 42
+    assert weight_sum_min == 42
+    assert maximum_weight_mode == 42
 
 
 class TestResampleNullArea(TestCase):
