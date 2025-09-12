@@ -1,3 +1,43 @@
+## Version 0.17.0 (2025/09/12)
+
+### Issues Closed
+
+* [Issue 236](https://github.com/pytroll/trollflow2/issues/236) - callbacks fail with latest trollimage or satpy ([PR 237](https://github.com/pytroll/trollflow2/pull/237) by [@djhoese](https://github.com/djhoese))
+* [Issue 232](https://github.com/pytroll/trollflow2/issues/232) - zarr 3.1.0 crashes satpy
+* [Issue 231](https://github.com/pytroll/trollflow2/issues/231) - Update Satpy imports ([PR 233](https://github.com/pytroll/trollflow2/pull/233) by [@pnuu](https://github.com/pnuu))
+* [Issue 222](https://github.com/pytroll/trollflow2/issues/222) - The `check_valid_data_fraction` plugin does not check for pytroll-schedule availability ([PR 223](https://github.com/pytroll/trollflow2/pull/223) by [@pnuu](https://github.com/pnuu))
+* [Issue 211](https://github.com/pytroll/trollflow2/issues/211) - Cannot generate geo_color
+* [Issue 155](https://github.com/pytroll/trollflow2/issues/155) - Test directory not removed after tests ([PR 224](https://github.com/pytroll/trollflow2/pull/224) by [@pnuu](https://github.com/pnuu))
+* [Issue 132](https://github.com/pytroll/trollflow2/issues/132) - TypeError calculating sunlight coverage when no pytroll-schedule installed
+* [Issue 98](https://github.com/pytroll/trollflow2/issues/98) - Documentation refers to non-existing plugins check_platform and check_sensor ([PR 221](https://github.com/pytroll/trollflow2/pull/221) by [@pnuu](https://github.com/pnuu))
+
+In this release 8 issues were closed.
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR 237](https://github.com/pytroll/trollflow2/pull/237) - Fix handling of new Satpy writer return values ([236](https://github.com/pytroll/trollflow2/issues/236), [236](https://github.com/pytroll/trollflow2/issues/236))
+* [PR 228](https://github.com/pytroll/trollflow2/pull/228) - Add Sphinx config path to RTD config
+* [PR 224](https://github.com/pytroll/trollflow2/pull/224) - Put output dir to tmp_path ([155](https://github.com/pytroll/trollflow2/issues/155))
+* [PR 223](https://github.com/pytroll/trollflow2/pull/223) - Fix usage when trollsched is not installed ([222](https://github.com/pytroll/trollflow2/issues/222))
+* [PR 220](https://github.com/pytroll/trollflow2/pull/220) - Fix log message printing the number of loaded composites
+
+#### Features added
+
+* [PR 239](https://github.com/pytroll/trollflow2/pull/239) - Make ewa usable
+* [PR 238](https://github.com/pytroll/trollflow2/pull/238) - Use paths when provided in message data
+* [PR 233](https://github.com/pytroll/trollflow2/pull/233) - Update Satpy import paths ([231](https://github.com/pytroll/trollflow2/issues/231))
+* [PR 229](https://github.com/pytroll/trollflow2/pull/229) - Migrate to pyproject.toml
+* [PR 223](https://github.com/pytroll/trollflow2/pull/223) - Fix usage when trollsched is not installed ([222](https://github.com/pytroll/trollflow2/issues/222))
+
+#### Documentation changes
+
+* [PR 221](https://github.com/pytroll/trollflow2/pull/221) - Remove references to removed plugins ([98](https://github.com/pytroll/trollflow2/issues/98))
+
+In this release 11 pull requests were closed.
+
+
 ###############################################################################
 ## Version 0.16.0 (2024/10/22)
 
