@@ -126,7 +126,6 @@ workers:
   - fun: !!python/name:trollflow2.plugins.load_composites
   - fun: !!python/name:trollflow2.plugins.resample
   - fun: !!python/name:trollflow2.plugins.save_datasets
-#  - fun: !!python/object:trollflow2.FilePublisher {}
 """
 
 
@@ -136,7 +135,7 @@ class TestGetAreaPriorities:
     def test_get_area_priorities(self):
         """Test getting the area priorities."""
         from trollflow2.launcher import get_area_priorities
-        prodlist = yaml.load(yaml_test1, Loader=UnsafeLoader)
+        prodlist = yaml.safe_load(yaml_test1)
 
         priorities = get_area_priorities(prodlist)
         assert 1 in priorities
@@ -154,7 +153,7 @@ class TestMessageToJobs:
     def test_message_to_jobs(self):
         """Test converting message to jobs."""
         from trollflow2.launcher import message_to_jobs
-        prodlist = yaml.load(yaml_test1, Loader=UnsafeLoader)
+        prodlist = yaml.safe_load(yaml_test1)
         msg = mock.MagicMock()
         msg.data = {'uri': 'foo'}
 
@@ -175,7 +174,7 @@ class TestMessageToJobs:
     def test_message_to_jobs_minimal(self):
         """Test converting a message to minimal jobs."""
         from trollflow2.launcher import message_to_jobs
-        prodlist = yaml.load(yaml_test_minimal, Loader=UnsafeLoader)
+        prodlist = yaml.load(yaml_test_minimal, Loader=UnsafeLoader)  # noqa
         msg = mock.MagicMock()
         msg.data = {'uri': 'foo'}
         jobs = message_to_jobs(msg, prodlist)
@@ -238,7 +237,7 @@ class TestMessageToJobs:
 
         msg = mock.MagicMock()
         msg.data = msg_data
-        prodlist = yaml.load(yaml_test_minimal, Loader=UnsafeLoader)
+        prodlist = yaml.load(yaml_test_minimal, Loader=UnsafeLoader)  # noqa
         jobs = message_to_jobs(msg, prodlist)
         upath = jobs[999]['input_filenames'][0]
         assert upath.open("r").read() == data
@@ -278,7 +277,7 @@ class TestMessageToJobs:
             msg = mock.MagicMock()
             msg.data = msg_data
 
-            prodlist = yaml.load(yaml_test_minimal, Loader=UnsafeLoader)
+            prodlist = yaml.load(yaml_test_minimal, Loader=UnsafeLoader)  # noqa
             jobs = message_to_jobs(msg, prodlist)
             filesystemfile = jobs[999]['input_filenames'][0]
 
@@ -309,7 +308,7 @@ class TestMessageToJobs:
             msg = mock.MagicMock()
             msg.data = msg_data
 
-            prodlist = yaml.load(yaml_test_minimal, Loader=UnsafeLoader)
+            prodlist = yaml.load(yaml_test_minimal, Loader=UnsafeLoader)  # noqa
             jobs = message_to_jobs(msg, prodlist)
             extracted_filename = jobs[999]['input_filenames'][0]
 
@@ -338,7 +337,7 @@ class TestMessageToJobs:
             msg = mock.MagicMock()
             msg.data = msg_data
 
-            prodlist = yaml.load(yaml_test_minimal, Loader=UnsafeLoader)
+            prodlist = yaml.load(yaml_test_minimal, Loader=UnsafeLoader)  # noqa
             jobs = message_to_jobs(msg, prodlist)
             extracted_filename = jobs[999]['input_filenames'][0]
 
@@ -414,7 +413,7 @@ class TestRun(TestCase):
     def setUp(self):
         """Set up the test case."""
         super().setUp()
-        self.config = yaml.load(yaml_test1, Loader=UnsafeLoader)
+        self.config = yaml.safe_load(yaml_test1)
 
     def test_run_does_not_call_process_directly(self):
         """Test that process is called through Process."""
@@ -518,7 +517,7 @@ class TestInterruptRun(TestCase):
     def setUp(self):
         """Set up the test case."""
         super().setUp()
-        self.config = yaml.load(yaml_test1, Loader=UnsafeLoader)
+        self.config = yaml.safe_load(yaml_test1)
 
     def test_run_keyboard_interrupt(self):
         """Test interrupting the run with a ctrl-C."""
