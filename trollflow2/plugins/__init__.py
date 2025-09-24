@@ -47,7 +47,7 @@ from satpy import Scene
 from satpy.version import version as satpy_version
 from trollsift import compose
 
-if satpy_version >= "0.59.0":
+if satpy_version >= "0.58.0":
     from satpy.area import get_area_def
     from satpy.writers.core.compute import (compute_writer_results,
                                             group_results_by_output_file,
