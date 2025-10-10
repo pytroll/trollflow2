@@ -1,3 +1,16 @@
+## Version 0.17.1 (2025/10/10)
+
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR 241](https://github.com/pytroll/trollflow2/pull/241) - Fix version where area and writer imports were changed
+* [PR 240](https://github.com/pytroll/trollflow2/pull/240) - Fix automatic upload of new releases
+
+In this release 2 pull requests were closed.
+
+###############################################################################
 ## Version 0.17.0 (2025/09/12)
 
 ### Issues Closed
