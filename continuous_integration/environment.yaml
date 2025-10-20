@@ -10,6 +10,7 @@ dependencies:
   - trollsift
   - numpy
   - satpy>=0.32.0
+  - universal_pathlib
   - rasterio
   - pyorbital
   - pip

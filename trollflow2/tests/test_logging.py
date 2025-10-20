@@ -43,7 +43,7 @@ def test_queued_logging_has_a_listener():
 def test_queued_logging_stops_listener_on_exception():
     """Test that queued logging stops the listener even if an exception occurs."""
     with mock.patch("trollflow2.logging.QueueListener", autospec=True) as q_listener:
-        with pytest.raises(Exception, match='Oh no!'):
+        with pytest.raises(Exception, match="Oh no!"):
             with logging_on():
                 raise Exception("Oh no!")
         assert q_listener.return_value.stop.called
@@ -62,22 +62,22 @@ def test_queued_logging_process_default_config(caplog):
 def test_queued_logging_process_custom_config(caplog):
     """Test default config for queued logging started in a process."""
     log_config = {
-        'version': 1,
-        'handlers': {
-            'console': {
-                'class': 'logging.StreamHandler',
+        "version": 1,
+        "handlers": {
+            "console": {
+                "class": "logging.StreamHandler",
             },
         },
-        'loggers': {
-            '': {
-                'level': 'WARNING',
-                'handlers': ['console'],
+        "loggers": {
+            "": {
+                "level": "WARNING",
+                "handlers": ["console"],
             },
-            'logger_1': {
-                'level': 'DEBUG',
+            "logger_1": {
+                "level": "DEBUG",
             },
-            'logger_2': {
-                'level': 'INFO',
+            "logger_2": {
+                "level": "INFO",
             },
         },
     }
@@ -92,12 +92,12 @@ def test_queued_logging_process_custom_config(caplog):
     assert "logger_2 info" in caplog.text
 
 
-BUFFERING_LOG_CONFIG = {'version': 1,
-                        'formatters': {'simple': {'format': '%(asctime)s - %(name)s - %(levelname)s - %(message)s'}},
-                        'handlers': {'buffer': {'class': 'logging.handlers.BufferingHandler',
-                                                'capacity': 1,
-                                                'formatter': 'simple'}},
-                        'root': {'level': 'INFO', 'handlers': ['buffer']}}
+BUFFERING_LOG_CONFIG = {"version": 1,
+                        "formatters": {"simple": {"format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s"}},
+                        "handlers": {"buffer": {"class": "logging.handlers.BufferingHandler",
+                                                "capacity": 1,
+                                                "formatter": "simple"}},
+                        "root": {"level": "INFO", "handlers": ["buffer"]}}
 
 
 def test_log_config_is_used_when_provided():
@@ -150,15 +150,15 @@ def fun(loggers):
 def test_logging_works_in_subprocess_not_double(tmp_path):
     """Test that the logs get to a file, even from a subprocess, without duplicate lines."""
     logfile = tmp_path / "mylog"
-    LOG_CONFIG_TO_FILE = {'version': 1,
-                          'formatters': {'simple': {'format': '%(asctime)s - %(name)s - %(levelname)s - %(message)s'}},
-                          'handlers': {'file': {'class': 'logging.FileHandler',
-                                                'filename': logfile,
-                                                'formatter': 'simple'}},
+    LOG_CONFIG_TO_FILE = {"version": 1,
+                          "formatters": {"simple": {"format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s"}},
+                          "handlers": {"file": {"class": "logging.FileHandler",
+                                                "filename": logfile,
+                                                "formatter": "simple"}},
                           "loggers":
-                              {'': {'level': 'WARNING', 'handlers': ['file']},
-                               'foo1': {'level': 'DEBUG'},
-                               'foo2': {'level': 'INFO'},
+                              {"": {"level": "WARNING", "handlers": ["file"]},
+                               "foo1": {"level": "DEBUG"},
+                               "foo2": {"level": "INFO"},
                                }
                           }
 
@@ -188,11 +188,11 @@ def duplicate_lines(contents):
 def test_logging_config_without_loggers(tmp_path):
     """Test that the log configs without loggers work."""
     logfile = tmp_path / "mylog"
-    LOG_CONFIG_TO_FILE = {'version': 1,
-                          'formatters': {'simple': {'format': '%(asctime)s - %(name)s - %(levelname)s - %(message)s'}},
-                          'handlers': {'file': {'class': 'logging.FileHandler',
-                                                'filename': logfile,
-                                                'formatter': 'simple'}},
+    LOG_CONFIG_TO_FILE = {"version": 1,
+                          "formatters": {"simple": {"format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s"}},
+                          "handlers": {"file": {"class": "logging.FileHandler",
+                                                "filename": logfile,
+                                                "formatter": "simple"}},
                           "root": {"level": "DEBUG", "handlers": ["file"]}
                           }
 

@@ -55,18 +55,18 @@ product_list:
 
 """
 
-input_mda = {'orig_platform_name': 'noaa15', 'orbit_number': 7993,
-             'start_time': dt.datetime(2019, 2, 17, 6, 0, 11, 100000), 'stfrac': 1,
-             'end_time': dt.datetime(2019, 2, 17, 6, 15, 10, 400000), 'etfrac': 4, 'status': 'OK',
-             'format': 'CF', 'data_processing_level': '2', 'orbit': 7993, 'module': 'ppsMakePhysiography',
-             'platform_name': 'NOAA-15', 'pps_version': 'v2018', 'file_was_already_processed': False,
-             'dataset': [{'uri': '/home/a001673/data/satellite/test_trollflow2/S_NWC_CMA_noaa15_07993_20190217T0600111Z_20190217T0615104Z.nc',  # noqa
-                          'uid': 'S_NWC_CMA_noaa15_07993_20190217T0600111Z_20190217T0615104Z.nc'},
-                         {'uri': '/home/a001673/data/satellite/test_trollflow2/S_NWC_CTTH_noaa15_07993_20190217T0600111Z_20190217T0615104Z.nc',  # noqa
-                          'uid': 'S_NWC_CTTH_noaa15_07993_20190217T0600111Z_20190217T0615104Z.nc'},
-                         {'uri': '/home/a001673/data/satellite/test_trollflow2/S_NWC_CT_noaa15_07993_20190217T0600111Z_20190217T0615104Z.nc',  # noqa
-                          'uid': 'S_NWC_CT_noaa15_07993_20190217T0600111Z_20190217T0615104Z.nc'}],
-             'sensor': ['avhrr']}
+input_mda = {"orig_platform_name": "noaa15", "orbit_number": 7993,
+             "start_time": dt.datetime(2019, 2, 17, 6, 0, 11, 100000), "stfrac": 1,
+             "end_time": dt.datetime(2019, 2, 17, 6, 15, 10, 400000), "etfrac": 4, "status": "OK",
+             "format": "CF", "data_processing_level": "2", "orbit": 7993, "module": "ppsMakePhysiography",
+             "platform_name": "NOAA-15", "pps_version": "v2018", "file_was_already_processed": False,
+             "dataset": [{"uri": "/home/a001673/data/satellite/test_trollflow2/S_NWC_CMA_noaa15_07993_20190217T0600111Z_20190217T0615104Z.nc",  # noqa
+                          "uid": "S_NWC_CMA_noaa15_07993_20190217T0600111Z_20190217T0615104Z.nc"},
+                         {"uri": "/home/a001673/data/satellite/test_trollflow2/S_NWC_CTTH_noaa15_07993_20190217T0600111Z_20190217T0615104Z.nc",  # noqa
+                          "uid": "S_NWC_CTTH_noaa15_07993_20190217T0600111Z_20190217T0615104Z.nc"},
+                         {"uri": "/home/a001673/data/satellite/test_trollflow2/S_NWC_CT_noaa15_07993_20190217T0600111Z_20190217T0615104Z.nc",  # noqa
+                          "uid": "S_NWC_CT_noaa15_07993_20190217T0600111Z_20190217T0615104Z.nc"}],
+             "sensor": ["avhrr"]}
 
 
 def test_s3_uploader_update_filenames():
@@ -82,10 +82,10 @@ def test_s3_uploader_update_filenames():
 
     movers_mock = mock.MagicMock()
     trollmoves_mock = mock.MagicMock()
-    with mock.patch.dict('sys.modules', {'trollmoves': trollmoves_mock, 'trollmoves.movers': movers_mock}):
+    with mock.patch.dict("sys.modules", {"trollmoves": trollmoves_mock, "trollmoves.movers": movers_mock}):
         uploader(job)
-        for fmt, _ in plist_iter(job['product_list']['product_list']):
-            assert fmt['filename'].startswith('s3://bucket-name/')
+        for fmt, _ in plist_iter(job["product_list"]["product_list"]):
+            assert fmt["filename"].startswith("s3://bucket-name/")
 
 
 def test_s3_uploader_move():
@@ -97,7 +97,7 @@ def test_s3_uploader_move():
 
     movers_mock = mock.MagicMock()
     trollmoves_mock = mock.MagicMock()
-    with mock.patch.dict('sys.modules', {'trollmoves': trollmoves_mock, 'trollmoves.movers': movers_mock}):
+    with mock.patch.dict("sys.modules", {"trollmoves": trollmoves_mock, "trollmoves.movers": movers_mock}):
         from trollflow2.plugins.s3 import uploader
 
         uploader(job)
