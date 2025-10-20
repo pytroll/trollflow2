@@ -410,9 +410,9 @@ def test_subprocess_uses_custom_queued_logging(tmp_path, caplog):
 class TestRun(TestCase):
     """Test case for running the plugins."""
 
-    def setUp(self):
+    def setup_method(self):
         """Set up the test case."""
-        super().setUp()
+        super().setup_method()
         self.config = yaml.safe_load(yaml_test1)
 
     def test_run_does_not_call_process_directly(self):
@@ -460,7 +460,7 @@ class TestRun(TestCase):
             lc_.assert_called_with(addresses=None, nameserver='localhost',
                                    topics=['/topic1', '/topic2'])
             # Subscriber topics are removed from config
-            self.assertTrue('subscribe_topics' not in self.config['product_list'])
+            assert 'subscribe_topics' not in self.config['product_list']
             # Topics are given as command line option
             lc_.reset_mock()
             try:
@@ -514,9 +514,9 @@ def run_on_a_simple_product_list(config):
 class TestInterruptRun(TestCase):
     """Test case for running the plugins."""
 
-    def setUp(self):
+    def setup_method(self):
         """Set up the test case."""
-        super().setUp()
+        super().setup_method()
         self.config = yaml.safe_load(yaml_test1)
 
     def test_run_keyboard_interrupt(self):
@@ -544,13 +544,13 @@ class TestExpand(TestCase):
         inside = {'a': 'b'}
         outside = {'c': inside, 'd': inside}
         expanded = expand(outside)
-        self.assertIsNot(expanded['d'], expanded['c'])
+        assert expanded['d'] is not expanded['c']
 
 
 class TestProcess(TestCase):
     """Test the process function."""
 
-    def setUp(self):
+    def setup_method(self):
         """Set up the test."""
         self.patcher = mock.patch.multiple("trollflow2.launcher",
                                            traceback=mock.DEFAULT,
@@ -709,7 +709,7 @@ def test_workers_initialized():
             os.remove(fname)
 
 
-def test_get_dask_distributed_clien(caplog):
+def test_get_dask_distributed_client(caplog):
     """Test getting dask client."""
     from trollflow2.launcher import get_dask_distributed_client
 

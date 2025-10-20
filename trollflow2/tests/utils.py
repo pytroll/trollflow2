@@ -17,7 +17,6 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 """Utilities for testing trollflow2."""
 
-import unittest
 from unittest import mock
 
 try:
@@ -58,15 +57,17 @@ def find_missing_modules():
 module_patcher = find_missing_modules()
 
 
-class TestCase(unittest.TestCase):
+class TestCase:
     """Patch the missing imports."""
 
-    def setUp(self):
+    def setup_method(self):
         """Set up the test case."""
-        self.mock = mock.MagicMock()
         if module_patcher is not None:
             module_patcher.start()
-            self.addCleanup(module_patcher.stop)
+
+    def teardown_method(self):
+        if module_patcher is not None:
+            module_patcher.stop()
 
 
 def create_filenames_and_topics(job):

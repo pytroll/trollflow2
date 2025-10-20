@@ -160,7 +160,7 @@ input_mda = {'orig_platform_name': 'noaa15', 'orbit_number': 7993,
              'sensor': ['avhrr']}
 
 
-class TestProdList(unittest.TestCase):
+class TestProdList:
     """Test case for the product list handling."""
 
     def test_iter(self):
@@ -184,18 +184,18 @@ class TestProdList(unittest.TestCase):
                     {'areaname': 'omerc_bb', 'area': 'omerc_bb', 'productname': 'cloud_top_height', 'product': 'cloud_top_height',  # noqa
                      'output_dir': '/tmp', 'format': 'tif', 'min_coverage': 5.0, 'something': 'foo',
                      'writer': 'geotiff'}]
-        for i, exp in zip(plist_iter(prodlist), expected):
-            self.assertDictEqual(i[0], exp)
+        for res, exp in zip(plist_iter(prodlist), expected):
+            assert res[0] == exp
 
         prodlist = read_config(raw_string=yaml_test2)['product_list']
-        for i, exp in zip(plist_iter(prodlist), expected):
-            self.assertDictEqual(i[0], exp)
+        for res, exp in zip(plist_iter(prodlist), expected):
+            assert res[0] == exp
 
 
-class TestConfigValue(unittest.TestCase):
+class TestConfigValue:
     """Test case for get_config_value."""
 
-    def setUp(self):
+    def setup_method(self):
         """Set up the test case."""
         self.prodlist = read_config(raw_string=yaml_test1)
         self.path = "/product_list/areas/germ/products/cloudtype"
@@ -205,34 +205,34 @@ class TestConfigValue(unittest.TestCase):
         from trollflow2.dict_tools import get_config_value
         expected = "/tmp/satdmz/pps/www/latest_2018/"
         res = get_config_value(self.prodlist, self.path, "output_dir")
-        self.assertEqual(res, expected)
+        assert res == expected
 
     def test_config_value_parent_level(self):
         """Test getting a config value from the parent level."""
         from trollflow2.dict_tools import get_config_value
         expected = "{start_time:%Y%m%d_%H%M}_{areaname:s}_{productname}.{format}"
         res = get_config_value(self.prodlist, self.path, "fname_pattern")
-        self.assertEqual(res, expected)
+        assert res == expected
 
     def test_config_value_common(self):
         """Test getting a common config value."""
         from trollflow2.dict_tools import get_config_value
         expected = "foo"
         res = get_config_value(self.prodlist, self.path, "something")
-        self.assertEqual(res, expected)
+        assert res == expected
 
     def test_config_value_missing(self):
         """Test getting a missing config value."""
         from trollflow2.dict_tools import get_config_value
         res = get_config_value(self.prodlist, self.path, "nothing")
-        self.assertIsNone(res)
+        assert res is None
 
     def test_config_value_missing_own_default(self):
         """Test getting a missing value with default."""
         from trollflow2.dict_tools import get_config_value
         res = get_config_value(self.prodlist, self.path, "nothing",
                                default=42)
-        self.assertEqual(res, 42)
+        assert res == 42
 
     def test_null_area(self):
         """Test area labeled as null."""
@@ -240,8 +240,4 @@ class TestConfigValue(unittest.TestCase):
         path = "/product_list/areas/None/products/cloudtype"
         expected = "/tmp/satdmz/pps/www/latest_2018/"
         res = get_config_value(self.prodlist, path, "output_dir")
-        self.assertEqual(res, expected)
-
-
-if __name__ == '__main__':
-    unittest.main()
+        assert res == expected

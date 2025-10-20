@@ -293,11 +293,6 @@ JOB_INPUT_MDA_START_TIME = SCENE_START_TIME + dt.timedelta(seconds=10)
 class TestSaveDatasets(TestCase):
     """Test case for saving datasets."""
 
-    @pytest.fixture(autouse=True)
-    def inject_fixtures(self, tmp_path):
-        """Inject pytest fixtures."""
-        self._tmp_path = tmp_path
-
     def test_prepared_filename(self):
         """Test the `prepared_filename` context."""
         from trollflow2.plugins import prepared_filename
@@ -307,23 +302,23 @@ class TestSaveDatasets(TestCase):
         fmat = {'fname_pattern': tst_file}
         with prepared_filename(fmat, renames) as filename:
             pass
-        self.assertEqual(filename, tst_file)
-        self.assertEqual(len(renames), 0)
+        assert filename == tst_file
+        assert len(renames) == 0
 
         renames = {}
         fmat = {'use_tmp_file': False, 'fname_pattern': tst_file}
         with prepared_filename(fmat, renames) as filename:
             pass
-        self.assertEqual(filename, tst_file)
-        self.assertEqual(len(renames), 0)
+        assert filename == tst_file
+        assert len(renames) == 0
 
         renames = {}
         fmat = {'use_tmp_file': True, 'fname_pattern': tst_file}
         with prepared_filename(fmat, renames) as filename:
             pass
-        self.assertTrue(filename.startswith, 'tmp')
-        self.assertEqual(len(renames), 1)
-        self.assertEqual(list(renames.values())[0], tst_file)
+        assert os.path.basename(filename).startswith('tmp')
+        assert len(renames) == 1
+        assert list(renames.values())[0] == tst_file
 
         renames = {}
         fmat = {'use_tmp_file': True, 'fname_pattern': tst_file}
@@ -332,19 +327,19 @@ class TestSaveDatasets(TestCase):
                 raise KeyError('Oh no!')
         except KeyError:
             pass
-        self.assertTrue(filename.startswith, 'tmp')
-        self.assertEqual(len(renames), 0)
+        assert os.path.basename(filename).startswith('tmp')
+        assert len(renames) == 0
 
         tst_dir = os.path.normpath('/tmp/bleh')
         renames = {}
         fmat = {'use_tmp_file': True, 'fname_pattern': tst_file, 'output_dir': tst_dir}
         with prepared_filename(fmat, renames) as filename:
             pass
-        self.assertTrue(filename.startswith, 'tmp')
-        self.assertEqual(len(renames), 1)
-        self.assertEqual(list(renames.values())[0], os.path.join(tst_dir, tst_file))
+        assert os.path.basename(filename).startswith('tmp')
+        assert len(renames) == 1
+        assert list(renames.values())[0] == os.path.join(tst_dir, tst_file)
 
-        self.assertTrue(os.path.exists(tst_dir))
+        assert os.path.exists(tst_dir)
         os.rmdir(tst_dir)
 
     def test_prepare_filename_and_directory(self):
@@ -355,8 +350,8 @@ class TestSaveDatasets(TestCase):
         fmat = {'use_tmp_file': True, 'fname_pattern': tst_file, 'output_dir': tst_dir,
                 'name': 'mooh', 'service': 'cow'}
         directory, filename = _prepare_filename_and_directory(fmat)
-        self.assertEqual(filename, os.path.normpath('/tmp/bleh/cow/goes_mooh.png'))
-        self.assertTrue(os.path.exists(directory))
+        assert filename == os.path.normpath('/tmp/bleh/cow/goes_mooh.png')
+        assert os.path.exists(directory)
         os.rmdir(directory)
 
     def test_get_temp_filename(self):
@@ -377,7 +372,7 @@ class TestSaveDatasets(TestCase):
             names = []
             for _i_ in range(3):
                 names.append(_get_temp_filename(tst_dir, names))
-            self.assertEqual(''.join(names), 'cumber')
+            assert ''.join(names) == 'cumber'
 
     def test_save_datasets(self):
         """Test saving datasets."""
@@ -423,14 +418,14 @@ class TestSaveDatasets(TestCase):
             sd_calls = (job['resampled_scenes']['euron1'].save_dataset.mock_calls
                         + job['resampled_scenes']['omerc_bb'].save_dataset.mock_calls)
             for sd, esd in zip(sd_calls, expected_sd):
-                self.assertEqual(sd, esd)
+                assert sd == esd
             sds_calls = job['resampled_scenes']['euron1'].save_datasets.mock_calls
             for sds, esds in zip(sds_calls, expected_sds):
-                self.assertDictEqual(sds[2], esds[2])
+                assert sds[2] == esds[2]
             args, kwargs = job['resampled_scenes']['germ'].save_dataset.call_args_list[0]
-            self.assertTrue(os.path.basename(kwargs['filename']).startswith('tmp'))
+            assert os.path.basename(kwargs['filename']).startswith('tmp')
             for ds, eds in zip(dsid.mock_calls, expected_dsid):
-                self.assertEqual(ds, eds)
+                assert ds == eds
             rename.assert_called_once()
 
         dexpected = {
@@ -550,7 +545,7 @@ class TestSaveDatasets(TestCase):
                 }
             }
         }
-        self.assertDictEqual(dexpected, job['product_list']['product_list'])
+        assert dexpected == job['product_list']['product_list']
 
         filenames = ['/tmp/satdmz/pps/www/latest_2018/NOAA-15_20190217_0600_euron1_in_fname_ctth_static.png',
                      '/tmp/satdmz/pps/www/latest_2018/NOAA-15_20190217_0600_euron1_in_fname_ctth_static.jpg',
@@ -559,7 +554,7 @@ class TestSaveDatasets(TestCase):
                      '/tmp/NOAA-15_20190217_0600_omerc_bb_ct.nc',
                      '/tmp/NOAA-15_20190217_0600_omerc_bb_cloud_top_height.tif']
         for fname, efname in zip(the_queue.put.mock_calls, filenames):
-            self.assertEqual(fname, mock.call(efname))
+            assert fname == mock.call(efname)
 
     def test_save_datasets_eager(self):
         """Test saving datasets in eager manner."""
@@ -580,16 +575,16 @@ class TestSaveDatasets(TestCase):
                 assert "compute=True" in str(sds)
             compute_writer_results.assert_not_called()
 
-    def test_pop_unknown_args(self):
+    def test_pop_unknown_args(self, tmp_path):
         """Test pop unknown kwargs."""
         from trollflow2.plugins import save_datasets
         job = _create_job_for_save_datasets()
 
-        output_dir = self._tmp_path / "örülök, hogy megismerhetem"
+        output_dir = tmp_path / "output"
         product_list = {
             "fname_pattern": "name.tif",
             "use_tmp_file": True,
-            "staging_zone": "értékesítési szakember",
+            "staging_zone": "staging",
             "areas": {
                 "euron1": {
                     "products": {
@@ -603,10 +598,10 @@ class TestSaveDatasets(TestCase):
                                  "PhysicValue": "yes",
                                  "SatelliteNameID": 0,
                                  "output_dir": str(output_dir),
-                                 "fname_pattern": "viszontlátásra",
+                                 "fname_pattern": "pattern",
                                  "dispatch": {},
                                  "use_tmp_file": False,
-                                 "staging_zone": "értékesítési szakember",
+                                 "staging_zone": "staging",
                                  }
                             ]
                         }
@@ -829,7 +824,7 @@ class TestCreateScene(TestCase):
             scene.return_value = "foo"
             job = {"input_filenames": "bar", "product_list": {}}
             create_scene(job)
-            self.assertEqual(job["scene"], "foo")
+            assert job["scene"] == "foo"
             if satpy_version <= "0.25.1":
                 scene.assert_called_with(filenames='bar', reader=None,
                                          reader_kwargs=None, ppp_config_dir=None)
@@ -850,40 +845,35 @@ class TestCreateScene(TestCase):
 class TestLoadComposites(TestCase):
     """Test case for loading composites."""
 
-    @pytest.fixture(autouse=True)
-    def inject_fixtures(self, caplog):
-        """Inject fixtures."""
-        self._caplog = caplog
-
-    def setUp(self):
+    def setup_method(self):
         """Set up the test case."""
-        super().setUp()
+        super().setup_method()
         from yaml import UnsafeLoader
         self.product_list = read_config(raw_string=yaml_test1, Loader=UnsafeLoader)
 
-    def test_load_composites(self):
+    def test_load_composites(self, caplog):
         """Test loading composites."""
         from trollflow2.plugins import DEFAULT, load_composites
         scn = _get_mocked_scene_with_properties()
         job = {"product_list": self.product_list, "scene": scn}
-        with self._caplog.at_level(logging.INFO):
+        with caplog.at_level(logging.INFO):
             load_composites(job)
-        assert "Loading 3 composites." in self._caplog.text
+        assert "Loading 3 composites." in caplog.text
         scn.load.assert_called_with({'ct', 'cloudtype', 'cloud_top_height'}, resolution=DEFAULT, generate=False)
 
-    def test_load_composites_with_config(self):
+    def test_load_composites_with_config(self, caplog):
         """Test loading composites with a config."""
         from trollflow2.plugins import load_composites
         scn = _get_mocked_scene_with_properties()
         self.product_list['product_list']['resolution'] = 1000
         self.product_list['product_list']['delay_composites'] = False
         job = {"product_list": self.product_list, "scene": scn}
-        with self._caplog.at_level(logging.INFO):
+        with caplog.at_level(logging.INFO):
             load_composites(job)
-        assert "Loading 3 composites." in self._caplog.text
+        assert "Loading 3 composites." in caplog.text
         scn.load.assert_called_with({'ct', 'cloudtype', 'cloud_top_height'}, resolution=1000, generate=True)
 
-    def test_load_composites_with_different_resolutions(self):
+    def test_load_composites_with_different_resolutions(self, caplog):
         """Test loading composites with different resolutions."""
         from trollflow2.plugins import load_composites
         scn = _get_mocked_scene_with_properties()
@@ -891,21 +881,21 @@ class TestLoadComposites(TestCase):
         self.product_list['product_list']['areas']['euron1']['resolution'] = 500
         self.product_list['product_list']['delay_composites'] = False
         job = {"product_list": self.product_list, "scene": scn}
-        with self._caplog.at_level(logging.INFO):
+        with caplog.at_level(logging.INFO):
             load_composites(job)
-        assert "Loading 4 composites." in self._caplog.text
+        assert "Loading 4 composites." in caplog.text
         scn.load.assert_any_call({'cloudtype', 'ct', 'cloud_top_height'}, resolution=1000, generate=True)
         scn.load.assert_any_call({'cloud_top_height'}, resolution=500, generate=True)
 
-    def test_load_composites_with_custom_args(self):
+    def test_load_composites_with_custom_args(self, caplog):
         """Test loading with arbitrary additional arguments."""
         from trollflow2.plugins import DEFAULT, load_composites
         scn = _get_mocked_scene_with_properties()
         self.product_list['product_list']['scene_load_kwargs'] = {"upper_right_corner": "NE"}
         job = {"product_list": self.product_list, "scene": scn}
-        with self._caplog.at_level(logging.INFO):
+        with caplog.at_level(logging.INFO):
             load_composites(job)
-        assert "Loading 3 composites." in self._caplog.text
+        assert "Loading 3 composites." in caplog.text
         scn.load.assert_called_with(
             {'ct', 'cloudtype', 'cloud_top_height'},
             resolution=DEFAULT, generate=False, upper_right_corner="NE")
@@ -914,9 +904,9 @@ class TestLoadComposites(TestCase):
 class TestAggregate(TestCase):
     """Test case for aggregating."""
 
-    def setUp(self):
+    def setup_method(self):
         """Set up the test case."""
-        super().setUp()
+        super().setup_method()
         from yaml import UnsafeLoader
         self.product_list = read_config(raw_string=yaml_test1, Loader=UnsafeLoader)
 
@@ -1105,9 +1095,9 @@ def _mock_ewa_with_assert_42(data, cache_dir=None, mask_area=None,
 class TestResampleNullArea(TestCase):
     """Test case for resampling."""
 
-    def setUp(self):
+    def setup_method(self):
         """Set up the test case."""
-        super().setUp()
+        super().setup_method()
         from yaml import UnsafeLoader
         self.product_list = read_config(raw_string=yaml_test_null_area, Loader=UnsafeLoader)
 
@@ -1126,8 +1116,7 @@ class TestResampleNullArea(TestCase):
         scn.keys.return_value = ['a', 'b', 'c']
         scn.wishlist = {'abc'}
         resample(job)
-        self.assertTrue(mock.call({'abc'}, generate=True) in
-                        scn.load.mock_calls)
+        assert mock.call({'abc'}, generate=True) in scn.load.mock_calls
 
     def test_resample_native_null_area(self):
         """Test using `native` resampler with `None` area."""
@@ -1140,16 +1129,15 @@ class TestResampleNullArea(TestCase):
         scn.keys.return_value = ['abc']
         scn.wishlist = {'abc'}
         resample(job)
-        self.assertTrue("resampler='native'" in
-                        str(scn.resample.mock_calls))
+        assert "resampler='native'" in str(scn.resample.mock_calls)
 
 
 class TestSunlightCovers(TestCase):
     """Test the sunlight coverage."""
 
-    def setUp(self):
+    def setup_method(self):
         """Set up the test case."""
-        super().setUp()
+        super().setup_method()
         from yaml import UnsafeLoader
         self.product_list = read_config(raw_string=yaml_test1, Loader=UnsafeLoader)
         self.input_mda = {"platform_name": "NOAA-15",
@@ -1192,7 +1180,7 @@ class TestGetProductAreaDef(TestCase):
         area = 'area'
         product = 'product'
         res = _get_product_area_def(job, area, product)
-        self.assertIsNone(res)
+        assert res is None
 
         # Area not in the scene, take area def from the available first dataset
         adef = mock.MagicMock()
@@ -1201,7 +1189,7 @@ class TestGetProductAreaDef(TestCase):
         scn['1'] = prod
         job = {'scene': scn}
         res = _get_product_area_def(job, area, product)
-        self.assertTrue(res is adef)
+        assert res is adef
         prod.attrs.__getitem__.assert_called_once()
 
         # Area from the un-resampled scene
@@ -1213,12 +1201,12 @@ class TestGetProductAreaDef(TestCase):
         scn = {area: prod, '1': prod2}
         job = {'scene': scn}
         res = _get_product_area_def(job, area, product)
-        self.assertTrue(res is adef)
+        assert res is adef
         prod.attrs.__getitem__.assert_called_once()
         prod2.attrs.__getitem__.assert_not_called()
         # Product is a tuple
         res = _get_product_area_def(job, area, (product, 'foo'))
-        self.assertTrue(res is adef)
+        assert res is adef
 
         # Area from a resampled scene
         adef = mock.MagicMock()
@@ -1229,20 +1217,20 @@ class TestGetProductAreaDef(TestCase):
         scn = {area: prod, '1': prod2}
         job = {'resampled_scenes': {area: scn}}
         res = _get_product_area_def(job, area, product)
-        self.assertTrue(res is adef)
+        assert res is adef
         prod.attrs.__getitem__.assert_called_once()
         prod2.attrs.__getitem__.assert_not_called()
         # Product is a tuple
         res = _get_product_area_def(job, area, (product, 'foo'))
-        self.assertTrue(res is adef)
+        assert res is adef
 
 
 class TestCheckSunlightCoverage(TestCase):
     """Test case for sunlight coverage."""
 
-    def setUp(self):
+    def setup_method(self):
         """Set up the test case."""
-        super().setUp()
+        super().setup_method()
         from yaml import UnsafeLoader
         self.product_list = read_config(raw_string=yaml_test3, Loader=UnsafeLoader)
         self.input_mda = {"platform_name": "NOAA-15",
@@ -1308,7 +1296,7 @@ class TestCheckSunlightCoverage(TestCase):
             _get_sunlight_coverage.assert_not_called()
             ts_pass.assert_not_called()
 
-    def test_sunlight_filter(self):
+    def test_sunlight_filter(self, caplog):
         """Test that product isn't loaded when sunlight coverage is to low."""
         from trollflow2.plugins import check_sunlight_coverage, metadata_alias
         with mock.patch('trollflow2.plugins.Pass'), \
@@ -1337,24 +1325,24 @@ class TestCheckSunlightCoverage(TestCase):
             pl_green = job['product_list']['product_list']['areas']['euron1']['products']['green_snow']
 
             _get_sunlight_coverage.assert_called_once()
-            self.assertIn('green_snow', job['product_list']['product_list']['areas']['euron1']['products'])
+            assert 'green_snow' in job['product_list']['product_list']['areas']['euron1']['products']
 
             _get_sunlight_coverage.return_value = 0
-            with self.assertLogs("trollflow2.plugins", level=logging.INFO) as cm:
+            with caplog.at_level(logging.INFO):
                 check_sunlight_coverage(job)
-            self.assertNotIn('green_snow', job['product_list']['product_list']['areas']['euron1']['products'])
+            assert 'green_snow' not in job['product_list']['product_list']['areas']['euron1']['products']
             assert any("Not enough sunlight coverage for product "
                        "'green_snow', removed. Needs at least 10.0%, got "
-                       "0.0%." in line for line in cm.output)
+                       "0.0%." in line for line in caplog.text.split("\n"))
 
             job['product_list']['product_list']['areas']['euron1']['products']['green_snow'] = pl_green
             _get_sunlight_coverage.return_value = 1
-            with self.assertLogs("trollflow2.plugins", level=logging.INFO) as cm:
+            with caplog.at_level(logging.INFO):
                 check_sunlight_coverage(job)
-            self.assertNotIn('green_snow', job['product_list']['product_list']['areas']['euron1']['products'])
+            assert 'green_snow' not in job['product_list']['product_list']['areas']['euron1']['products']
             assert any("Too much sunlight coverage for product "
                        "'green_snow', removed. Needs at most 40.0%, got "
-                       "100.0%." in line for line in cm.output)
+                       "100.0%." in line for line in caplog.text.split("\n"))
 
 
 def _get_mocked_scene_with_properties():
@@ -1370,9 +1358,9 @@ def _get_mocked_scene_with_properties():
 class TestCovers(TestCase):
     """Test case for coverage checks."""
 
-    def setUp(self):
+    def setup_method(self):
         """Set up the test case."""
-        super().setUp()
+        super().setup_method()
         from yaml import UnsafeLoader
         self.product_list = read_config(raw_string=yaml_test1, Loader=UnsafeLoader)
         self.input_mda = {"platform_name": "NOAA-15",
@@ -1388,9 +1376,9 @@ class TestCovers(TestCase):
         job_orig = {"foo": "bar"}
         job = job_orig.copy()
         covers(job)
-        self.assertEqual(job, job_orig)
+        assert job == job_orig
 
-    def test_covers_complains_when_multiple_sensors_are_provided(self):
+    def test_covers_complains_when_multiple_sensors_are_provided(self, caplog):
         """Test that the plugin complains when multiple sensors are provided."""
         from trollflow2.plugins import covers
 
@@ -1402,13 +1390,13 @@ class TestCovers(TestCase):
                    "input_mda": {"platform_name": "platform",
                                  "sensor": ["avhrr-3", "mhs"]},
                    "scene": scn}
-            with self.assertLogs("trollflow2.plugins", logging.WARNING) as log:
+            with caplog.at_level(logging.WARNING):
                 covers(job)
-            assert len(log.output) == 1
+            assert len(caplog.records) == 1
             assert any("Multiple sensors given, taking the first one for coverage calculations" in line
-                       for line in log.output)
+                       for line in caplog.text.split("\n"))
 
-    def test_covers_does_not_complain_when_one_sensor_is_provided_as_a_sequence(self):
+    def test_covers_does_not_complain_when_one_sensor_is_provided_as_a_sequence(self, caplog):
         """Test that the plugin complains when multiple sensors are provided."""
         from trollflow2.plugins import covers
 
@@ -1420,11 +1408,11 @@ class TestCovers(TestCase):
                    "input_mda": {"platform_name": "platform",
                                  "sensor": ["avhrr-3"]},
                    "scene": scn}
-            with self.assertLogs("trollflow2.plugins", logging.WARNING) as log:
+            with caplog.at_level(logging.WARNING):
                 covers(job)
                 logger = logging.getLogger("trollflow2.plugins")
                 logger.warning("Dummy warning")
-            assert len(log.output) == 1
+            assert len(caplog.records) == 1
 
     def test_metadata_is_read_from_scene(self):
         """Test that the scene and message metadata are merged correctly."""
@@ -1444,7 +1432,7 @@ class TestCovers(TestCase):
                                                    list(scn.sensor_names)[0],
                                                    "omerc_bb")
 
-    def test_covers(self):
+    def test_covers(self, caplog):
         """Test coverage."""
         from trollflow2.plugins import covers
         with mock.patch('trollflow2.plugins.Pass', spec=True) as pass_obj:
@@ -1454,17 +1442,16 @@ class TestCovers(TestCase):
             job = {"product_list": self.product_list,
                    "input_mda": self.input_mda,
                    "scene": scn}
-            with self.assertLogs("trollflow2.plugins", logging.DEBUG) as log:
+            with caplog.at_level(logging.DEBUG):
                 covers(job)
-            assert ("DEBUG:trollflow2.plugins:Area coverage 100.00% "
-                    "above threshold 5.00% - Carry on with omerc_bb" in log.output)
+            assert "Area coverage 100.00% above threshold 5.00% - Carry on with omerc_bb" in caplog.text
             # Area "euron1" should be removed
             assert "euron1" not in job['product_list']['product_list']['areas']
             # Other areas should stay in the list
             assert "germ" in job['product_list']['product_list']['areas']
             assert "omerc_bb" in job['product_list']['product_list']['areas']
 
-    def test_covers_uses_only_one_sensor(self):
+    def test_covers_uses_only_one_sensor(self, caplog):
         """Test that only one sensor is used."""
         from trollflow2.plugins import covers
         input_mda = self.input_mda.copy()
@@ -1487,9 +1474,9 @@ class TestCovers(TestCase):
 
             del job2["product_list"]["product_list"]["areas"]["euron1"]["min_coverage"]
             del job2["product_list"]["product_list"]["min_coverage"]
-            with self.assertLogs(level="DEBUG") as log:
+            with caplog.at_level(logging.DEBUG):
                 covers(job2)
-            assert any("Minimum area coverage not given" in line for line in log.output)
+            assert any("Minimum area coverage not given" in line for line in caplog.text.split("\n"))
 
     def test_scene_coverage(self):
         """Test scene coverage."""
@@ -1503,7 +1490,7 @@ class TestCovers(TestCase):
             ts_pass.return_value = overpass
             get_area_def.return_value = 6
             res = _get_scene_coverage(1, 2, 3, 4, 5)
-            self.assertEqual(res, 100 * 0.2)
+            assert res == 100 * 0.2
             ts_pass.assert_called_with(1, 2, 3, instrument=4)
             get_area_def.assert_called_with(5)
             area_coverage.assert_called_with(6)
@@ -1529,7 +1516,7 @@ class TestCovers(TestCase):
             # Turn coverage check on, so area not in the product list
             # should raise AbortProcessing
             job['product_list']['product_list']['coverage_by_collection_area'] = True
-            with self.assertRaises(AbortProcessing):
+            with pytest.raises(AbortProcessing):
                 covers(job)
 
             # And with existing area there shouldn't be an exception
@@ -1566,11 +1553,11 @@ class TestCheckMetadata(TestCase):
         with mock.patch('trollflow2.plugins.get_config_value') as get_config_value:
             get_config_value.return_value = None
             job = {'product_list': None, 'input_mda': {'sensor': 'foo'}}
-            self.assertIsNone(check_metadata(job))
+            assert check_metadata(job) is None
             get_config_value.return_value = {'sensor': ['foo', 'bar']}
-            self.assertIsNone(check_metadata(job))
+            assert check_metadata(job) is None
             get_config_value.return_value = {'sensor': ['bar']}
-            with self.assertRaises(AbortProcessing):
+            with pytest.raises(AbortProcessing):
                 check_metadata(job)
 
     def test_multiple_items(self):
@@ -1582,19 +1569,19 @@ class TestCheckMetadata(TestCase):
             job = {'product_list': None,
                    'input_mda': {'sensor': 'foo',
                                  'platform_name': 'bar'}}
-            self.assertIsNone(check_metadata(job))
+            assert check_metadata(job) is None
             # Both sensor and platform name match
             get_config_value.return_value = {'sensor': ['foo', 'bar'],
                                              'platform_name': ['bar']}
-            self.assertIsNone(check_metadata(job))
+            assert check_metadata(job) is None
             # Sensor matches, 'variant' not in the message
             get_config_value.return_value = {'sensor': ['foo', 'bar'],
                                              'variant': ['e ascari']}
-            self.assertIsNone(check_metadata(job))
+            assert check_metadata(job) is None
             # Platform doesn't match -> abort
             get_config_value.return_value = {'sensor': ['foo'],
                                              'platform_name': ['not-bar']}
-            with self.assertRaises(AbortProcessing):
+            with pytest.raises(AbortProcessing):
                 check_metadata(job)
 
     def test_discard_old_data(self):
@@ -1607,7 +1594,7 @@ class TestCheckMetadata(TestCase):
             get_config_value.return_value = {'start_time': -20e6}
             assert check_metadata(job) is None
             get_config_value.return_value = {'start_time': -60}
-            with self.assertRaises(AbortProcessing):
+            with pytest.raises(AbortProcessing):
                 check_metadata(job)
 
     def test_discard_new_data(self):
@@ -1617,10 +1604,10 @@ class TestCheckMetadata(TestCase):
             job = {'product_list': None,
                    'input_mda': {'start_time': dt.datetime.now(dt.timezone.utc) - dt.timedelta(minutes=90)}}
             get_config_value.return_value = {'start_time': +60}
-            with self.assertRaises(AbortProcessing):
+            with pytest.raises(AbortProcessing):
                 check_metadata(job)
             get_config_value.return_value = {'start_time': +100}
-            self.assertIsNone(check_metadata(job))
+            assert check_metadata(job) is None
 
 
 class TestMetadataAlias(TestCase):
@@ -1634,17 +1621,17 @@ class TestMetadataAlias(TestCase):
         job = {'input_mda': mda, 'product_list': product_list}
         metadata_alias(job)
         mda = job['input_mda']
-        self.assertEqual(mda['platform_name'], 'noaa15')
-        self.assertTrue(mda['not_changed'])
+        assert mda['platform_name'] == 'noaa15'
+        assert mda['not_changed']
         product_list = {'common': {'metadata_aliases':
                                    {'platform_name': {'noaa15': 'NOAA-15'},
                                     'not_in_mda': {'something': 'other'}}}}
         job = {'input_mda': mda, 'product_list': product_list}
         metadata_alias(job)
         mda = job['input_mda']
-        self.assertEqual(mda['platform_name'], 'NOAA-15')
-        self.assertTrue(mda['not_changed'])
-        self.assertTrue('not_in_mda' not in mda)
+        assert mda['platform_name'] == 'NOAA-15'
+        assert mda['not_changed']
+        assert 'not_in_mda' not in mda
 
     def test_iterable_metadata(self):
         """Test that iterable metadata gets replaced."""
@@ -1655,8 +1642,8 @@ class TestMetadataAlias(TestCase):
                                     'foo': {'c/d': 'c-d'}}}}
         job = {'input_mda': mda, 'product_list': product_list}
         metadata_alias(job)
-        self.assertEqual(job['input_mda']['sensor'], ('a-b',))
-        self.assertEqual(job['input_mda']['foo'], set(['c-d']))
+        assert job['input_mda']['sensor'] == ('a-b',)
+        assert job['input_mda']['foo'] == set(['c-d'])
 
 
 class TestGetPluginConf(TestCase):
@@ -1670,18 +1657,18 @@ class TestGetPluginConf(TestCase):
         path = "/product_list"
         defaults = {"val1": "foo0", "val2": "bar0", "val3": "baz0"}
         res = _get_plugin_conf(conf, path, defaults)
-        self.assertTrue("val1" in res)
-        self.assertTrue("val2" in res)
-        self.assertTrue("val3" in res)
-        self.assertEqual(res["val1"], "foo1")
-        self.assertEqual(res["val2"], "bar2")
-        self.assertEqual(res["val3"], "baz0")
+        assert "val1" in res
+        assert "val2" in res
+        assert "val3" in res
+        assert res["val1"] == "foo1"
+        assert res["val2"] == "bar2"
+        assert res["val3"] == "baz0"
 
 
 class TestSZACheck(TestCase):
     """Test case for SZA check."""
 
-    def setUp(self):
+    def setup_method(self):
         """Create common items."""
         product_list_no_sza, job_no_sza = _get_product_list_and_job()
         self.product_list_no_sza = product_list_no_sza
@@ -1720,7 +1707,7 @@ class TestSZACheck(TestCase):
             sza_check(self.job_with_sza)
 
             sun_zenith_angle.assert_called_with(JOB_INPUT_MDA_START_TIME, 25., 60.)
-            self.assertDictEqual(self.job_with_sza['product_list'], self.product_list_with_sza)
+            assert self.job_with_sza['product_list'] == self.product_list_with_sza
 
     def test_sza_check_removes_day_products(self):
         """Test the SZA check with SZA that removes day products."""
@@ -1731,9 +1718,10 @@ class TestSZACheck(TestCase):
 
             sza_check(self.job_with_sza)
 
-            self.assertTrue('cloud_top_height' in
-                            self.product_list_with_sza['product_list']['areas']['omerc_bb']['products'])
-            self.assertFalse('ct' in self.product_list_with_sza['product_list']['areas']['omerc_bb']['products'])
+            assert 'cloud_top_height' in \
+                self.product_list_with_sza['product_list']['areas']['omerc_bb']['products']
+            assert 'ct' not in \
+                self.product_list_with_sza['product_list']['areas']['omerc_bb']['products']
 
     def test_sza_check_removes_night_products(self):
         """Test the SZA check with SZA that removes night products."""
@@ -1745,7 +1733,7 @@ class TestSZACheck(TestCase):
             sza_check(self.job_with_sza)
 
             # There was only one product, so the whole area is deleted
-            self.assertFalse('germ' in self.job_with_sza['product_list']['product_list']['areas'])
+            assert 'germ' not in self.job_with_sza['product_list']['product_list']['areas']
 
 
 def _get_product_list_and_job(add_sza_limits=False):
@@ -1783,9 +1771,9 @@ def _add_sunzen_limits(product_list):
 class TestOverviews(TestCase):
     """Test case for overviews."""
 
-    def setUp(self):
+    def setup_method(self):
         """Set up the test case."""
-        super().setUp()
+        super().setup_method()
         from yaml import BaseLoader
         self.product_list = read_config(raw_string=yaml_test1, Loader=BaseLoader)
 
@@ -1812,9 +1800,9 @@ class TestOverviews(TestCase):
 class TestFilePublisher(TestCase):
     """Test case for File publisher."""
 
-    def setUp(self):
+    def setup_method(self):
         """Set up the test case."""
-        super().setUp()
+        super().setup_method()
         from yaml import UnsafeLoader
         self.product_list = read_config(raw_string=yaml_test_publish, Loader=UnsafeLoader)
         # Skip omerc_bb area, there's no fname_pattern
@@ -2121,18 +2109,19 @@ class TestFilePublisher(TestCase):
             for args, _kwargs in message.call_args_list:
                 mda = args[2]
                 if args[1] == 'file':
-                    self.assertIn('uri', mda)
-                    self.assertIn('uid', mda)
+                    assert 'uri' in mda
+                    assert 'uid' in mda
                 elif args[1] == 'dispatch':
-                    self.assertIn('source', mda)
-                    self.assertIn('target', mda)
-                    self.assertIn('file_mda', mda)
-                    self.assertEqual(mda['source'],
-                                    '/tmp/satdmz/pps/www/latest_2018/NOAA-15_20190217_0600_euron1_in_fname_ctth_static.png')  # noqa
-                    self.assertEqual(mda['target'],
-                                    'ftp://ftp.important_client.com/somewhere/NOAA-15_20190217_0600_euron1_in_fname_ctth_static.png')  # noqa
+                    assert 'source' in mda
+                    assert 'target' in mda
+                    assert 'file_mda' in mda
+                    source = '/tmp/satdmz/pps/www/latest_2018/NOAA-15_20190217_0600_euron1_in_fname_ctth_static.png'  # noqa
+                    assert mda['source'] == source
+                    target = 'ftp://ftp.important_client.com/somewhere/NOAA-15_20190217_0600_euron1_in_fname_ctth_static.png'  # noqa
+                    assert mda['target'] == target
+
                     dispatches += 1
-            self.assertEqual(dispatches, 1)
+            assert dispatches == 1
 
     def test_deleting(self):
         """Test deleting the publisher."""
