@@ -709,24 +709,35 @@ def test_workers_initialized():
             os.remove(fname)
 
 
-def test_get_dask_distributed_client(caplog):
-    """Test getting dask client."""
-    from trollflow2.launcher import get_dask_distributed_client
-
+def _get_client_class(ncores_return_value=None):
     ncores = mock.MagicMock()
-    ncores.return_value = {}
+    if ncores_return_value:
+        ncores.return_value = ncores_return_value
+    else:
+        ncores.return_value = {}
     client = mock.MagicMock(ncores=ncores)
     client_class = mock.MagicMock()
     client_class.return_value = client
 
-    # No client configured
+    return client_class
+
+
+def test_get_dask_distributed_client_no_config(caplog):
+    """Test getting dask client."""
+    from trollflow2.launcher import get_dask_distributed_client
+
     config = {}
     with caplog.at_level(logging.DEBUG):
         res = get_dask_distributed_client(config)
     assert "Distributed processing not configured" in caplog.text
-    caplog.clear()
     assert res is None
 
+
+def test_get_dask_distributed_client_no_workers(caplog):
+    """Test getting dask client."""
+    from trollflow2.launcher import get_dask_distributed_client
+
+    client_class = _get_client_class()
     # Config is valid, but no workers are available
     config = {"dask_distributed": {"class": client_class,
                                    "settings": {"foo": 1, "bar": 2}
@@ -735,34 +746,62 @@ def test_get_dask_distributed_client(caplog):
     with caplog.at_level(logging.WARNING):
         res = get_dask_distributed_client(config)
     assert "No workers available, reverting to default scheduler" in caplog.text
-    caplog.clear()
     assert res is None
     ncores.assert_called_once()
     client.close.assert_called_once()
 
+
+def test_get_dask_distributed_client_no_close(caplog):
+    """Test getting dask client."""
+    from trollflow2.launcher import get_dask_distributed_client
+
+    client_class = _get_client_class()
+    # Config is valid, but no workers are available
+    config = {"dask_distributed": {"class": client_class,
+                                   "settings": {"foo": 1, "bar": 2}
+                                   }
+              }
     # The scheduler had no workers, the client doesn't have `.close()`
-    client.close.side_effect = AttributeError
+    client_class.return_value.close.side_effect = AttributeError
     with caplog.at_level(logging.WARNING):
         res = get_dask_distributed_client(config)
     assert res is None
 
+
+def test_get_dask_distributed_client_no_workers(caplog):
+    """Test getting dask client."""
+    from trollflow2.launcher import get_dask_distributed_client
+
+    client_class = _get_client_class(ncores_return_value={"a": 1, "b": 1})
+    config = {"dask_distributed": {"class": client_class,
+                                   "settings": {"foo": 1, "bar": 2}
+                                   }
+              }
     # Config is valid, scheduler has workers
-    ncores.return_value = {"a": 1, "b": 1}
     with caplog.at_level(logging.DEBUG):
         res = get_dask_distributed_client(config)
     assert "Using dask distributed client" in caplog.text
-    caplog.clear()
-    assert res is client
-    assert ncores.call_count == 3
+    assert res is client_class.return_value
+    client_class.return_value.ncores.assert_called_once()
 
+
+def test_get_dask_distributed_client_no_connection(caplog):
+    """Test getting dask client."""
+    from trollflow2.launcher import get_dask_distributed_client
+
+    client_class = _get_client_class()
+
+    config = {"dask_distributed": {"class": client_class,
+                                   "settings": {"foo": 1, "bar": 2}
+                                   }
+              }
     # Scheduler couldn't connect to workers
     client_class.side_effect = OSError
     with caplog.at_level(logging.ERROR):
         res = get_dask_distributed_client(config)
     assert "Scheduler not found, reverting to default scheduler" in caplog.text
-    caplog.clear()
     assert res is None
-    assert ncores.call_count == 3
+    client_class.return_value.ncores.assert_not_called()
 
 
 class FakeQueue:
