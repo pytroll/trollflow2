@@ -146,18 +146,18 @@ product_list:
                 writer: geotiff
 """
 
-input_mda = {'orig_platform_name': 'noaa15', 'orbit_number': 7993,
-             'start_time': dt.datetime(2019, 2, 17, 6, 0, 11, 100000), 'stfrac': 1,
-             'end_time': dt.datetime(2019, 2, 17, 6, 15, 10, 400000), 'etfrac': 4, 'status': 'OK',
-             'format': 'CF', 'data_processing_level': '2', 'orbit': 7993, 'module': 'ppsMakePhysiography',
-             'platform_name': 'NOAA-15', 'pps_version': 'v2018', 'file_was_already_processed': False,
-             'dataset': [{'uri': '/home/a001673/data/satellite/test_trollflow2/S_NWC_CMA_noaa15_07993_20190217T0600111Z_20190217T0615104Z.nc',  # noqa
-                          'uid': 'S_NWC_CMA_noaa15_07993_20190217T0600111Z_20190217T0615104Z.nc'},
-                         {'uri': '/home/a001673/data/satellite/test_trollflow2/S_NWC_CTTH_noaa15_07993_20190217T0600111Z_20190217T0615104Z.nc',  # noqa
-                          'uid': 'S_NWC_CTTH_noaa15_07993_20190217T0600111Z_20190217T0615104Z.nc'},
-                         {'uri': '/home/a001673/data/satellite/test_trollflow2/S_NWC_CT_noaa15_07993_20190217T0600111Z_20190217T0615104Z.nc',  # noqa
-                          'uid': 'S_NWC_CT_noaa15_07993_20190217T0600111Z_20190217T0615104Z.nc'}],
-             'sensor': ['avhrr']}
+input_mda = {"orig_platform_name": "noaa15", "orbit_number": 7993,
+             "start_time": dt.datetime(2019, 2, 17, 6, 0, 11, 100000), "stfrac": 1,
+             "end_time": dt.datetime(2019, 2, 17, 6, 15, 10, 400000), "etfrac": 4, "status": "OK",
+             "format": "CF", "data_processing_level": "2", "orbit": 7993, "module": "ppsMakePhysiography",
+             "platform_name": "NOAA-15", "pps_version": "v2018", "file_was_already_processed": False,
+             "dataset": [{"uri": "/home/a001673/data/satellite/test_trollflow2/S_NWC_CMA_noaa15_07993_20190217T0600111Z_20190217T0615104Z.nc",  # noqa
+                          "uid": "S_NWC_CMA_noaa15_07993_20190217T0600111Z_20190217T0615104Z.nc"},
+                         {"uri": "/home/a001673/data/satellite/test_trollflow2/S_NWC_CTTH_noaa15_07993_20190217T0600111Z_20190217T0615104Z.nc",  # noqa
+                          "uid": "S_NWC_CTTH_noaa15_07993_20190217T0600111Z_20190217T0615104Z.nc"},
+                         {"uri": "/home/a001673/data/satellite/test_trollflow2/S_NWC_CT_noaa15_07993_20190217T0600111Z_20190217T0615104Z.nc",  # noqa
+                          "uid": "S_NWC_CT_noaa15_07993_20190217T0600111Z_20190217T0615104Z.nc"}],
+             "sensor": ["avhrr"]}
 
 
 class TestProdList:
@@ -166,28 +166,28 @@ class TestProdList:
     def test_iter(self):
         """Test plist_iter."""
         from trollflow2.dict_tools import plist_iter
-        prodlist = read_config(raw_string=yaml_test1)['product_list']
-        expected = [{'areaname': 'euron1_in_fname', 'area': 'euron1', 'productname': 'cloud_top_height_in_fname', 'product': 'cloud_top_height',  # noqa
-                     'min_coverage': 20.0, 'something': 'foo',
-                     'output_dir': '/tmp/satdmz/pps/www/latest_2018/', 'format': 'png', 'writer': 'simple_image',
-                     'fname_pattern': '{platform_name:s}_{start_time:%Y%m%d_%H%M}_{areaname:s}_ctth_static.{format}'},
-                    {'areaname': 'euron1_in_fname', 'area': 'euron1', 'productname': 'cloud_top_height_in_fname', 'product': 'cloud_top_height', 'fill_value': 0,  # noqa
-                     'min_coverage': 20.0, 'something': 'foo',
-                     'output_dir': '/tmp/satdmz/pps/www/latest_2018/', 'format': 'jpg', 'writer': 'simple_image',
-                     'fname_pattern': '{platform_name:s}_{start_time:%Y%m%d_%H%M}_{areaname:s}_ctth_static.{format}'},
-                    {'areaname': 'germ_in_fname', 'area': 'germ', 'productname': 'cloudtype_in_fname', 'product': 'cloudtype',  # noqa
-                     'output_dir': '/tmp/satdmz/pps/www/latest_2018/', 'min_coverage': 5.0, 'something': 'foo',
-                     'fname_pattern': '{start_time:%Y%m%d_%H%M}_{areaname:s}_{productname}.{format}',
-                     'format': 'png', 'writer': 'simple_image'},
-                    {'areaname': 'omerc_bb', 'area': 'omerc_bb', 'productname': 'ct', 'product': 'ct', 'min_coverage': 5.0, 'something': 'foo',  # noqa
-                     'output_dir': '/tmp', 'format': 'nc', 'writer': 'cf'},
-                    {'areaname': 'omerc_bb', 'area': 'omerc_bb', 'productname': 'cloud_top_height', 'product': 'cloud_top_height',  # noqa
-                     'output_dir': '/tmp', 'format': 'tif', 'min_coverage': 5.0, 'something': 'foo',
-                     'writer': 'geotiff'}]
+        prodlist = read_config(raw_string=yaml_test1)["product_list"]
+        expected = [{"areaname": "euron1_in_fname", "area": "euron1", "productname": "cloud_top_height_in_fname", "product": "cloud_top_height",  # noqa
+                     "min_coverage": 20.0, "something": "foo",
+                     "output_dir": "/tmp/satdmz/pps/www/latest_2018/", "format": "png", "writer": "simple_image",
+                     "fname_pattern": "{platform_name:s}_{start_time:%Y%m%d_%H%M}_{areaname:s}_ctth_static.{format}"},
+                    {"areaname": "euron1_in_fname", "area": "euron1", "productname": "cloud_top_height_in_fname", "product": "cloud_top_height", "fill_value": 0,  # noqa
+                     "min_coverage": 20.0, "something": "foo",
+                     "output_dir": "/tmp/satdmz/pps/www/latest_2018/", "format": "jpg", "writer": "simple_image",
+                     "fname_pattern": "{platform_name:s}_{start_time:%Y%m%d_%H%M}_{areaname:s}_ctth_static.{format}"},
+                    {"areaname": "germ_in_fname", "area": "germ", "productname": "cloudtype_in_fname", "product": "cloudtype",  # noqa
+                     "output_dir": "/tmp/satdmz/pps/www/latest_2018/", "min_coverage": 5.0, "something": "foo",
+                     "fname_pattern": "{start_time:%Y%m%d_%H%M}_{areaname:s}_{productname}.{format}",
+                     "format": "png", "writer": "simple_image"},
+                    {"areaname": "omerc_bb", "area": "omerc_bb", "productname": "ct", "product": "ct", "min_coverage": 5.0, "something": "foo",  # noqa
+                     "output_dir": "/tmp", "format": "nc", "writer": "cf"},
+                    {"areaname": "omerc_bb", "area": "omerc_bb", "productname": "cloud_top_height", "product": "cloud_top_height",  # noqa
+                     "output_dir": "/tmp", "format": "tif", "min_coverage": 5.0, "something": "foo",
+                     "writer": "geotiff"}]
         for res, exp in zip(plist_iter(prodlist), expected):
             assert res[0] == exp
 
-        prodlist = read_config(raw_string=yaml_test2)['product_list']
+        prodlist = read_config(raw_string=yaml_test2)["product_list"]
         for res, exp in zip(plist_iter(prodlist), expected):
             assert res[0] == exp
 

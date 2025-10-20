@@ -268,18 +268,18 @@ product_list:
             fname_pattern: "{platform_name:s}_{start_time:%Y%m%d_%H%M}_{areaname:s}_ctth_static.{format}"
 """
 
-input_mda = {'orig_platform_name': 'noaa15', 'orbit_number': 7993,
-             'start_time': dt.datetime(2019, 2, 17, 6, 0, 11, 100000), 'stfrac': 1,
-             'end_time': dt.datetime(2019, 2, 17, 6, 15, 10, 400000), 'etfrac': 4, 'status': 'OK',
-             'format': 'CF', 'data_processing_level': '2', 'orbit': 7993, 'module': 'ppsMakePhysiography',
-             'platform_name': 'NOAA-15', 'pps_version': 'v2018', 'file_was_already_processed': False,
-             'dataset': [{'uri': '/home/a001673/data/satellite/test_trollflow2/S_NWC_CMA_noaa15_07993_20190217T0600111Z_20190217T0615104Z.nc',  # noqa
-                          'uid': 'S_NWC_CMA_noaa15_07993_20190217T0600111Z_20190217T0615104Z.nc'},
-                         {'uri': '/home/a001673/data/satellite/test_trollflow2/S_NWC_CTTH_noaa15_07993_20190217T0600111Z_20190217T0615104Z.nc',  # noqa
-                          'uid': 'S_NWC_CTTH_noaa15_07993_20190217T0600111Z_20190217T0615104Z.nc'},
-                         {'uri': '/home/a001673/data/satellite/test_trollflow2/S_NWC_CT_noaa15_07993_20190217T0600111Z_20190217T0615104Z.nc',  # noqa
-                          'uid': 'S_NWC_CT_noaa15_07993_20190217T0600111Z_20190217T0615104Z.nc'}],
-             'sensor': ['avhrr']}
+input_mda = {"orig_platform_name": "noaa15", "orbit_number": 7993,
+             "start_time": dt.datetime(2019, 2, 17, 6, 0, 11, 100000), "stfrac": 1,
+             "end_time": dt.datetime(2019, 2, 17, 6, 15, 10, 400000), "etfrac": 4, "status": "OK",
+             "format": "CF", "data_processing_level": "2", "orbit": 7993, "module": "ppsMakePhysiography",
+             "platform_name": "NOAA-15", "pps_version": "v2018", "file_was_already_processed": False,
+             "dataset": [{"uri": "/home/a001673/data/satellite/test_trollflow2/S_NWC_CMA_noaa15_07993_20190217T0600111Z_20190217T0615104Z.nc",  # noqa
+                          "uid": "S_NWC_CMA_noaa15_07993_20190217T0600111Z_20190217T0615104Z.nc"},
+                         {"uri": "/home/a001673/data/satellite/test_trollflow2/S_NWC_CTTH_noaa15_07993_20190217T0600111Z_20190217T0615104Z.nc",  # noqa
+                          "uid": "S_NWC_CTTH_noaa15_07993_20190217T0600111Z_20190217T0615104Z.nc"},
+                         {"uri": "/home/a001673/data/satellite/test_trollflow2/S_NWC_CT_noaa15_07993_20190217T0600111Z_20190217T0615104Z.nc",  # noqa
+                          "uid": "S_NWC_CT_noaa15_07993_20190217T0600111Z_20190217T0615104Z.nc"}],
+             "sensor": ["avhrr"]}
 
 YAML_FILE_PUBLISHER = """
 !!python/object:trollflow2.plugins.FilePublisher {port: 40002, nameservers: [localhost]}
@@ -296,46 +296,46 @@ class TestSaveDatasets(TestCase):
     def test_prepared_filename(self):
         """Test the `prepared_filename` context."""
         from trollflow2.plugins import prepared_filename
-        tst_file = 'hi.png'
+        tst_file = "hi.png"
 
         renames = {}
-        fmat = {'fname_pattern': tst_file}
+        fmat = {"fname_pattern": tst_file}
         with prepared_filename(fmat, renames) as filename:
             pass
         assert filename == tst_file
         assert len(renames) == 0
 
         renames = {}
-        fmat = {'use_tmp_file': False, 'fname_pattern': tst_file}
+        fmat = {"use_tmp_file": False, "fname_pattern": tst_file}
         with prepared_filename(fmat, renames) as filename:
             pass
         assert filename == tst_file
         assert len(renames) == 0
 
         renames = {}
-        fmat = {'use_tmp_file': True, 'fname_pattern': tst_file}
+        fmat = {"use_tmp_file": True, "fname_pattern": tst_file}
         with prepared_filename(fmat, renames) as filename:
             pass
-        assert os.path.basename(filename).startswith('tmp')
+        assert os.path.basename(filename).startswith("tmp")
         assert len(renames) == 1
         assert list(renames.values())[0] == tst_file
 
         renames = {}
-        fmat = {'use_tmp_file': True, 'fname_pattern': tst_file}
+        fmat = {"use_tmp_file": True, "fname_pattern": tst_file}
         try:
             with prepared_filename(fmat, renames) as filename:
-                raise KeyError('Oh no!')
+                raise KeyError("Oh no!")
         except KeyError:
             pass
-        assert os.path.basename(filename).startswith('tmp')
+        assert os.path.basename(filename).startswith("tmp")
         assert len(renames) == 0
 
-        tst_dir = os.path.normpath('/tmp/bleh')
+        tst_dir = os.path.normpath("/tmp/bleh")
         renames = {}
-        fmat = {'use_tmp_file': True, 'fname_pattern': tst_file, 'output_dir': tst_dir}
+        fmat = {"use_tmp_file": True, "fname_pattern": tst_file, "output_dir": tst_dir}
         with prepared_filename(fmat, renames) as filename:
             pass
-        assert os.path.basename(filename).startswith('tmp')
+        assert os.path.basename(filename).startswith("tmp")
         assert len(renames) == 1
         assert list(renames.values())[0] == os.path.join(tst_dir, tst_file)
 
@@ -345,12 +345,12 @@ class TestSaveDatasets(TestCase):
     def test_prepare_filename_and_directory(self):
         """Test filename composition and directory creation."""
         from trollflow2.plugins import _prepare_filename_and_directory
-        tst_file = 'goes_{name}.png'
-        tst_dir = os.path.normpath('/tmp/bleh/{service}')
-        fmat = {'use_tmp_file': True, 'fname_pattern': tst_file, 'output_dir': tst_dir,
-                'name': 'mooh', 'service': 'cow'}
+        tst_file = "goes_{name}.png"
+        tst_dir = os.path.normpath("/tmp/bleh/{service}")
+        fmat = {"use_tmp_file": True, "fname_pattern": tst_file, "output_dir": tst_dir,
+                "name": "mooh", "service": "cow"}
         directory, filename = _prepare_filename_and_directory(fmat)
-        assert filename == os.path.normpath('/tmp/bleh/cow/goes_mooh.png')
+        assert filename == os.path.normpath("/tmp/bleh/cow/goes_mooh.png")
         assert os.path.exists(directory)
         os.rmdir(directory)
 
@@ -366,13 +366,13 @@ class TestSaveDatasets(TestCase):
             def close(self):
                 pass
 
-        tst_dir = ''
-        with mock.patch('trollflow2.plugins.NamedTemporaryFile') as ntf:
-            ntf.side_effect = [FakeFO('cu'), FakeFO('cu'), FakeFO('mb'), FakeFO('er')]
+        tst_dir = ""
+        with mock.patch("trollflow2.plugins.NamedTemporaryFile") as ntf:
+            ntf.side_effect = [FakeFO("cu"), FakeFO("cu"), FakeFO("mb"), FakeFO("er")]
             names = []
             for _i_ in range(3):
                 names.append(_get_temp_filename(tst_dir, names))
-            assert ''.join(names) == 'cumber'
+            assert "".join(names) == "cumber"
 
     def test_save_datasets(self):
         """Test saving datasets."""
@@ -381,178 +381,178 @@ class TestSaveDatasets(TestCase):
 
         the_queue = mock.MagicMock()
         job = _create_job_for_save_datasets()
-        job['produced_files'] = the_queue
-        with mock.patch('trollflow2.plugins.compute_writer_results'), \
-                mock.patch('trollflow2.plugins.DataQuery') as dsid, \
-                mock.patch('os.rename') as rename:
+        job["produced_files"] = the_queue
+        with mock.patch("trollflow2.plugins.compute_writer_results"), \
+                mock.patch("trollflow2.plugins.DataQuery") as dsid, \
+                mock.patch("os.rename") as rename:
             save_datasets(job)
             expected_sd = [mock.call(dsid.return_value, compute=False,
-                                     filename=os.path.join('/tmp', 'satdmz', 'pps', 'www', 'latest_2018',
-                                                           'NOAA-15_20190217_0600_euron1_in_fname_ctth_static.png'),
-                                     format='png', writer='simple_image'),
+                                     filename=os.path.join("/tmp", "satdmz", "pps", "www", "latest_2018",
+                                                           "NOAA-15_20190217_0600_euron1_in_fname_ctth_static.png"),
+                                     format="png", writer="simple_image"),
                            mock.call(dsid.return_value, compute=False,
-                                     filename=os.path.join('/tmp', 'satdmz', 'pps', 'www', 'latest_2018',
-                                                           'NOAA-15_20190217_0600_euron1_in_fname_ctth_static.jpg'),
-                                     fill_value=0, format='jpg', writer='simple_image'),
+                                     filename=os.path.join("/tmp", "satdmz", "pps", "www", "latest_2018",
+                                                           "NOAA-15_20190217_0600_euron1_in_fname_ctth_static.jpg"),
+                                     fill_value=0, format="jpg", writer="simple_image"),
                            mock.call(dsid.return_value, compute=False,
-                                     filename=os.path.join('/tmp', 'NOAA-15_20190217_0600_omerc_bb_ct.nc'),
-                                     format='nc', writer='cf'),
+                                     filename=os.path.join("/tmp", "NOAA-15_20190217_0600_omerc_bb_ct.nc"),
+                                     format="nc", writer="cf"),
                            mock.call(dsid.return_value, compute=False,
-                                     filename=os.path.join('/tmp',
-                                                           'NOAA-15_20190217_0600_omerc_bb_cloud_top_height.tif'),
-                                     format='tif', writer='geotiff')
+                                     filename=os.path.join("/tmp",
+                                                           "NOAA-15_20190217_0600_omerc_bb_cloud_top_height.tif"),
+                                     format="tif", writer="geotiff")
                            ]
             expected_sds = [mock.call(datasets=[dsid.return_value, dsid.return_value], compute=False,
-                                      filename=os.path.join('/tmp', 'satdmz', 'pps', 'www', 'latest_2018',
-                                                            'NOAA-15_20190217_0600_euron1_in_fname_ct_and_ctth.nc'),
-                                      writer='cf')]
-            expected_dsid = [mock.call(name='cloud_top_height', resolution=DEFAULT, modifiers=DEFAULT),
-                             mock.call(name='cloud_top_height', resolution=DEFAULT, modifiers=DEFAULT),
-                             mock.call(name='ct', resolution=DEFAULT, modifiers=DEFAULT),
-                             mock.call(name='ctth', resolution=DEFAULT, modifiers=DEFAULT),
-                             mock.call(name='cloudtype', resolution=DEFAULT, modifiers=DEFAULT),
-                             mock.call(name='ct', resolution=DEFAULT, modifiers=DEFAULT),
-                             mock.call(name='cloud_top_height', resolution=500, modifiers=DEFAULT)
+                                      filename=os.path.join("/tmp", "satdmz", "pps", "www", "latest_2018",
+                                                            "NOAA-15_20190217_0600_euron1_in_fname_ct_and_ctth.nc"),
+                                      writer="cf")]
+            expected_dsid = [mock.call(name="cloud_top_height", resolution=DEFAULT, modifiers=DEFAULT),
+                             mock.call(name="cloud_top_height", resolution=DEFAULT, modifiers=DEFAULT),
+                             mock.call(name="ct", resolution=DEFAULT, modifiers=DEFAULT),
+                             mock.call(name="ctth", resolution=DEFAULT, modifiers=DEFAULT),
+                             mock.call(name="cloudtype", resolution=DEFAULT, modifiers=DEFAULT),
+                             mock.call(name="ct", resolution=DEFAULT, modifiers=DEFAULT),
+                             mock.call(name="cloud_top_height", resolution=500, modifiers=DEFAULT)
                              ]
 
-            sd_calls = (job['resampled_scenes']['euron1'].save_dataset.mock_calls
-                        + job['resampled_scenes']['omerc_bb'].save_dataset.mock_calls)
+            sd_calls = (job["resampled_scenes"]["euron1"].save_dataset.mock_calls
+                        + job["resampled_scenes"]["omerc_bb"].save_dataset.mock_calls)
             for sd, esd in zip(sd_calls, expected_sd):
                 assert sd == esd
-            sds_calls = job['resampled_scenes']['euron1'].save_datasets.mock_calls
+            sds_calls = job["resampled_scenes"]["euron1"].save_datasets.mock_calls
             for sds, esds in zip(sds_calls, expected_sds):
                 assert sds[2] == esds[2]
-            args, kwargs = job['resampled_scenes']['germ'].save_dataset.call_args_list[0]
-            assert os.path.basename(kwargs['filename']).startswith('tmp')
+            args, kwargs = job["resampled_scenes"]["germ"].save_dataset.call_args_list[0]
+            assert os.path.basename(kwargs["filename"]).startswith("tmp")
             for ds, eds in zip(dsid.mock_calls, expected_dsid):
                 assert ds == eds
             rename.assert_called_once()
 
         dexpected = {
-            'output_dir': '/tmp/satnfs/polar_out/pps2018/direct_readout/',
-            'publish_topic': '/NWC-CF/L3',
-            'use_extern_calib': False,
-            'fname_pattern': "{platform_name}_{start_time:%Y%m%d_%H%M}_{areaname}_{productname}.{format}",
-            'formats': [
+            "output_dir": "/tmp/satnfs/polar_out/pps2018/direct_readout/",
+            "publish_topic": "/NWC-CF/L3",
+            "use_extern_calib": False,
+            "fname_pattern": "{platform_name}_{start_time:%Y%m%d_%H%M}_{areaname}_{productname}.{format}",
+            "formats": [
                 {
-                    'format': 'tif',
-                    'writer': 'geotiff'
+                    "format": "tif",
+                    "writer": "geotiff"
                 },
                 {
-                    'format': 'nc',
-                    'writer': 'cf'
+                    "format": "nc",
+                    "writer": "cf"
                 }],
-            'areas': {
-                'euron1': {
-                    'areaname': 'euron1_in_fname',
-                    'min_coverage': 20.0,
-                    'products': {
-                        'cloud_top_height': {
-                            'fname_pattern': '{platform_name:s}_{start_time:%Y%m%d_%H%M}_{areaname:s}_ctth_static.{format}',  # noqa
-                            'formats':
+            "areas": {
+                "euron1": {
+                    "areaname": "euron1_in_fname",
+                    "min_coverage": 20.0,
+                    "products": {
+                        "cloud_top_height": {
+                            "fname_pattern": "{platform_name:s}_{start_time:%Y%m%d_%H%M}_{areaname:s}_ctth_static.{format}",  # noqa
+                            "formats":
                             [{
-                                'filename': '/tmp/satdmz/pps/www/latest_2018/NOAA-15_20190217_0600_euron1_in_fname_ctth_static.png',  # noqa
-                                'format': 'png',
-                                'writer': 'simple_image',
-                                'dispatch': [{
-                                    'hostname': 'ftp.important_client.com',
-                                    'scheme': 'ftp',
-                                    'path': '/somewhere/{platform_name:s}_{start_time:%Y%m%d_%H%M}_{areaname:s}_ctth_static.{format}',  # noqa
+                                "filename": "/tmp/satdmz/pps/www/latest_2018/NOAA-15_20190217_0600_euron1_in_fname_ctth_static.png",  # noqa
+                                "format": "png",
+                                "writer": "simple_image",
+                                "dispatch": [{
+                                    "hostname": "ftp.important_client.com",
+                                    "scheme": "ftp",
+                                    "path": "/somewhere/{platform_name:s}_{start_time:%Y%m%d_%H%M}_{areaname:s}_ctth_static.{format}",  # noqa
                                  }],
                              },
                              {
-                                 'filename':
-                                 '/tmp/satdmz/pps/www/latest_2018/NOAA-15_20190217_0600_euron1_in_fname_ctth_static.jpg',  # noqa
-                                 'fill_value':
+                                 "filename":
+                                 "/tmp/satdmz/pps/www/latest_2018/NOAA-15_20190217_0600_euron1_in_fname_ctth_static.jpg",  # noqa
+                                 "fill_value":
                                  0,
-                                 'format':
-                                 'jpg',
-                                 'writer':
-                                 'simple_image'
+                                 "format":
+                                 "jpg",
+                                 "writer":
+                                 "simple_image"
                              }],
-                            'output_dir':
-                            '/tmp/satdmz/pps/www/latest_2018/',
-                            'productname':
-                            'cloud_top_height_in_fname'
+                            "output_dir":
+                            "/tmp/satdmz/pps/www/latest_2018/",
+                            "productname":
+                            "cloud_top_height_in_fname"
                         },
-                        ('ct', 'ctth'): {
-                            'formats':
+                        ("ct", "ctth"): {
+                            "formats":
                             [{
-                                'filename': '/tmp/satdmz/pps/www/latest_2018/NOAA-15_20190217_0600_euron1_in_fname_ct_and_ctth.nc',  # noqa
-                                'format': 'nc',
-                                'writer': 'cf'
+                                "filename": "/tmp/satdmz/pps/www/latest_2018/NOAA-15_20190217_0600_euron1_in_fname_ct_and_ctth.nc",  # noqa
+                                "format": "nc",
+                                "writer": "cf"
                             }],
-                            'output_dir': '/tmp/satdmz/pps/www/latest_2018/',
-                            'productname': 'ct_and_ctth'
+                            "output_dir": "/tmp/satdmz/pps/www/latest_2018/",
+                            "productname": "ct_and_ctth"
                         },
                     }
                 },
-                'germ': {
-                    'areaname':
-                    'germ_in_fname',
-                    'use_tmp_file':
+                "germ": {
+                    "areaname":
+                    "germ_in_fname",
+                    "use_tmp_file":
                     True,
-                    'fname_pattern':
-                    '{start_time:%Y%m%d_%H%M}_{areaname:s}_{productname}.{format}',
-                    'products': {
-                        'cloudtype': {
-                            'formats': [{
-                                'filename':
-                                '/tmp/satdmz/pps/www/latest_2018/noaa15/20190217_0600_germ_in_fname_cloudtype_in_fname.png',  # noqa
-                                'format':
-                                'png',
-                                'writer':
-                                'simple_image'
+                    "fname_pattern":
+                    "{start_time:%Y%m%d_%H%M}_{areaname:s}_{productname}.{format}",
+                    "products": {
+                        "cloudtype": {
+                            "formats": [{
+                                "filename":
+                                "/tmp/satdmz/pps/www/latest_2018/noaa15/20190217_0600_germ_in_fname_cloudtype_in_fname.png",  # noqa
+                                "format":
+                                "png",
+                                "writer":
+                                "simple_image"
                             }],
-                            'output_dir':
-                            '/tmp/satdmz/pps/www/latest_2018/{orig_platform_name}/',
-                            'productname':
-                            'cloudtype_in_fname'
+                            "output_dir":
+                            "/tmp/satdmz/pps/www/latest_2018/{orig_platform_name}/",
+                            "productname":
+                            "cloudtype_in_fname"
                         }
                     }
                 },
-                'omerc_bb': {
-                    'areaname': 'omerc_bb',
-                    'output_dir': '/tmp',
-                    'products': {
-                        'cloud_top_height': {
-                            'formats': [{
-                                'filename':
-                                '/tmp/NOAA-15_20190217_0600_omerc_bb_cloud_top_height.tif',
-                                'format':
-                                'tif',
-                                'writer':
-                                'geotiff'
+                "omerc_bb": {
+                    "areaname": "omerc_bb",
+                    "output_dir": "/tmp",
+                    "products": {
+                        "cloud_top_height": {
+                            "formats": [{
+                                "filename":
+                                "/tmp/NOAA-15_20190217_0600_omerc_bb_cloud_top_height.tif",
+                                "format":
+                                "tif",
+                                "writer":
+                                "geotiff"
                             }],
-                            'productname':
-                            'cloud_top_height',
-                            'resolution':
+                            "productname":
+                            "cloud_top_height",
+                            "resolution":
                             500
                         },
-                        'ct': {
-                            'formats': [{
-                                'filename':
-                                '/tmp/NOAA-15_20190217_0600_omerc_bb_ct.nc',
-                                'format':
-                                'nc',
-                                'writer':
-                                'cf'
+                        "ct": {
+                            "formats": [{
+                                "filename":
+                                "/tmp/NOAA-15_20190217_0600_omerc_bb_ct.nc",
+                                "format":
+                                "nc",
+                                "writer":
+                                "cf"
                             }],
-                            'productname':
-                            'ct'
+                            "productname":
+                            "ct"
                         }
                     }
                 }
             }
         }
-        assert dexpected == job['product_list']['product_list']
+        assert dexpected == job["product_list"]["product_list"]
 
-        filenames = ['/tmp/satdmz/pps/www/latest_2018/NOAA-15_20190217_0600_euron1_in_fname_ctth_static.png',
-                     '/tmp/satdmz/pps/www/latest_2018/NOAA-15_20190217_0600_euron1_in_fname_ctth_static.jpg',
-                     '/tmp/satdmz/pps/www/latest_2018/NOAA-15_20190217_0600_euron1_in_fname_ct_and_ctth.nc',
-                     '/tmp/satdmz/pps/www/latest_2018/noaa15/20190217_0600_germ_in_fname_cloudtype_in_fname.png',
-                     '/tmp/NOAA-15_20190217_0600_omerc_bb_ct.nc',
-                     '/tmp/NOAA-15_20190217_0600_omerc_bb_cloud_top_height.tif']
+        filenames = ["/tmp/satdmz/pps/www/latest_2018/NOAA-15_20190217_0600_euron1_in_fname_ctth_static.png",
+                     "/tmp/satdmz/pps/www/latest_2018/NOAA-15_20190217_0600_euron1_in_fname_ctth_static.jpg",
+                     "/tmp/satdmz/pps/www/latest_2018/NOAA-15_20190217_0600_euron1_in_fname_ct_and_ctth.nc",
+                     "/tmp/satdmz/pps/www/latest_2018/noaa15/20190217_0600_germ_in_fname_cloudtype_in_fname.png",
+                     "/tmp/NOAA-15_20190217_0600_omerc_bb_ct.nc",
+                     "/tmp/NOAA-15_20190217_0600_omerc_bb_cloud_top_height.tif"]
         for fname, efname in zip(the_queue.put.mock_calls, filenames):
             assert fname == mock.call(efname)
 
@@ -561,16 +561,16 @@ class TestSaveDatasets(TestCase):
         from trollflow2.plugins import save_datasets
 
         job = _create_job_for_save_datasets()
-        job['product_list']['product_list']['eager_writing'] = True
-        with mock.patch('trollflow2.plugins.compute_writer_results') as compute_writer_results, \
-                mock.patch('trollflow2.plugins.DataQuery'), \
-                mock.patch('os.rename'):
+        job["product_list"]["product_list"]["eager_writing"] = True
+        with mock.patch("trollflow2.plugins.compute_writer_results") as compute_writer_results, \
+                mock.patch("trollflow2.plugins.DataQuery"), \
+                mock.patch("os.rename"):
             save_datasets(job)
-            sd_calls = (job['resampled_scenes']['euron1'].save_dataset.mock_calls
-                        + job['resampled_scenes']['omerc_bb'].save_dataset.mock_calls)
+            sd_calls = (job["resampled_scenes"]["euron1"].save_dataset.mock_calls
+                        + job["resampled_scenes"]["omerc_bb"].save_dataset.mock_calls)
             for sd in sd_calls:
                 assert "compute=True" in str(sd)
-            sds_calls = job['resampled_scenes']['euron1'].save_datasets.mock_calls
+            sds_calls = job["resampled_scenes"]["euron1"].save_datasets.mock_calls
             for sds in sds_calls:
                 assert "compute=True" in str(sds)
             compute_writer_results.assert_not_called()
@@ -611,7 +611,7 @@ class TestSaveDatasets(TestCase):
         }
         job["product_list"] = {"product_list": product_list}
 
-        with mock.patch('trollflow2.plugins.compute_writer_results'), \
+        with mock.patch("trollflow2.plugins.compute_writer_results"), \
                 mock.patch("os.rename"):
             save_datasets(job)
 
@@ -624,15 +624,15 @@ class TestSaveDatasets(TestCase):
 def _create_job_for_save_datasets():
     from yaml import UnsafeLoader
     job = {}
-    job['input_mda'] = input_mda
+    job["input_mda"] = input_mda
 
-    job['product_list'] = {
-        'product_list': read_config(raw_string=yaml_test_save, Loader=UnsafeLoader)['product_list'],
+    job["product_list"] = {
+        "product_list": read_config(raw_string=yaml_test_save, Loader=UnsafeLoader)["product_list"],
     }
-    job['resampled_scenes'] = {}
-    job['produced_files'] = mock.Mock()
-    for area in job['product_list']['product_list']['areas']:
-        job['resampled_scenes'][area] = mock.Mock()
+    job["resampled_scenes"] = {}
+    job["produced_files"] = mock.Mock()
+    for area in job["product_list"]["product_list"]["areas"]:
+        job["resampled_scenes"][area] = mock.Mock()
     return job
 
 
@@ -707,7 +707,7 @@ def test_save_datasets_callback(tmp_path, caplog, fake_scene):
     from trollflow2.plugins import callback_close, save_datasets
 
     job = {}
-    job['input_mda'] = input_mda
+    job["input_mda"] = input_mda
 
     logger = logging.getLogger("testlogger")
 
@@ -757,9 +757,9 @@ def test_save_datasets_callback(tmp_path, caplog, fake_scene):
         }
     }
     job["product_list"] = {"product_list": product_list}
-    job['resampled_scenes'] = {"sargasso": fake_scene}
+    job["resampled_scenes"] = {"sargasso": fake_scene}
 
-    job['produced_files'] = mock.MagicMock()
+    job["produced_files"] = mock.MagicMock()
 
     with caplog.at_level(logging.INFO):
         save_datasets(job)
@@ -774,7 +774,7 @@ def test_save_datasets_callback_move_check_products(tmp_path, caplog, fake_scene
     from trollflow2.plugins import callback_close, callback_move, save_datasets
 
     job = {}
-    job['input_mda'] = input_mda
+    job["input_mda"] = input_mda
     form = [{"writer": "geotiff", "fill_value": 0}]
 
     product_list = {
@@ -800,7 +800,7 @@ def test_save_datasets_callback_move_check_products(tmp_path, caplog, fake_scene
         }
     }
     job["product_list"] = {"product_list": product_list}
-    job['resampled_scenes'] = {"sargasso": fake_scene}
+    job["resampled_scenes"] = {"sargasso": fake_scene}
     job["produced_files"] = queue.SimpleQueue()
     save_datasets(job)
     with caplog.at_level(logging.INFO):
@@ -826,19 +826,19 @@ class TestCreateScene(TestCase):
             create_scene(job)
             assert job["scene"] == "foo"
             if satpy_version <= "0.25.1":
-                scene.assert_called_with(filenames='bar', reader=None,
+                scene.assert_called_with(filenames="bar", reader=None,
                                          reader_kwargs=None, ppp_config_dir=None)
             else:
-                scene.assert_called_with(filenames='bar', reader=None,
+                scene.assert_called_with(filenames="bar", reader=None,
                                          reader_kwargs=None)
             job = {"input_filenames": "bar",
                    "product_list": {"product_list": {"reader": "baz"}}}
             create_scene(job)
             if satpy_version <= "0.25.1":
-                scene.assert_called_with(filenames='bar', reader='baz',
+                scene.assert_called_with(filenames="bar", reader="baz",
                                          reader_kwargs=None, ppp_config_dir=None)
             else:
-                scene.assert_called_with(filenames='bar', reader='baz',
+                scene.assert_called_with(filenames="bar", reader="baz",
                                          reader_kwargs=None)
 
 
@@ -859,45 +859,45 @@ class TestLoadComposites(TestCase):
         with caplog.at_level(logging.INFO):
             load_composites(job)
         assert "Loading 3 composites." in caplog.text
-        scn.load.assert_called_with({'ct', 'cloudtype', 'cloud_top_height'}, resolution=DEFAULT, generate=False)
+        scn.load.assert_called_with({"ct", "cloudtype", "cloud_top_height"}, resolution=DEFAULT, generate=False)
 
     def test_load_composites_with_config(self, caplog):
         """Test loading composites with a config."""
         from trollflow2.plugins import load_composites
         scn = _get_mocked_scene_with_properties()
-        self.product_list['product_list']['resolution'] = 1000
-        self.product_list['product_list']['delay_composites'] = False
+        self.product_list["product_list"]["resolution"] = 1000
+        self.product_list["product_list"]["delay_composites"] = False
         job = {"product_list": self.product_list, "scene": scn}
         with caplog.at_level(logging.INFO):
             load_composites(job)
         assert "Loading 3 composites." in caplog.text
-        scn.load.assert_called_with({'ct', 'cloudtype', 'cloud_top_height'}, resolution=1000, generate=True)
+        scn.load.assert_called_with({"ct", "cloudtype", "cloud_top_height"}, resolution=1000, generate=True)
 
     def test_load_composites_with_different_resolutions(self, caplog):
         """Test loading composites with different resolutions."""
         from trollflow2.plugins import load_composites
         scn = _get_mocked_scene_with_properties()
-        self.product_list['product_list']['resolution'] = 1000
-        self.product_list['product_list']['areas']['euron1']['resolution'] = 500
-        self.product_list['product_list']['delay_composites'] = False
+        self.product_list["product_list"]["resolution"] = 1000
+        self.product_list["product_list"]["areas"]["euron1"]["resolution"] = 500
+        self.product_list["product_list"]["delay_composites"] = False
         job = {"product_list": self.product_list, "scene": scn}
         with caplog.at_level(logging.INFO):
             load_composites(job)
         assert "Loading 4 composites." in caplog.text
-        scn.load.assert_any_call({'cloudtype', 'ct', 'cloud_top_height'}, resolution=1000, generate=True)
-        scn.load.assert_any_call({'cloud_top_height'}, resolution=500, generate=True)
+        scn.load.assert_any_call({"cloudtype", "ct", "cloud_top_height"}, resolution=1000, generate=True)
+        scn.load.assert_any_call({"cloud_top_height"}, resolution=500, generate=True)
 
     def test_load_composites_with_custom_args(self, caplog):
         """Test loading with arbitrary additional arguments."""
         from trollflow2.plugins import DEFAULT, load_composites
         scn = _get_mocked_scene_with_properties()
-        self.product_list['product_list']['scene_load_kwargs'] = {"upper_right_corner": "NE"}
+        self.product_list["product_list"]["scene_load_kwargs"] = {"upper_right_corner": "NE"}
         job = {"product_list": self.product_list, "scene": scn}
         with caplog.at_level(logging.INFO):
             load_composites(job)
         assert "Loading 3 composites." in caplog.text
         scn.load.assert_called_with(
-            {'ct', 'cloudtype', 'cloud_top_height'},
+            {"ct", "cloudtype", "cloud_top_height"},
             resolution=DEFAULT, generate=False, upper_right_corner="NE")
 
 
@@ -914,17 +914,17 @@ class TestAggregate(TestCase):
         """Test aggregating."""
         from trollflow2.plugins import aggregate
         scn = _get_mocked_scene_with_properties()
-        assert 'aggregate' in self.product_list['product_list']
+        assert "aggregate" in self.product_list["product_list"]
         job = {"scene": scn, "product_list": self.product_list}
         aggregate(job)
-        assert job['scene'] is scn.aggregate.return_value
+        assert job["scene"] is scn.aggregate.return_value
 
     def test_aggregate_is_called_with_right_params(self):
         """Test aggregating."""
         from trollflow2.plugins import aggregate
         scn = _get_mocked_scene_with_properties()
-        assert 'aggregate' in self.product_list['product_list']
-        self.product_list['product_list']['aggregate'] = dict(x=4, y=4)
+        assert "aggregate" in self.product_list["product_list"]
+        self.product_list["product_list"]["aggregate"] = dict(x=4, y=4)
         job = {"scene": scn, "product_list": self.product_list}
         aggregate(job)
         scn.aggregate.assert_called_once_with(x=4, y=4)
@@ -933,10 +933,10 @@ class TestAggregate(TestCase):
         """Test aggregating."""
         from trollflow2.plugins import aggregate
         scn = _get_mocked_scene_with_properties()
-        del self.product_list['product_list']['aggregate']
+        del self.product_list["product_list"]["aggregate"]
         job = {"scene": scn, "product_list": self.product_list}
         aggregate(job)
-        assert job['scene'] is scn
+        assert job["scene"] is scn
 
 
 class TestResample:
@@ -954,21 +954,21 @@ class TestResample:
         scn.resample.return_value = "foo"
         job = {"scene": scn, "product_list": self.product_list}
         resample(job)
-        assert mock.call('omerc_bb',
+        assert mock.call("omerc_bb",
                          radius_of_influence=None,
                          resampler="nearest",
                          reduce_data=True,
                          cache_dir=None,
                          mask_area=False,
                          epsilon=0.0) in scn.resample.mock_calls
-        assert mock.call('germ',
+        assert mock.call("germ",
                          radius_of_influence=None,
                          resampler="nearest",
                          reduce_data=True,
                          cache_dir=None,
                          mask_area=False,
                          epsilon=0.0) in scn.resample.mock_calls
-        assert mock.call('euron1',
+        assert mock.call("euron1",
                          radius_of_influence=None,
                          resampler="nearest",
                          reduce_data=True,
@@ -982,10 +982,10 @@ class TestResample:
 
         prod_list = self.product_list.copy()
         prod_list["common"] = {"resampler": "bilinear"}
-        prod_list["product_list"]['areas']["euron1"]["reduce_data"] = False
+        prod_list["product_list"]["areas"]["euron1"]["reduce_data"] = False
         job = {"product_list": prod_list, "scene": scn}
         resample(job)
-        assert mock.call('euron1',
+        assert mock.call("euron1",
                          radius_of_influence=None,
                          resampler="bilinear",
                          reduce_data=False,
@@ -999,24 +999,24 @@ class TestResample:
         scn = mock.MagicMock()
         scn.resample.return_value = "foo"
         job = {"scene": scn, "product_list": self.product_list.copy()}
-        job['product_list']['product_list']['areas']['None'] = job['product_list']['product_list']['areas']['germ']
-        del job['product_list']['product_list']['areas']['germ']
+        job["product_list"]["product_list"]["areas"]["None"] = job["product_list"]["product_list"]["areas"]["germ"]
+        del job["product_list"]["product_list"]["areas"]["germ"]
         resample(job)
-        assert mock.call('omerc_bb',
+        assert mock.call("omerc_bb",
                          radius_of_influence=None,
                          resampler="nearest",
                          reduce_data=True,
                          cache_dir=None,
                          mask_area=False,
                          epsilon=0.0) in scn.resample.mock_calls
-        assert mock.call('euron1',
+        assert mock.call("euron1",
                          radius_of_influence=None,
                          resampler="nearest",
                          reduce_data=True,
                          cache_dir=None,
                          mask_area=False,
                          epsilon=0.0) in scn.resample.mock_calls
-        assert job['resampled_scenes']['None'] is scn
+        assert job["resampled_scenes"]["None"] is scn
         assert "resampled_scenes" in job
         for area in ["omerc_bb", "euron1"]:
             assert area in job["resampled_scenes"]
@@ -1028,11 +1028,11 @@ class TestResample:
         scn = _get_mocked_scene_with_properties()
         scn.resample.return_value = "foo"
         product_list = self.product_list.copy()
-        product_list['product_list']['areas']['None'] = product_list['product_list']['areas']['germ']
-        product_list['product_list']['areas']['None']['use_coarsest_area'] = True
-        del product_list['product_list']['areas']['germ']
-        del product_list['product_list']['areas']['omerc_bb']
-        del product_list['product_list']['areas']['euron1']
+        product_list["product_list"]["areas"]["None"] = product_list["product_list"]["areas"]["germ"]
+        product_list["product_list"]["areas"]["None"]["use_coarsest_area"] = True
+        del product_list["product_list"]["areas"]["germ"]
+        del product_list["product_list"]["areas"]["omerc_bb"]
+        del product_list["product_list"]["areas"]["euron1"]
         job = {"scene": scn, "product_list": product_list.copy()}
         resample(job)
         assert mock.call(scn.coarsest_area(),
@@ -1042,8 +1042,8 @@ class TestResample:
                          cache_dir=None,
                          mask_area=False,
                          epsilon=0.0) in scn.resample.mock_calls
-        del product_list['product_list']['areas']['None']['use_coarsest_area']
-        product_list['product_list']['areas']['None']['use_finest_area'] = True
+        del product_list["product_list"]["areas"]["None"]["use_coarsest_area"]
+        product_list["product_list"]["areas"]["None"]["use_finest_area"] = True
         job = {"scene": scn, "product_list": product_list.copy()}
         resample(job)
         assert mock.call(scn.finest_area(),
@@ -1108,15 +1108,15 @@ class TestResampleNullArea(TestCase):
         product_list = self.product_list.copy()
         job = {"scene": scn, "product_list": product_list.copy()}
         # The composites have been generated
-        scn.keys.return_value = ['abc']
-        scn.wishlist = {'abc'}
+        scn.keys.return_value = ["abc"]
+        scn.wishlist = {"abc"}
         resample(job)
         scn.load.assert_not_called()
         # The composites have not been generated
-        scn.keys.return_value = ['a', 'b', 'c']
-        scn.wishlist = {'abc'}
+        scn.keys.return_value = ["a", "b", "c"]
+        scn.wishlist = {"abc"}
         resample(job)
-        assert mock.call({'abc'}, generate=True) in scn.load.mock_calls
+        assert mock.call({"abc"}, generate=True) in scn.load.mock_calls
 
     def test_resample_native_null_area(self):
         """Test using `native` resampler with `None` area."""
@@ -1126,8 +1126,8 @@ class TestResampleNullArea(TestCase):
         product_list["common"] = {"resampler": "native"}
         job = {"scene": scn, "product_list": product_list.copy()}
         # The composites have been generated
-        scn.keys.return_value = ['abc']
-        scn.wishlist = {'abc'}
+        scn.keys.return_value = ["abc"]
+        scn.wishlist = {"abc"}
         resample(job)
         assert "resampler='native'" in str(scn.resample.mock_calls)
 
@@ -1149,10 +1149,10 @@ class TestSunlightCovers(TestCase):
     def test_coverage(self):
         """Test sunlight coverage."""
         from trollflow2.plugins import _get_sunlight_coverage
-        with mock.patch('trollflow2.plugins.Boundary') as boundary, \
-                mock.patch('trollflow2.plugins.get_twilight_poly'), \
-                mock.patch('trollflow2.plugins.get_area_def'), \
-                mock.patch('trollflow2.plugins.get_geostationary_bounding_box'):
+        with mock.patch("trollflow2.plugins.Boundary") as boundary, \
+                mock.patch("trollflow2.plugins.get_twilight_poly"), \
+                mock.patch("trollflow2.plugins.get_area_def"), \
+                mock.patch("trollflow2.plugins.get_geostationary_bounding_box"):
 
             boundary.return_value.contour_poly.intersection.return_value.area.return_value = 0.02
             adef = mock.MagicMock(is_geostationary=False)
@@ -1176,9 +1176,9 @@ class TestGetProductAreaDef(TestCase):
 
         # No area nor product
         scn = dict([])
-        job = {'scene': scn}
-        area = 'area'
-        product = 'product'
+        job = {"scene": scn}
+        area = "area"
+        product = "product"
         res = _get_product_area_def(job, area, product)
         assert res is None
 
@@ -1186,8 +1186,8 @@ class TestGetProductAreaDef(TestCase):
         adef = mock.MagicMock()
         prod = mock.MagicMock()
         prod.attrs.__getitem__.return_value = adef
-        scn['1'] = prod
-        job = {'scene': scn}
+        scn["1"] = prod
+        job = {"scene": scn}
         res = _get_product_area_def(job, area, product)
         assert res is adef
         prod.attrs.__getitem__.assert_called_once()
@@ -1198,14 +1198,14 @@ class TestGetProductAreaDef(TestCase):
         prod.attrs.__getitem__.return_value = adef
         prod2 = mock.MagicMock()
         prod2.attrs.__getitem__.return_value = None
-        scn = {area: prod, '1': prod2}
-        job = {'scene': scn}
+        scn = {area: prod, "1": prod2}
+        job = {"scene": scn}
         res = _get_product_area_def(job, area, product)
         assert res is adef
         prod.attrs.__getitem__.assert_called_once()
         prod2.attrs.__getitem__.assert_not_called()
         # Product is a tuple
-        res = _get_product_area_def(job, area, (product, 'foo'))
+        res = _get_product_area_def(job, area, (product, "foo"))
         assert res is adef
 
         # Area from a resampled scene
@@ -1214,14 +1214,14 @@ class TestGetProductAreaDef(TestCase):
         prod.attrs.__getitem__.return_value = adef
         prod2 = mock.MagicMock()
         prod2.attrs.__getitem__.return_value = None
-        scn = {area: prod, '1': prod2}
-        job = {'resampled_scenes': {area: scn}}
+        scn = {area: prod, "1": prod2}
+        job = {"resampled_scenes": {area: scn}}
         res = _get_product_area_def(job, area, product)
         assert res is adef
         prod.attrs.__getitem__.assert_called_once()
         prod2.attrs.__getitem__.assert_not_called()
         # Product is a tuple
-        res = _get_product_area_def(job, area, (product, 'foo'))
+        res = _get_product_area_def(job, area, (product, "foo"))
         assert res is adef
 
 
@@ -1237,22 +1237,22 @@ class TestCheckSunlightCoverage(TestCase):
                           "sensor": "avhrr-3",
                           "start_time": dt.datetime(2019, 1, 19, 11),
                           "end_time": dt.datetime(2019, 1, 19, 12),
-                          'not_changed': True,
+                          "not_changed": True,
                           }
 
     def test_metadata_is_read_from_scene(self):
         """Test that the scene and message metadata are merged correctly."""
         from trollflow2.plugins import check_sunlight_coverage
 
-        with mock.patch('trollflow2.plugins.Pass') as ts_pass, \
-                mock.patch('trollflow2.plugins.get_twilight_poly'), \
-                mock.patch('trollflow2.plugins.get_area_def'), \
+        with mock.patch("trollflow2.plugins.Pass") as ts_pass, \
+                mock.patch("trollflow2.plugins.get_twilight_poly"), \
+                mock.patch("trollflow2.plugins.get_area_def"), \
                 mock.patch("trollflow2.plugins._get_sunlight_coverage") as _get_sunlight_coverage:
             _get_sunlight_coverage.return_value = .3
             scene = _get_mocked_scene_with_properties()
             job = {"scene": scene, "product_list": self.product_list.copy(),
                    "input_mda": {"platform_name": "platform"}}
-            job['product_list']['product_list']['sunlight_coverage'] = {'min': 10, 'max': 40, 'check_pass': True}
+            job["product_list"]["product_list"]["sunlight_coverage"] = {"min": 10, "max": 40, "check_pass": True}
             check_sunlight_coverage(job)
             ts_pass.assert_called_with(job["input_mda"]["platform_name"], scene.start_time, scene.end_time,
                                        instrument=list(scene.sensor_names)[0])
@@ -1262,34 +1262,34 @@ class TestCheckSunlightCoverage(TestCase):
         from pyresample.spherical import SphPolygon
 
         from trollflow2.plugins import check_sunlight_coverage
-        with mock.patch('trollflow2.plugins.Pass') as tst_pass, \
-                mock.patch('trollflow2.plugins.get_twilight_poly') as twilight:
+        with mock.patch("trollflow2.plugins.Pass") as tst_pass, \
+                mock.patch("trollflow2.plugins.get_twilight_poly") as twilight:
             tst_pass.return_value.boundary.contour_poly = SphPolygon(np.deg2rad(np.array([(0, 0), (0, 90), (45, 0)])))
             twilight.return_value = SphPolygon(np.deg2rad(np.array([(0, 0), (0, 90), (90, 0)])))
             scene = _get_mocked_scene_with_properties()
             job = {"scene": scene, "product_list": self.product_list.copy(),
                    "input_mda": {"platform_name": "platform"}}
-            job['product_list']['product_list']['sunlight_coverage'] = {'min': 10, 'max': 40, 'check_pass': True}
+            job["product_list"]["product_list"]["sunlight_coverage"] = {"min": 10, "max": 40, "check_pass": True}
             check_sunlight_coverage(job)
-            assert job['product_list']['product_list']['areas']['euron1']['area_sunlight_coverage_percent'] == 100
+            assert job["product_list"]["product_list"]["areas"]["euron1"]["area_sunlight_coverage_percent"] == 100
 
     def test_product_not_loaded(self):
         """Test that product isn't loaded when sunlight coverage is too low."""
         from trollflow2.plugins import check_sunlight_coverage, metadata_alias
-        with mock.patch('trollflow2.plugins.Pass') as ts_pass, \
-                mock.patch('trollflow2.plugins.get_twilight_poly'), \
-                mock.patch('trollflow2.plugins.get_area_def'), \
+        with mock.patch("trollflow2.plugins.Pass") as ts_pass, \
+                mock.patch("trollflow2.plugins.get_twilight_poly"), \
+                mock.patch("trollflow2.plugins.get_area_def"), \
                 mock.patch("trollflow2.plugins._get_sunlight_coverage") as _get_sunlight_coverage:
             job = {}
             scene = _get_mocked_scene_with_properties()
-            job['scene'] = scene
-            job['product_list'] = self.product_list.copy()
-            job['input_mda'] = self.input_mda.copy()
+            job["scene"] = scene
+            job["product_list"] = self.product_list.copy()
+            job["input_mda"] = self.input_mda.copy()
             metadata_alias(job)
 
-            job['resampled_scenes'] = {}
-            for area in job['product_list']['product_list']['areas']:
-                job['resampled_scenes'][area] = {}
+            job["resampled_scenes"] = {}
+            for area in job["product_list"]["product_list"]["areas"]:
+                job["resampled_scenes"][area] = {}
             # Run without any settings
             check_sunlight_coverage(job)
 
@@ -1299,47 +1299,47 @@ class TestCheckSunlightCoverage(TestCase):
     def test_sunlight_filter(self, caplog):
         """Test that product isn't loaded when sunlight coverage is to low."""
         from trollflow2.plugins import check_sunlight_coverage, metadata_alias
-        with mock.patch('trollflow2.plugins.Pass'), \
-                mock.patch('trollflow2.plugins.get_twilight_poly'), \
-                mock.patch('trollflow2.plugins.get_area_def'), \
+        with mock.patch("trollflow2.plugins.Pass"), \
+                mock.patch("trollflow2.plugins.get_twilight_poly"), \
+                mock.patch("trollflow2.plugins.get_area_def"), \
                 mock.patch("trollflow2.plugins._get_sunlight_coverage") as _get_sunlight_coverage:
             job = {}
             scene = _get_mocked_scene_with_properties()
-            job['scene'] = scene
-            job['product_list'] = self.product_list.copy()
-            job['input_mda'] = self.input_mda.copy()
+            job["scene"] = scene
+            job["product_list"] = self.product_list.copy()
+            job["input_mda"] = self.input_mda.copy()
             metadata_alias(job)
 
-            job['resampled_scenes'] = {}
-            for area in job['product_list']['product_list']['areas']:
-                job['resampled_scenes'][area] = {}
-            job['product_list']['product_list']['sunlight_coverage'] = {'min': 10, 'max': 40}
+            job["resampled_scenes"] = {}
+            for area in job["product_list"]["product_list"]["areas"]:
+                job["resampled_scenes"][area] = {}
+            job["product_list"]["product_list"]["sunlight_coverage"] = {"min": 10, "max": 40}
             green_snow = mock.MagicMock()
-            green_snow.name = 'Green Snow Mock'
-            job['resampled_scenes']['euron1']['green_snow'] = green_snow
-            green_snow.attrs.__getitem__.return_value = 'euron1'
+            green_snow.name = "Green Snow Mock"
+            job["resampled_scenes"]["euron1"]["green_snow"] = green_snow
+            green_snow.attrs.__getitem__.return_value = "euron1"
             # Run without any settings
             _get_sunlight_coverage.return_value = .3
             check_sunlight_coverage(job)
 
-            pl_green = job['product_list']['product_list']['areas']['euron1']['products']['green_snow']
+            pl_green = job["product_list"]["product_list"]["areas"]["euron1"]["products"]["green_snow"]
 
             _get_sunlight_coverage.assert_called_once()
-            assert 'green_snow' in job['product_list']['product_list']['areas']['euron1']['products']
+            assert "green_snow" in job["product_list"]["product_list"]["areas"]["euron1"]["products"]
 
             _get_sunlight_coverage.return_value = 0
             with caplog.at_level(logging.INFO):
                 check_sunlight_coverage(job)
-            assert 'green_snow' not in job['product_list']['product_list']['areas']['euron1']['products']
+            assert "green_snow" not in job["product_list"]["product_list"]["areas"]["euron1"]["products"]
             assert any("Not enough sunlight coverage for product "
                        "'green_snow', removed. Needs at least 10.0%, got "
                        "0.0%." in line for line in caplog.text.split("\n"))
 
-            job['product_list']['product_list']['areas']['euron1']['products']['green_snow'] = pl_green
+            job["product_list"]["product_list"]["areas"]["euron1"]["products"]["green_snow"] = pl_green
             _get_sunlight_coverage.return_value = 1
             with caplog.at_level(logging.INFO):
                 check_sunlight_coverage(job)
-            assert 'green_snow' not in job['product_list']['product_list']['areas']['euron1']['products']
+            assert "green_snow" not in job["product_list"]["product_list"]["areas"]["euron1"]["products"]
             assert any("Too much sunlight coverage for product "
                        "'green_snow', removed. Needs at most 40.0%, got "
                        "100.0%." in line for line in caplog.text.split("\n"))
@@ -1350,7 +1350,7 @@ def _get_mocked_scene_with_properties():
     scene.attrs = {}
     scene.start_time = SCENE_START_TIME
     scene.end_time = SCENE_END_TIME
-    scene.sensor_names = {'sensor'}
+    scene.sensor_names = {"sensor"}
 
     return scene
 
@@ -1369,7 +1369,7 @@ class TestCovers(TestCase):
                           "end_time": dt.datetime(2019, 1, 19, 12),
                           }
 
-    @mock.patch('trollflow2.plugins.Pass', new=None)
+    @mock.patch("trollflow2.plugins.Pass", new=None)
     def test_covers_no_trollsched(self):
         """Test coverage when pytroll schedule is missing."""
         from trollflow2.plugins import covers
@@ -1382,8 +1382,8 @@ class TestCovers(TestCase):
         """Test that the plugin complains when multiple sensors are provided."""
         from trollflow2.plugins import covers
 
-        with mock.patch('trollflow2.plugins._get_scene_coverage') as _get_scene_coverage, \
-                mock.patch('trollflow2.plugins.Pass'):
+        with mock.patch("trollflow2.plugins._get_scene_coverage") as _get_scene_coverage, \
+                mock.patch("trollflow2.plugins.Pass"):
             _get_scene_coverage.return_value = 10.0
             scn = _get_mocked_scene_with_properties()
             job = {"product_list": self.product_list,
@@ -1400,8 +1400,8 @@ class TestCovers(TestCase):
         """Test that the plugin complains when multiple sensors are provided."""
         from trollflow2.plugins import covers
 
-        with mock.patch('trollflow2.plugins._get_scene_coverage') as _get_scene_coverage, \
-                mock.patch('trollflow2.plugins.Pass'):
+        with mock.patch("trollflow2.plugins._get_scene_coverage") as _get_scene_coverage, \
+                mock.patch("trollflow2.plugins.Pass"):
             _get_scene_coverage.return_value = 10.0
             scn = _get_mocked_scene_with_properties()
             job = {"product_list": self.product_list,
@@ -1418,8 +1418,8 @@ class TestCovers(TestCase):
         """Test that the scene and message metadata are merged correctly."""
         from trollflow2.plugins import covers
 
-        with mock.patch('trollflow2.plugins._get_scene_coverage') as _get_scene_coverage, \
-                mock.patch('trollflow2.plugins.Pass'):
+        with mock.patch("trollflow2.plugins._get_scene_coverage") as _get_scene_coverage, \
+                mock.patch("trollflow2.plugins.Pass"):
             _get_scene_coverage.return_value = 10.0
             scn = _get_mocked_scene_with_properties()
             job = {"product_list": self.product_list,
@@ -1435,7 +1435,7 @@ class TestCovers(TestCase):
     def test_covers(self, caplog):
         """Test coverage."""
         from trollflow2.plugins import covers
-        with mock.patch('trollflow2.plugins.Pass', spec=True) as pass_obj:
+        with mock.patch("trollflow2.plugins.Pass", spec=True) as pass_obj:
             fake_area_coverage_10 = partial(fake_area_coverage, result=.1)
             pass_obj.return_value.area_coverage.side_effect = fake_area_coverage_10
             scn = _get_mocked_scene_with_properties()
@@ -1446,16 +1446,16 @@ class TestCovers(TestCase):
                 covers(job)
             assert "Area coverage 100.00% above threshold 5.00% - Carry on with omerc_bb" in caplog.text
             # Area "euron1" should be removed
-            assert "euron1" not in job['product_list']['product_list']['areas']
+            assert "euron1" not in job["product_list"]["product_list"]["areas"]
             # Other areas should stay in the list
-            assert "germ" in job['product_list']['product_list']['areas']
-            assert "omerc_bb" in job['product_list']['product_list']['areas']
+            assert "germ" in job["product_list"]["product_list"]["areas"]
+            assert "omerc_bb" in job["product_list"]["product_list"]["areas"]
 
     def test_covers_uses_only_one_sensor(self, caplog):
         """Test that only one sensor is used."""
         from trollflow2.plugins import covers
         input_mda = self.input_mda.copy()
-        input_mda['sensor'] = {'avhrr-4'}
+        input_mda["sensor"] = {"avhrr-4"}
         scn = _get_mocked_scene_with_properties()
 
         job = {"product_list": self.product_list,
@@ -1463,14 +1463,14 @@ class TestCovers(TestCase):
                "scene": scn}
         job2 = copy.deepcopy(job)
 
-        with mock.patch('trollflow2.plugins._get_scene_coverage') as _get_scene_coverage, \
-                mock.patch('trollflow2.plugins.Pass'):
+        with mock.patch("trollflow2.plugins._get_scene_coverage") as _get_scene_coverage, \
+                mock.patch("trollflow2.plugins.Pass"):
             _get_scene_coverage.return_value = 10.0
             covers(job)
-            _get_scene_coverage.assert_called_with(input_mda['platform_name'],
-                                                   input_mda['start_time'],
-                                                   input_mda['end_time'],
-                                                   'avhrr-4', 'omerc_bb')
+            _get_scene_coverage.assert_called_with(input_mda["platform_name"],
+                                                   input_mda["start_time"],
+                                                   input_mda["end_time"],
+                                                   "avhrr-4", "omerc_bb")
 
             del job2["product_list"]["product_list"]["areas"]["euron1"]["min_coverage"]
             del job2["product_list"]["product_list"]["min_coverage"]
@@ -1481,8 +1481,8 @@ class TestCovers(TestCase):
     def test_scene_coverage(self):
         """Test scene coverage."""
         from trollflow2.plugins import _get_scene_coverage
-        with mock.patch('trollflow2.plugins.get_area_def') as get_area_def, \
-                mock.patch('trollflow2.plugins.Pass') as ts_pass:
+        with mock.patch("trollflow2.plugins.get_area_def") as get_area_def, \
+                mock.patch("trollflow2.plugins.Pass") as ts_pass:
             area_coverage = mock.MagicMock()
             area_coverage.return_value = 0.2
             overpass = mock.MagicMock()
@@ -1498,7 +1498,7 @@ class TestCovers(TestCase):
     def test_covers_collection_area_id(self):
         """Test the coverage of a collection area id."""
         from trollflow2.plugins import AbortProcessing, covers
-        with mock.patch('trollflow2.plugins.Pass', spec=True) as pass_obj:
+        with mock.patch("trollflow2.plugins.Pass", spec=True) as pass_obj:
             fake_area_coverage_100 = partial(fake_area_coverage, result=1)
             pass_obj.return_value.area_coverage.side_effect = fake_area_coverage_100
             scn = _get_mocked_scene_with_properties()
@@ -1508,25 +1508,25 @@ class TestCovers(TestCase):
             # Nothing should happen here
             covers(job)
             # Area that matches the product list, nothing should happen
-            job['input_mda']['collection_area_id'] = 'euron1'
+            job["input_mda"]["collection_area_id"] = "euron1"
             covers(job)
             # By default collection_area_id isn't checked so nothing should happen
-            job['input_mda']['collection_area_id'] = 'not_in_pl'
+            job["input_mda"]["collection_area_id"] = "not_in_pl"
             covers(job)
             # Turn coverage check on, so area not in the product list
             # should raise AbortProcessing
-            job['product_list']['product_list']['coverage_by_collection_area'] = True
+            job["product_list"]["product_list"]["coverage_by_collection_area"] = True
             with pytest.raises(AbortProcessing):
                 covers(job)
 
             # And with existing area there shouldn't be an exception
-            job['input_mda']['collection_area_id'] = 'euron1'
+            job["input_mda"]["collection_area_id"] = "euron1"
             covers(job)
 
     def test_covers_returns_100_when_area_def_is_dynamic(self):
         """Test that covers return 100% when area def is dynamic."""
         from trollflow2.plugins import covers
-        with mock.patch('trollflow2.plugins.Pass', spec=True) as pass_obj:
+        with mock.patch("trollflow2.plugins.Pass", spec=True) as pass_obj:
             pass_obj.return_value.area_coverage.side_effect = partial(fake_area_coverage, result=.1)
             scn = _get_mocked_scene_with_properties()
             job = {"product_list": self.product_list,
@@ -1550,63 +1550,63 @@ class TestCheckMetadata(TestCase):
     def test_single_item(self):
         """Test checking a single metadata item."""
         from trollflow2.plugins import AbortProcessing, check_metadata
-        with mock.patch('trollflow2.plugins.get_config_value') as get_config_value:
+        with mock.patch("trollflow2.plugins.get_config_value") as get_config_value:
             get_config_value.return_value = None
-            job = {'product_list': None, 'input_mda': {'sensor': 'foo'}}
+            job = {"product_list": None, "input_mda": {"sensor": "foo"}}
             assert check_metadata(job) is None
-            get_config_value.return_value = {'sensor': ['foo', 'bar']}
+            get_config_value.return_value = {"sensor": ["foo", "bar"]}
             assert check_metadata(job) is None
-            get_config_value.return_value = {'sensor': ['bar']}
+            get_config_value.return_value = {"sensor": ["bar"]}
             with pytest.raises(AbortProcessing):
                 check_metadata(job)
 
     def test_multiple_items(self):
         """Test checking a single metadata item."""
         from trollflow2.plugins import AbortProcessing, check_metadata
-        with mock.patch('trollflow2.plugins.get_config_value') as get_config_value:
+        with mock.patch("trollflow2.plugins.get_config_value") as get_config_value:
             # Nothing configured
             get_config_value.return_value = None
-            job = {'product_list': None,
-                   'input_mda': {'sensor': 'foo',
-                                 'platform_name': 'bar'}}
+            job = {"product_list": None,
+                   "input_mda": {"sensor": "foo",
+                                 "platform_name": "bar"}}
             assert check_metadata(job) is None
             # Both sensor and platform name match
-            get_config_value.return_value = {'sensor': ['foo', 'bar'],
-                                             'platform_name': ['bar']}
+            get_config_value.return_value = {"sensor": ["foo", "bar"],
+                                             "platform_name": ["bar"]}
             assert check_metadata(job) is None
-            # Sensor matches, 'variant' not in the message
-            get_config_value.return_value = {'sensor': ['foo', 'bar'],
-                                             'variant': ['e ascari']}
+            # Sensor matches, "variant" not in the message
+            get_config_value.return_value = {"sensor": ["foo", "bar"],
+                                             "variant": ["e ascari"]}
             assert check_metadata(job) is None
             # Platform doesn't match -> abort
-            get_config_value.return_value = {'sensor': ['foo'],
-                                             'platform_name': ['not-bar']}
+            get_config_value.return_value = {"sensor": ["foo"],
+                                             "platform_name": ["not-bar"]}
             with pytest.raises(AbortProcessing):
                 check_metadata(job)
 
     def test_discard_old_data(self):
         """Test that old data are discarded."""
         from trollflow2.plugins import AbortProcessing, check_metadata
-        with mock.patch('trollflow2.plugins.get_config_value') as get_config_value:
+        with mock.patch("trollflow2.plugins.get_config_value") as get_config_value:
             get_config_value.return_value = None
-            job = {'product_list': None, 'input_mda': {'start_time': dt.datetime(2020, 3, 18, tzinfo=dt.timezone.utc)}}
+            job = {"product_list": None, "input_mda": {"start_time": dt.datetime(2020, 3, 18, tzinfo=dt.timezone.utc)}}
             assert check_metadata(job) is None
-            get_config_value.return_value = {'start_time': -20e6}
+            get_config_value.return_value = {"start_time": -20e6}
             assert check_metadata(job) is None
-            get_config_value.return_value = {'start_time': -60}
+            get_config_value.return_value = {"start_time": -60}
             with pytest.raises(AbortProcessing):
                 check_metadata(job)
 
     def test_discard_new_data(self):
         """Test that new data are discarded."""
         from trollflow2.plugins import AbortProcessing, check_metadata
-        with mock.patch('trollflow2.plugins.get_config_value') as get_config_value:
-            job = {'product_list': None,
-                   'input_mda': {'start_time': dt.datetime.now(dt.timezone.utc) - dt.timedelta(minutes=90)}}
-            get_config_value.return_value = {'start_time': +60}
+        with mock.patch("trollflow2.plugins.get_config_value") as get_config_value:
+            job = {"product_list": None,
+                   "input_mda": {"start_time": dt.datetime.now(dt.timezone.utc) - dt.timedelta(minutes=90)}}
+            get_config_value.return_value = {"start_time": +60}
             with pytest.raises(AbortProcessing):
                 check_metadata(job)
-            get_config_value.return_value = {'start_time': +100}
+            get_config_value.return_value = {"start_time": +100}
             assert check_metadata(job) is None
 
 
@@ -1616,34 +1616,34 @@ class TestMetadataAlias(TestCase):
     def test_metadata_alias(self):
         """Test metadata aliasing."""
         from trollflow2.plugins import metadata_alias
-        mda = {'platform_name': 'noaa15', 'not_changed': True}
-        product_list = {'common': {'not_metadata_aliases': True}}
-        job = {'input_mda': mda, 'product_list': product_list}
+        mda = {"platform_name": "noaa15", "not_changed": True}
+        product_list = {"common": {"not_metadata_aliases": True}}
+        job = {"input_mda": mda, "product_list": product_list}
         metadata_alias(job)
-        mda = job['input_mda']
-        assert mda['platform_name'] == 'noaa15'
-        assert mda['not_changed']
-        product_list = {'common': {'metadata_aliases':
-                                   {'platform_name': {'noaa15': 'NOAA-15'},
-                                    'not_in_mda': {'something': 'other'}}}}
-        job = {'input_mda': mda, 'product_list': product_list}
+        mda = job["input_mda"]
+        assert mda["platform_name"] == "noaa15"
+        assert mda["not_changed"]
+        product_list = {"common": {"metadata_aliases":
+                                   {"platform_name": {"noaa15": "NOAA-15"},
+                                    "not_in_mda": {"something": "other"}}}}
+        job = {"input_mda": mda, "product_list": product_list}
         metadata_alias(job)
-        mda = job['input_mda']
-        assert mda['platform_name'] == 'NOAA-15'
-        assert mda['not_changed']
-        assert 'not_in_mda' not in mda
+        mda = job["input_mda"]
+        assert mda["platform_name"] == "NOAA-15"
+        assert mda["not_changed"]
+        assert "not_in_mda" not in mda
 
     def test_iterable_metadata(self):
         """Test that iterable metadata gets replaced."""
         from trollflow2.plugins import metadata_alias
-        mda = {'sensor': ('a/b',), 'foo': set(['c/d'])}
-        product_list = {'common': {'metadata_aliases':
-                                   {'sensor': {'a/b': 'a-b'},
-                                    'foo': {'c/d': 'c-d'}}}}
-        job = {'input_mda': mda, 'product_list': product_list}
+        mda = {"sensor": ("a/b",), "foo": set(["c/d"])}
+        product_list = {"common": {"metadata_aliases":
+                                   {"sensor": {"a/b": "a-b"},
+                                    "foo": {"c/d": "c-d"}}}}
+        job = {"input_mda": mda, "product_list": product_list}
         metadata_alias(job)
-        assert job['input_mda']['sensor'] == ('a-b',)
-        assert job['input_mda']['foo'] == set(['c-d'])
+        assert job["input_mda"]["sensor"] == ("a-b",)
+        assert job["input_mda"]["foo"] == set(["c-d"])
 
 
 class TestGetPluginConf(TestCase):
@@ -1707,7 +1707,7 @@ class TestSZACheck(TestCase):
             sza_check(self.job_with_sza)
 
             sun_zenith_angle.assert_called_with(JOB_INPUT_MDA_START_TIME, 25., 60.)
-            assert self.job_with_sza['product_list'] == self.product_list_with_sza
+            assert self.job_with_sza["product_list"] == self.product_list_with_sza
 
     def test_sza_check_removes_day_products(self):
         """Test the SZA check with SZA that removes day products."""
@@ -1718,10 +1718,10 @@ class TestSZACheck(TestCase):
 
             sza_check(self.job_with_sza)
 
-            assert 'cloud_top_height' in \
-                self.product_list_with_sza['product_list']['areas']['omerc_bb']['products']
-            assert 'ct' not in \
-                self.product_list_with_sza['product_list']['areas']['omerc_bb']['products']
+            assert "cloud_top_height" in \
+                self.product_list_with_sza["product_list"]["areas"]["omerc_bb"]["products"]
+            assert "ct" not in \
+                self.product_list_with_sza["product_list"]["areas"]["omerc_bb"]["products"]
 
     def test_sza_check_removes_night_products(self):
         """Test the SZA check with SZA that removes night products."""
@@ -1733,7 +1733,7 @@ class TestSZACheck(TestCase):
             sza_check(self.job_with_sza)
 
             # There was only one product, so the whole area is deleted
-            assert 'germ' not in self.job_with_sza['product_list']['product_list']['areas']
+            assert "germ" not in self.job_with_sza["product_list"]["product_list"]["areas"]
 
 
 def _get_product_list_and_job(add_sza_limits=False):
@@ -1749,9 +1749,9 @@ def _get_product_list_and_job(add_sza_limits=False):
 def _create_job(product_list):
     job = {}
     scene = _get_mocked_scene_with_properties()
-    job['input_mda'] = {'start_time': JOB_INPUT_MDA_START_TIME, 'another_message_item': 'coconut'}
-    job['scene'] = scene
-    job['product_list'] = product_list.copy()
+    job["input_mda"] = {"start_time": JOB_INPUT_MDA_START_TIME, "another_message_item": "coconut"}
+    job["scene"] = scene
+    job["product_list"] = product_list.copy()
 
     return job
 
@@ -1759,13 +1759,13 @@ def _create_job(product_list):
 def _add_sunzen_limits(product_list):
     # Add SZA limits to couple of products
     # Day product
-    product_list['product_list']['areas']['omerc_bb']['products']['ct']['sunzen_maximum_angle'] = 95.
-    product_list['product_list']['areas']['omerc_bb']['products']['ct']['sunzen_check_lon'] = 25.
-    product_list['product_list']['areas']['omerc_bb']['products']['ct']['sunzen_check_lat'] = 60.
+    product_list["product_list"]["areas"]["omerc_bb"]["products"]["ct"]["sunzen_maximum_angle"] = 95.
+    product_list["product_list"]["areas"]["omerc_bb"]["products"]["ct"]["sunzen_check_lon"] = 25.
+    product_list["product_list"]["areas"]["omerc_bb"]["products"]["ct"]["sunzen_check_lat"] = 60.
     # Night product
-    product_list['product_list']['areas']['germ']['products']['cloudtype']['sunzen_minimum_angle'] = 85.
-    product_list['product_list']['areas']['germ']['products']['cloudtype']['sunzen_check_lon'] = 25.
-    product_list['product_list']['areas']['germ']['products']['cloudtype']['sunzen_check_lat'] = 60.
+    product_list["product_list"]["areas"]["germ"]["products"]["cloudtype"]["sunzen_minimum_angle"] = 85.
+    product_list["product_list"]["areas"]["germ"]["products"]["cloudtype"]["sunzen_check_lon"] = 25.
+    product_list["product_list"]["areas"]["germ"]["products"]["cloudtype"]["sunzen_check_lat"] = 60.
 
 
 class TestOverviews(TestCase):
@@ -1780,21 +1780,21 @@ class TestOverviews(TestCase):
     def test_add_overviews(self):
         """Test adding overviews."""
         from trollflow2.plugins import add_overviews
-        with mock.patch('trollflow2.plugins.Resampling') as resampling, \
-                mock.patch('trollflow2.plugins.rasterio') as rasterio:
+        with mock.patch("trollflow2.plugins.Resampling") as resampling, \
+                mock.patch("trollflow2.plugins.rasterio") as rasterio:
             # Mock the rasterio.open context manager
             dst = mock.MagicMock()
             rasterio.open.return_value.__enter__.return_value = dst
 
-            product_list = self.product_list['product_list']['areas']
-            product_list['germ']['products']['cloudtype']['formats'][0]['overviews'] = [4]
+            product_list = self.product_list["product_list"]["areas"]
+            product_list["germ"]["products"]["cloudtype"]["formats"][0]["overviews"] = [4]
             # Add filename, otherwise added by `save_datasets()`
-            product_list['germ']['products']['cloudtype']['formats'][0]['filename'] = 'foo'
+            product_list["germ"]["products"]["cloudtype"]["formats"][0]["filename"] = "foo"
             job = {"product_list": self.product_list}
             add_overviews(job)
             dst.build_overviews.assert_called_once_with([4], resampling.average)
-            dst.update_tags.assert_called_once_with(ns='rio_overview',
-                                                    resampling='average')
+            dst.update_tags.assert_called_once_with(ns="rio_overview",
+                                                    resampling="average")
 
 
 class TestFilePublisher(TestCase):
@@ -1805,22 +1805,22 @@ class TestFilePublisher(TestCase):
         super().setup_method()
         from yaml import UnsafeLoader
         self.product_list = read_config(raw_string=yaml_test_publish, Loader=UnsafeLoader)
-        # Skip omerc_bb area, there's no fname_pattern
-        del self.product_list['product_list']['areas']['omerc_bb']
+        # Skip omerc_bb area, there"s no fname_pattern
+        del self.product_list["product_list"]["areas"]["omerc_bb"]
         self.input_mda = input_mda.copy()
-        self.input_mda['uri'] = 'foo.nc'
+        self.input_mda["uri"] = "foo.nc"
 
     def test_filepublisher_is_started(self):
         """Test that the filepublisher is started."""
         from trollflow2.plugins import FilePublisher
-        with mock.patch('posttroll.publisher.NoisyPublisher') as NoisyPublisher:
+        with mock.patch("posttroll.publisher.NoisyPublisher") as NoisyPublisher:
             _ = FilePublisher()
             NoisyPublisher.return_value.start.assert_called_once()
 
     def test_filepublisher_is_stopped_on_exit(self):
         """Test that the filepublisher is stopped on exit."""
         from trollflow2.plugins import FilePublisher
-        with mock.patch('posttroll.publisher.NoisyPublisher'):
+        with mock.patch("posttroll.publisher.NoisyPublisher"):
             publisher = mock.MagicMock()
             pub = FilePublisher()
             pub.pub = publisher
@@ -1849,16 +1849,16 @@ class TestFilePublisher(TestCase):
         from trollflow2.plugins import FilePublisher
 
         scn_euron1 = Scene()
-        dataid = make_dataid(name='cloud_top_height', resolution=1000)
+        dataid = make_dataid(name="cloud_top_height", resolution=1000)
         scn_euron1[dataid] = mock.MagicMock()
-        job = {'product_list': self.product_list,
-               'input_mda': self.input_mda,
-               'resampled_scenes': dict(euron1=scn_euron1)}
+        job = {"product_list": self.product_list,
+               "input_mda": self.input_mda,
+               "resampled_scenes": dict(euron1=scn_euron1)}
 
         with patched_publisher() as published_messages:
             pub = FilePublisher(nameservers=False, port=2009)
             product_list = self.product_list.copy()
-            product_list['product_list']['publish_topic'] = '/{areaname}/{productname}'
+            product_list["product_list"]["publish_topic"] = "/{areaname}/{productname}"
             _ = create_filenames_and_topics(job)
 
             pub(job)
@@ -1885,11 +1885,11 @@ class TestFilePublisher(TestCase):
         from satpy import Scene
         from satpy.tests.utils import make_dataid
         scn_euron1 = Scene()
-        dataid = make_dataid(name='cloud_top_height', resolution=1000)
+        dataid = make_dataid(name="cloud_top_height", resolution=1000)
         scn_euron1[dataid] = mock.MagicMock()
-        job = {'product_list': self.product_list,
-               'input_mda': self.input_mda,
-               'resampled_scenes': dict(euron1=scn_euron1)}
+        job = {"product_list": self.product_list,
+               "input_mda": self.input_mda,
+               "resampled_scenes": dict(euron1=scn_euron1)}
 
         with patched_publisher() as published_messages:
             pub, topics = self._run_publisher_on_job(job)
@@ -1915,11 +1915,11 @@ class TestFilePublisher(TestCase):
         from satpy.tests.utils import make_dataid
 
         scn_euron1 = Scene()
-        dataid = make_dataid(name='cloud_top_height', resolution=1000)
+        dataid = make_dataid(name="cloud_top_height", resolution=1000)
         scn_euron1[dataid] = mock.MagicMock()
-        job = {'product_list': self.product_list,
-               'input_mda': self.input_mda,
-               'resampled_scenes': dict(euron1=scn_euron1)}
+        job = {"product_list": self.product_list,
+               "input_mda": self.input_mda,
+               "resampled_scenes": dict(euron1=scn_euron1)}
 
         with patched_publisher() as published_messages:
             _, _ = self._run_publisher_on_job(job, s3_paths=True)
@@ -1929,15 +1929,15 @@ class TestFilePublisher(TestCase):
                     uri = msg.data["file_mda"]["uri"]
                 else:
                     uri = msg.data["uri"]
-                assert uri.startswith('s3://bucket-name/')
+                assert uri.startswith("s3://bucket-name/")
 
     def test_non_existing_products_are_not_published(self):
         """Test that non existing products are not published."""
         from satpy import Scene
 
         scn = _get_mocked_scene_with_properties()
-        job = {"scene": scn, "product_list": self.product_list, 'input_mda': self.input_mda,
-               'resampled_scenes': dict(euron1=Scene(), germ=Scene())}
+        job = {"scene": scn, "product_list": self.product_list, "input_mda": self.input_mda,
+               "resampled_scenes": dict(euron1=Scene(), germ=Scene())}
 
         with patched_publisher() as published_messages:
             self._run_publisher_on_job(job)
@@ -1949,17 +1949,17 @@ class TestFilePublisher(TestCase):
         from satpy.tests.utils import make_dataid
 
         resampled_scene = Scene()
-        resampled_scene[make_dataid(name='latitude')] = np.ones((4, 4))
+        resampled_scene[make_dataid(name="latitude")] = np.ones((4, 4))
 
         scn = _get_mocked_scene_with_properties()
-        job = {"scene": scn, "product_list": self.product_list, 'input_mda': self.input_mda,
-               'resampled_scenes': {'None': resampled_scene}}
+        job = {"scene": scn, "product_list": self.product_list, "input_mda": self.input_mda,
+               "resampled_scenes": {"None": resampled_scene}}
 
         with patched_publisher() as published_messages:
             self._run_publisher_on_job(job)
 
         assert len(published_messages) == 1
-        product = ['chl_nn', 'chl_oc4me', 'trsp', 'tsm_nn', 'iop_nn', 'mask', 'latitude', 'longitude']
+        product = ["chl_nn", "chl_oc4me", "trsp", "tsm_nn", "iop_nn", "mask", "latitude", "longitude"]
         assert Message(rawstr=published_messages[0]).data["product"] == product
 
     def _run_publisher_on_job(self, job, s3_paths=False):
@@ -1969,13 +1969,13 @@ class TestFilePublisher(TestCase):
 
         pub = FilePublisher(nameservers=False, port=2023)
         product_list = self.product_list.copy()
-        product_list['product_list']['publish_topic'] = '/static_topic'
+        product_list["product_list"]["publish_topic"] = "/static_topic"
         topics = create_filenames_and_topics(job)
         if s3_paths:
             # Replace local directory paths with S3 paths
-            for _fmt, fmt_config in plist_iter(job['product_list']['product_list']):
-                fname = os.path.basename(fmt_config['filename'])
-                fmt_config['filename'] = "s3://bucket-name/" + fname
+            for _fmt, fmt_config in plist_iter(job["product_list"]["product_list"]):
+                fname = os.path.basename(fmt_config["filename"])
+                fmt_config["filename"] = "s3://bucket-name/" + fname
 
         pub(job)
         return pub, topics
@@ -1989,16 +1989,16 @@ class TestFilePublisher(TestCase):
 
         from trollflow2.dict_tools import plist_iter
 
-        topic_pattern = job['product_list']['product_list']['publish_topic']
+        topic_pattern = job["product_list"]["product_list"]["publish_topic"]
         topics = []
 
-        for fmat, fmat_config in plist_iter(job['product_list']['product_list'],
-                                            job['input_mda'].copy()):
-            fname_pattern = fmat['fname_pattern']
-            filename = compose(os.path.join(fmat['output_dir'],
+        for fmat, fmat_config in plist_iter(job["product_list"]["product_list"],
+                                            job["input_mda"].copy()):
+            fname_pattern = fmat["fname_pattern"]
+            filename = compose(os.path.join(fmat["output_dir"],
                                             fname_pattern), fmat)
-            fmat.pop('format', None)
-            fmat_config['filename'] = filename
+            fmat.pop("format", None)
+            fmat_config["filename"] = filename
             topics.append(compose(topic_pattern, fmat))
 
         return topics
@@ -2010,16 +2010,16 @@ class TestFilePublisher(TestCase):
         """
         from trollflow2.plugins import FilePublisher
 
-        with mock.patch('trollflow2.plugins.Message'), \
+        with mock.patch("trollflow2.plugins.Message"), \
                 mock.patch.multiple(
-                    'posttroll.publisher', NoisyPublisher=mock.DEFAULT, Publisher=mock.DEFAULT) as mocks:
-            NoisyPublisher = mocks['NoisyPublisher']
-            Publisher = mocks['Publisher']
+                    "posttroll.publisher", NoisyPublisher=mock.DEFAULT, Publisher=mock.DEFAULT) as mocks:
+            NoisyPublisher = mocks["NoisyPublisher"]
+            Publisher = mocks["Publisher"]
 
             pub = FilePublisher()
             NoisyPublisher.assert_called_once()
             assert pub.pub is NoisyPublisher.return_value
-            assert mock.call('l2processor', port=0, aliases=None, broadcast_interval=2,
+            assert mock.call("l2processor", port=0, aliases=None, broadcast_interval=2,
                              nameservers="", min_port=None, max_port=None) in NoisyPublisher.mock_calls
             Publisher.assert_not_called()
             assert pub.port == 0
@@ -2032,16 +2032,16 @@ class TestFilePublisher(TestCase):
         """
         from trollflow2.plugins import FilePublisher
 
-        with mock.patch('trollflow2.plugins.Message'), \
+        with mock.patch("trollflow2.plugins.Message"), \
                 mock.patch.multiple(
-                    'posttroll.publisher', NoisyPublisher=mock.DEFAULT, Publisher=mock.DEFAULT) as mocks:
-            NoisyPublisher = mocks['NoisyPublisher']
+                    "posttroll.publisher", NoisyPublisher=mock.DEFAULT, Publisher=mock.DEFAULT) as mocks:
+            NoisyPublisher = mocks["NoisyPublisher"]
 
-            pub = FilePublisher(port=40000, nameservers=['localhost'])
-            assert mock.call('l2processor', port=40000, aliases=None, broadcast_interval=2,
-                             nameservers=['localhost'], min_port=None, max_port=None) in NoisyPublisher.mock_calls
+            pub = FilePublisher(port=40000, nameservers=["localhost"])
+            assert mock.call("l2processor", port=40000, aliases=None, broadcast_interval=2,
+                             nameservers=["localhost"], min_port=None, max_port=None) in NoisyPublisher.mock_calls
             assert pub.port == 40000
-            assert pub.nameservers == ['localhost']
+            assert pub.nameservers == ["localhost"]
 
     def test_filepublisher_kwargs_direct_instance_no_nameserver(self):
         """Test filepublisher keyword argument usage.
@@ -2050,16 +2050,16 @@ class TestFilePublisher(TestCase):
         """
         from trollflow2.plugins import FilePublisher
 
-        with mock.patch('trollflow2.plugins.Message'), \
+        with mock.patch("trollflow2.plugins.Message"), \
                 mock.patch.multiple(
-                    'posttroll.publisher', NoisyPublisher=mock.DEFAULT, Publisher=mock.DEFAULT) as mocks:
-            NoisyPublisher = mocks['NoisyPublisher']
-            Publisher = mocks['Publisher']
+                    "posttroll.publisher", NoisyPublisher=mock.DEFAULT, Publisher=mock.DEFAULT) as mocks:
+            NoisyPublisher = mocks["NoisyPublisher"]
+            Publisher = mocks["Publisher"]
 
             _ = FilePublisher(port=40000, nameservers=False)
             NoisyPublisher.assert_not_called()
             call = Publisher.mock_calls[0]
-            assert call.args == ('tcp://*:40000',)
+            assert call.args == ("tcp://*:40000",)
             assert call.kwargs["name"] == "l2processor"
 
     def test_filepublisher_kwargs(self):
@@ -2069,20 +2069,20 @@ class TestFilePublisher(TestCase):
         """
         from yaml import UnsafeLoader
 
-        with mock.patch('trollflow2.plugins.Message'), \
+        with mock.patch("trollflow2.plugins.Message"), \
                 mock.patch.multiple(
-                    'posttroll.publisher', NoisyPublisher=mock.DEFAULT, Publisher=mock.DEFAULT) as mocks:
-            NoisyPublisher = mocks['NoisyPublisher']
-            Publisher = mocks['Publisher']
+                    "posttroll.publisher", NoisyPublisher=mock.DEFAULT, Publisher=mock.DEFAULT) as mocks:
+            NoisyPublisher = mocks["NoisyPublisher"]
+            Publisher = mocks["Publisher"]
 
             fpub = read_config(raw_string=YAML_FILE_PUBLISHER, Loader=UnsafeLoader)
-            assert mock.call('l2processor', port=40002, aliases=None, broadcast_interval=2,
-                             nameservers=['localhost'], min_port=None, max_port=None) in NoisyPublisher.mock_calls
+            assert mock.call("l2processor", port=40002, aliases=None, broadcast_interval=2,
+                             nameservers=["localhost"], min_port=None, max_port=None) in NoisyPublisher.mock_calls
             Publisher.assert_not_called()
             assert fpub.pub is NoisyPublisher.return_value
             NoisyPublisher.assert_called_once()
             assert fpub.port == 40002
-            assert fpub.nameservers == ['localhost']
+            assert fpub.nameservers == ["localhost"]
 
     def test_dispatch(self):
         """Test dispatch order messages."""
@@ -2092,15 +2092,15 @@ class TestFilePublisher(TestCase):
         from trollflow2.plugins import FilePublisher
 
         scn = Scene()
-        dataid = make_dataid(name='cloud_top_height', resolution=1000)
+        dataid = make_dataid(name="cloud_top_height", resolution=1000)
         scn[dataid] = mock.MagicMock()
-        job = {'product_list': self.product_list,
-               'input_mda': self.input_mda,
-               'resampled_scenes': dict(euron1=scn)}
+        job = {"product_list": self.product_list,
+               "input_mda": self.input_mda,
+               "resampled_scenes": dict(euron1=scn)}
 
-        with mock.patch('trollflow2.plugins.Message') as Message, \
+        with mock.patch("trollflow2.plugins.Message") as Message, \
                 mock.patch.multiple(
-                    'posttroll.publisher', NoisyPublisher=mock.DEFAULT, Publisher=mock.DEFAULT):
+                    "posttroll.publisher", NoisyPublisher=mock.DEFAULT, Publisher=mock.DEFAULT):
             message = Message
 
             pub = FilePublisher()
@@ -2108,17 +2108,17 @@ class TestFilePublisher(TestCase):
             dispatches = 0
             for args, _kwargs in message.call_args_list:
                 mda = args[2]
-                if args[1] == 'file':
-                    assert 'uri' in mda
-                    assert 'uid' in mda
-                elif args[1] == 'dispatch':
-                    assert 'source' in mda
-                    assert 'target' in mda
-                    assert 'file_mda' in mda
-                    source = '/tmp/satdmz/pps/www/latest_2018/NOAA-15_20190217_0600_euron1_in_fname_ctth_static.png'  # noqa
-                    assert mda['source'] == source
-                    target = 'ftp://ftp.important_client.com/somewhere/NOAA-15_20190217_0600_euron1_in_fname_ctth_static.png'  # noqa
-                    assert mda['target'] == target
+                if args[1] == "file":
+                    assert "uri" in mda
+                    assert "uid" in mda
+                elif args[1] == "dispatch":
+                    assert "source" in mda
+                    assert "target" in mda
+                    assert "file_mda" in mda
+                    source = "/tmp/satdmz/pps/www/latest_2018/NOAA-15_20190217_0600_euron1_in_fname_ctth_static.png"  # noqa
+                    assert mda["source"] == source
+                    target = "ftp://ftp.important_client.com/somewhere/NOAA-15_20190217_0600_euron1_in_fname_ctth_static.png"  # noqa
+                    assert mda["target"] == target
 
                     dispatches += 1
             assert dispatches == 1
@@ -2127,16 +2127,16 @@ class TestFilePublisher(TestCase):
         """Test deleting the publisher."""
         from trollflow2.plugins import FilePublisher
         nb_ = mock.MagicMock()
-        with mock.patch('trollflow2.plugins.Message'), \
+        with mock.patch("trollflow2.plugins.Message"), \
                 mock.patch.multiple(
-                    'posttroll.publisher', NoisyPublisher=mock.DEFAULT, Publisher=mock.DEFAULT) as mocks:
-            NoisyPublisher = mocks['NoisyPublisher']
+                    "posttroll.publisher", NoisyPublisher=mock.DEFAULT, Publisher=mock.DEFAULT) as mocks:
+            NoisyPublisher = mocks["NoisyPublisher"]
 
             NoisyPublisher.return_value = nb_
             pub = FilePublisher()
-            job = {'product_list': self.product_list,
-                   'input_mda': self.input_mda,
-                   'resampled_scenes': {}}
+            job = {"product_list": self.product_list,
+                   "input_mda": self.input_mda,
+                   "resampled_scenes": {}}
             pub(job)
 
         nb_.stop.assert_not_called()
@@ -2147,16 +2147,16 @@ class TestFilePublisher(TestCase):
         """Test stopping the publisher."""
         from trollflow2.plugins import FilePublisher
         nb_ = mock.MagicMock()
-        with mock.patch('trollflow2.plugins.Message'), \
+        with mock.patch("trollflow2.plugins.Message"), \
                 mock.patch.multiple(
-                    'posttroll.publisher', NoisyPublisher=mock.DEFAULT, Publisher=mock.DEFAULT) as mocks:
-            NoisyPublisher = mocks['NoisyPublisher']
+                    "posttroll.publisher", NoisyPublisher=mock.DEFAULT, Publisher=mock.DEFAULT) as mocks:
+            NoisyPublisher = mocks["NoisyPublisher"]
 
             NoisyPublisher.return_value = nb_
             pub = FilePublisher()
-            job = {'product_list': self.product_list,
-                   'input_mda': self.input_mda,
-                   'resampled_scenes': {}}
+            job = {"product_list": self.product_list,
+                   "input_mda": self.input_mda,
+                   "resampled_scenes": {}}
             pub(job)
 
         nb_.stop.assert_not_called()
@@ -2274,12 +2274,12 @@ def _create_valid_filter_job_and_prods(sc_3a_3b):
     from trollflow2.launcher import yaml
     product_list = yaml.safe_load(yaml_test3)
     job = {}
-    job['scene'] = sc_3a_3b
-    job['product_list'] = product_list.copy()
-    job['input_mda'] = input_mda.copy()
-    job['resampled_scenes'] = {"euron1": sc_3a_3b}
+    job["scene"] = sc_3a_3b
+    job["product_list"] = product_list.copy()
+    job["input_mda"] = input_mda.copy()
+    job["resampled_scenes"] = {"euron1": sc_3a_3b}
 
-    prods = job['product_list']['product_list']['areas']['euron1']['products']
+    prods = job["product_list"]["product_list"]["areas"]["euron1"]["products"]
     for p in ("NIR016", "IR037", "absent"):
         prods[p] = {"min_valid_data_fraction": 40}
 
@@ -2292,10 +2292,10 @@ def test_persisted(sc_3a_3b):
     from trollflow2.plugins import _persist_what_we_must
     job = {}
     product_list = yaml.safe_load(yaml_test3)
-    job['product_list'] = product_list.copy()
-    job['input_mda'] = input_mda.copy()
-    job['resampled_scenes'] = {"euron1": sc_3a_3b}
-    prods = job['product_list']['product_list']['areas']['euron1']['products']
+    job["product_list"] = product_list.copy()
+    job["input_mda"] = input_mda.copy()
+    job["resampled_scenes"] = {"euron1": sc_3a_3b}
+    prods = job["product_list"]["product_list"]["areas"]["euron1"]["products"]
     for p in ("NIR016", "IR037", "absent"):
         prods[p] = {"min_valid_data_fraction": 40}
 
@@ -2356,15 +2356,15 @@ def test_format_decoration():
     from trollflow2.plugins import format_decoration
 
     # set input data
-    fmat = {'orig_platform_name': 'npp',
-            'start_time': datetime.datetime(2022, 5, 3, 12, 7, 52)}
-    fmat_config = {'format': 'png', 'writer': 'simple_image',
-                   'decorate': {'decorate': [{'text': {'txt': '{start_time:%Y-%m-%d %H:%M}',
-                                                       'align': {'top_bottom': 'top', 'left_right': 'right'}}}]}}
+    fmat = {"orig_platform_name": "npp",
+            "start_time": datetime.datetime(2022, 5, 3, 12, 7, 52)}
+    fmat_config = {"format": "png", "writer": "simple_image",
+                   "decorate": {"decorate": [{"text": {"txt": "{start_time:%Y-%m-%d %H:%M}",
+                                                       "align": {"top_bottom": "top", "left_right": "right"}}}]}}
     # set ground truth
-    formated = {'format': 'png', 'writer': 'simple_image',
-                'decorate': {'decorate': [{'text': {'txt': '2022-05-03 12:07',
-                                                    'align': {'top_bottom': 'top', 'left_right': 'right'}}}]}}
+    formated = {"format": "png", "writer": "simple_image",
+                "decorate": {"decorate": [{"text": {"txt": "2022-05-03 12:07",
+                                                    "align": {"top_bottom": "top", "left_right": "right"}}}]}}
     assert format_decoration(fmat, fmat_config) == formated
 
 
@@ -2375,11 +2375,11 @@ def test_format_decoration_plain_text():
     from trollflow2.plugins import format_decoration
 
     # set input data. Text does not include name of any key in fmat.
-    fmat = {'orig_platform_name': 'npp',
-            'start_time': datetime.datetime(2022, 5, 3, 12, 7, 52)}
-    fmat_config = {'format': 'png', 'writer': 'simple_image',
-                   'decorate': {'decorate': [{'text': {'txt': '{wrong_key_name:%Y-%m-%d %H:%M}',
-                                              'align': {'top_bottom': 'top', 'left_right': 'right'}}}]}}
+    fmat = {"orig_platform_name": "npp",
+            "start_time": datetime.datetime(2022, 5, 3, 12, 7, 52)}
+    fmat_config = {"format": "png", "writer": "simple_image",
+                   "decorate": {"decorate": [{"text": {"txt": "{wrong_key_name:%Y-%m-%d %H:%M}",
+                                              "align": {"top_bottom": "top", "left_right": "right"}}}]}}
     assert format_decoration(fmat, fmat_config) == fmat_config
 
 
@@ -2460,7 +2460,3 @@ def test_clear_fsspec_cache(tmp_path, local_test_file, fsspec_cache):
     # simplecache cleaning removes the whole cache directory so we need to account for that
     with suppress(FileNotFoundError):
         assert os.listdir(job["product_list"]["fsspec_cache"]["options"]["cache_storage"]) == []
-
-
-if __name__ == '__main__':
-    unittest.main()

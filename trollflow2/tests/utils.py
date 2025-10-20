@@ -43,11 +43,11 @@ def find_missing_modules():
             if module_patcher is not None:
                 module_patcher.stop()
             modules[err.name] = getattr(import_mock, err.name)
-            module_patcher = mock.patch.dict('sys.modules', modules)
+            module_patcher = mock.patch.dict("sys.modules", modules)
             module_patcher.start()
         else:
             import sys
-            del sys.modules['trollflow2.plugins']
+            del sys.modules["trollflow2.plugins"]
             break
     if module_patcher is not None:
         module_patcher.stop()
@@ -78,16 +78,16 @@ def create_filenames_and_topics(job):
 
     from trollflow2.dict_tools import plist_iter
 
-    topic_pattern = job['product_list']['product_list']['publish_topic']
+    topic_pattern = job["product_list"]["product_list"]["publish_topic"]
     topics = []
 
-    for fmat, fmat_config in plist_iter(job['product_list']['product_list'],
-                                        job['input_mda'].copy()):
-        fname_pattern = fmat['fname_pattern']
-        filename = compose(os.path.join(fmat['output_dir'],
+    for fmat, fmat_config in plist_iter(job["product_list"]["product_list"],
+                                        job["input_mda"].copy()):
+        fname_pattern = fmat["fname_pattern"]
+        filename = compose(os.path.join(fmat["output_dir"],
                                         fname_pattern), fmat)
-        fmat.pop('format', None)
-        fmat_config['filename'] = filename
+        fmat.pop("format", None)
+        fmat_config["filename"] = filename
         topics.append(compose(topic_pattern, fmat))
 
     return topics
