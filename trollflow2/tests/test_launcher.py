@@ -592,7 +592,7 @@ class TestProcess(TestCase):
 
         self.msg = mock.MagicMock()
 
-    def tearDown(self):
+    def teardown_method(self):
         """Tear down the test case."""
         self.patcher.stop()
 
