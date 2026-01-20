@@ -28,7 +28,7 @@ from contextlib import contextmanager
 from logging import getLogger
 from logging.handlers import QueueHandler, QueueListener
 
-from trollflow2 import MP_MANAGER
+from trollflow2 import get_manager
 
 DEFAULT_LOG_CONFIG = {'version': 1,
                       'disable_existing_loggers': False,
@@ -38,7 +38,10 @@ DEFAULT_LOG_CONFIG = {'version': 1,
                                                'formatter': 'pytroll'}},
                       'root': {'level': 'DEBUG', 'handlers': ['console']}}
 
-LOG_QUEUE = MP_MANAGER.Queue()
+@functools.cache
+def get_log_queue():
+    """Lazily create the shared logging queue."""
+    return get_manager().Queue()
 
 LOG_CONFIG = None
 
@@ -59,7 +62,7 @@ def logging_on(config=None):
     with configure_logging(config):
         root.handlers.extend(handlers)
         # set up and run listener
-        listener = QueueListener(LOG_QUEUE, *(root.handlers))
+        listener = QueueListener(get_log_queue(), *(root.handlers))
         listener.start()
         try:
             yield
@@ -152,7 +155,7 @@ def create_logged_process(target, args, kwargs=None):
     from multiprocessing import get_context
     if kwargs is None:
         kwargs = {}
-    kwargs["log_queue"] = LOG_QUEUE
+    kwargs["log_queue"] = get_log_queue()
     kwargs["log_config"] = LOG_CONFIG
     ctx = get_context('spawn')
     proc = ctx.Process(target=target, args=args, kwargs=kwargs)

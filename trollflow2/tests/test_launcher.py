@@ -970,60 +970,69 @@ def test_sigterm_generate_messages(tmp_path):
     import signal
     from multiprocessing import Process
 
-    from trollflow2.launcher import generate_messages
     ipc_path = os.fspath(tmp_path / "my_pipe")
     connection_parameters = {"nameserver": False, "addresses": f"ipc://{ipc_path}", "topic": "/test"}
-    proc = Process(target=generate_messages, args=(connection_parameters, ))
+
+    proc = Process(target=run_generate_messages, args=(connection_parameters, ))
     proc.start()
     # Wait for the message listening loop to start
     time.sleep(1)
+    assert proc.is_alive()
     # Send SIGTERM
     os.kill(proc.pid, signal.SIGTERM)
     proc.join()
-
+    assert not proc.is_alive()
     assert proc.exitcode == 0
+
+
+def run_generate_messages(conn):
+    from trollflow2.launcher import generate_messages
+    for _ in generate_messages(conn):
+        pass
 
 
 def _fake_queue_logged_process(msg, prod_list, produced_files, **kwargs):
     time.sleep(5.0)
 
 
-@mock.patch("trollflow2.launcher.ListenerContainer")
-@mock.patch("trollflow2.launcher.queue_logged_process",
-            new=_fake_queue_logged_process)
-def test_sigterm_runner(lc_, tmp_path):
-    """Test that sending sigterm to Trollflow2 stops it."""
-    import os
-    import signal
-    from multiprocessing import Process
-
+def test_runner_executes_worker_successfully(tmp_path):
+    """Test that Runner can successfully spawn a worker process."""
     from posttroll.message import Message
 
     from trollflow2.launcher import Runner
 
+    proof_file = tmp_path / "proof.txt"
+    yaml_config = f"""
+    proof_file: {str(proof_file)}
+    product_list:
+      areas:
+        test_area:
+          products:
+            test_product:
+                hello: world
+
+    workers:
+      - fun: !!python/name:trollflow2.tests.test_launcher.touch_worker
+    """
+
+    config_file = tmp_path / "trollflow2.yaml"
+    with open(config_file, "w") as f:
+        f.write(yaml_config)
+
     msg = Message("/my/topic", atype="file", data={"filename": "foo"})
-    listener = mock.MagicMock()
-    listener.output_queue.get.return_value = msg
-    lc_.return_value = listener
+    message_file = tmp_path / "message.txt"
+    with open(message_file, "w") as f:
+        f.write(str(msg))
 
-    product_list = tmp_path / "trollflow2.yaml"
-    with open(product_list, "w") as fid:
-        fid.write(yaml_test1)
+    runner = Runner(config_file, {}, test_message=str(message_file))
+    runner.run()
 
-    connection_parameters = {}
-    runner = Runner(product_list, connection_parameters)
+    assert proof_file.exists(), "The worker process did not create the proof file."
+    with open(proof_file) as f:
+        assert "I ran successfully" in f.read()
 
-    proc = Process(target=runner.run)
-    proc.start()
-    tic = time.time()
-    # Wait for the message listening loop to start
-    time.sleep(1)
-    # Send SIGTERM
-    os.kill(proc.pid, signal.SIGTERM)
-    proc.join()
 
-    assert proc.exitcode == 0
-    # The fake processing takes 5 seconds, so it should be at least
-    # this long until the process is terminated
-    elapsed_time = time.time() - tic
-    assert elapsed_time > 5.0
+def touch_worker(job, **kwargs):
+    """A worker that proves it ran by creating a file."""
+    with open(job["product_list"]["proof_file"], "w") as fd:
+        fd.write("I ran successfully inside a process!")

@@ -25,9 +25,14 @@
 # are not necessary
 """Base module for trollflow2."""
 
+from functools import cache
 from importlib.metadata import version
 from multiprocessing import Manager
 
-MP_MANAGER = Manager()
+
+@cache
+def get_manager():
+    """Create a singleton Manager."""
+    return Manager()
 
 __version__ = version(__name__)

@@ -49,7 +49,7 @@ try:
 except ImportError:
     ListenerContainer = None
 
-from trollflow2 import MP_MANAGER
+from trollflow2 import get_manager
 from trollflow2.dict_tools import gen_dict_extract, plist_iter
 from trollflow2.logging import (create_logged_process, logging_on,
                                 queued_logging)
@@ -237,7 +237,7 @@ class Runner:
     def _run_product_list_on_messages(self, messages, target_fun, process_creator):
         """Run the product list on the messages."""
         for msg in messages:
-            produced_files_queue = MP_MANAGER.Queue()
+            produced_files_queue = get_manager().Queue()
             kwargs = dict(produced_files=produced_files_queue, prod_list=self.product_list)
             proc = process_creator(target=target_fun, args=(msg,), kwargs=kwargs)
             start_time = datetime.now()
