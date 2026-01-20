@@ -976,7 +976,7 @@ def test_sigterm_generate_messages(tmp_path):
     proc = Process(target=run_generate_messages, args=(connection_parameters, ))
     proc.start()
     # Wait for the message listening loop to start
-    time.sleep(1)
+    time.sleep(5)
     assert proc.is_alive()
     # Send SIGTERM
     os.kill(proc.pid, signal.SIGTERM)
