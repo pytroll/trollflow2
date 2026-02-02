@@ -9,7 +9,7 @@ description = "Pytroll workflow execution framework"
 readme = "README.md"
 license = "GPL-3.0-or-later"
 license-files = ["LICENSE"]
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 authors = [
     { name = "Adam Dybbroe" },
     { name = "Gerrit Holl" },
