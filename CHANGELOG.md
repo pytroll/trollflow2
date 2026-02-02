@@ -1,3 +1,19 @@
+## Version 0.18.0 (2026/02/02)
+
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR 244](https://github.com/pytroll/trollflow2/pull/244) - Support python 3.14
+
+#### Features added
+
+* [PR 242](https://github.com/pytroll/trollflow2/pull/242) - Remove usage of unittest testcase
+
+In this release 2 pull requests were closed.
+
+
 ## Version 0.17.1 (2025/10/10)
 
 
