@@ -200,6 +200,25 @@ def resample(job):
             logger.debug("area: %s, area_conf: %s", area, str(area_conf))
             job['resampled_scenes'][area] = scn.resample(area, **area_conf)
 
+def crop(job):
+    """Crop the scene to some areas. Cropping to the llbox and xybox are not supported jet."""
+
+    product_list = job["product_list"]
+    conf = _get_plugin_conf(product_list, "/product_list", "")
+    job["resampled_scenes"] = {}
+    scn = job["scene"]
+    for area in product_list["product_list"]["areas"]:
+        area_conf = _get_plugin_conf(
+            product_list, "/product_list/areas/" + str(area), conf
+        )
+        logger.info("Cropping to %s", str(area))
+
+        # Load composites before cropping, otherwise cropping fails for composites
+        scn.load(scn.wishlist, generate=True)
+        # If area is none, no cropping is done.
+        if area != "None":
+            logger.debug("area: %s, area_conf: %s", area, str(area_conf))
+            job["resampled_scenes"][area] = scn.crop(area)
 
 # Datasets saving
 
