@@ -153,7 +153,7 @@ GLOBAL_RESAMPLER_DEFAULTS = {
     "cache_dir": None,
     "mask_area": False,
     "epsilon": 0.0,
-    "track_coords": False,
+    "resample_coords": False,
 }
 
 
