@@ -129,6 +129,42 @@ workers:
 """
 
 
+yaml_test_no_formats = """
+product_list:
+  output_dir: /mnt/output/
+  publish_topic: /MSG_0deg/L3
+  reader: seviri_l1b_hrit
+  fname_pattern: "{productname}.{format}"
+  areas:
+      euro4:
+        areaname: euro4
+        products:
+          overview:
+            productname: overview
+          airmass:
+            productname: airmass
+"""
+
+yaml_test_area_formats = """
+product_list:
+  output_dir: /mnt/output/
+  publish_topic: /MSG_0deg/L3
+  reader: seviri_l1b_hrit
+  fname_pattern: "{productname}.{format}"
+  areas:
+      euro4:
+        areaname: euro4
+        formats:
+          - format: png
+            writer: simple_image
+        products:
+          overview:
+            productname: overview
+          airmass:
+            productname: airmass
+"""
+
+
 class TestGetAreaPriorities:
     """Test case for area priorities."""
 
@@ -200,6 +236,74 @@ class TestMessageToJobs:
         assert prods["overview"]["formats"][0] is not prods["natural_color"]["formats"][0]
         prods["overview"]["formats"][0]["foo"] = "bar"
         assert "foo" not in prods["natural_color"]["formats"][0]
+
+    def test_message_to_jobs_default_formats(self):
+        """Test that products configuring no formats at all get the default one."""
+        from trollflow2.dict_tools import DEFAULT_FORMATS
+        from trollflow2.launcher import message_to_jobs
+        prodlist = yaml.safe_load(yaml_test_no_formats)
+        msg = mock.MagicMock()
+        msg.data = {"uri": "foo"}
+
+        jobs = message_to_jobs(msg, prodlist)
+
+        prods = jobs[999]["product_list"]["product_list"]["areas"]["euro4"]["products"]
+        assert prods["overview"]["formats"] == DEFAULT_FORMATS
+        assert prods["airmass"]["formats"] == DEFAULT_FORMATS
+        # each product owns its copy, and none of them is DEFAULT_FORMATS itself
+        assert prods["overview"]["formats"][0] is not prods["airmass"]["formats"][0]
+        assert prods["overview"]["formats"][0] is not DEFAULT_FORMATS[0]
+
+    def test_message_to_jobs_area_formats_are_not_shared(self):
+        """Test that products inheriting `formats` from their area each get a copy."""
+        from trollflow2.launcher import message_to_jobs
+        prodlist = yaml.safe_load(yaml_test_area_formats)
+        msg = mock.MagicMock()
+        msg.data = {"uri": "foo"}
+
+        jobs = message_to_jobs(msg, prodlist)
+
+        prods = jobs[999]["product_list"]["product_list"]["areas"]["euro4"]["products"]
+        assert prods["overview"]["formats"] == [{"format": "png", "writer": "simple_image"}]
+        assert prods["overview"]["formats"][0] is not prods["airmass"]["formats"][0]
+
+    def test_message_to_jobs_area_formats_win_over_root(self):
+        """Test that an area's `formats` overrides the one at the product list root."""
+        from trollflow2.launcher import message_to_jobs
+        prodlist = yaml.safe_load(yaml_test_area_formats)
+        prodlist["product_list"]["formats"] = [{"format": "tif", "writer": "geotiff"}]
+        msg = mock.MagicMock()
+        msg.data = {"uri": "foo"}
+
+        jobs = message_to_jobs(msg, prodlist)
+
+        prods = jobs[999]["product_list"]["product_list"]["areas"]["euro4"]["products"]
+        assert prods["overview"]["formats"] == [{"format": "png", "writer": "simple_image"}]
+
+    def test_filename_survives_a_second_pass_over_the_product_list(self):
+        """Test that a filename stored while saving is still there when publishing.
+
+        `save_datasets` stores the name of each written file in the format
+        config, and `FilePublisher` reads it back on a later pass.  Products
+        without an explicit `formats` used to get a throwaway default on every
+        pass, so the filename was lost and they were never published.
+        """
+        from trollflow2.dict_tools import plist_iter
+        from trollflow2.launcher import message_to_jobs
+        prodlist = yaml.safe_load(yaml_test_no_formats)
+        msg = mock.MagicMock()
+        msg.data = {"uri": "foo"}
+
+        job = message_to_jobs(msg, prodlist)[999]
+
+        # first pass, as save_datasets does
+        for fmat, fmat_config in plist_iter(job["product_list"]["product_list"]):
+            fmat_config["filename"] = f"/tmp/{fmat['product']}.{fmat['format']}"
+        # second pass, as FilePublisher does
+        published = [fmat["filename"] for fmat, _ in
+                     plist_iter(job["product_list"]["product_list"])]
+
+        assert sorted(published) == ["/tmp/airmass.tif", "/tmp/overview.tif"]
 
 
     def test_message_to_jobs_with_real_fsspec(self, tmp_path):

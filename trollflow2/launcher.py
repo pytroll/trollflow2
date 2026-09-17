@@ -50,7 +50,8 @@ except ImportError:
     ListenerContainer = None
 
 from trollflow2 import get_manager
-from trollflow2.dict_tools import gen_dict_extract, plist_iter
+from trollflow2.dict_tools import (DEFAULT_FORMATS, gen_dict_extract,
+                                   plist_iter)
 from trollflow2.logging import (create_logged_process, logging_on,
                                 queued_logging)
 from trollflow2.plugins import AbortProcessing
@@ -275,10 +276,7 @@ def message_to_jobs(msg, product_list):
 
 def file_list_to_jobs(input_filenames, product_list, input_mda):
     """Convert a file list to jobs."""
-    formats = product_list['product_list'].get('formats', None)
-    for _product, pconfig in plist_iter(product_list['product_list'], level='product'):
-        if 'formats' not in pconfig and formats is not None:
-            pconfig['formats'] = copy.deepcopy(formats)
+    _give_every_product_its_own_formats(product_list['product_list'])
     jobs = OrderedDict()
     priorities = get_area_priorities(product_list)
     # TODO: check the uri is accessible from the current host.
@@ -298,6 +296,29 @@ def file_list_to_jobs(input_filenames, product_list, input_mda):
             else:
                 jobs[prio]['product_list'][section] = product_list[section]
     return jobs
+
+
+def _give_every_product_its_own_formats(product_list):
+    """Resolve the `formats` of every product into the product's own config.
+
+    `save_datasets` records the name of each file it writes in the format
+    configuration it was handed, and `add_overviews` and `FilePublisher` read
+    that filename back on a later pass over the product list.  That only works
+    if every product owns the format dictionaries it is iterated with:
+
+    - a `formats` inherited from the area or from the product list root is a
+      single object shared by all the products below it, so the products would
+      overwrite each other's filenames, and
+    - the implicit default in `plist_iter` is rebuilt on every pass, so the
+      filename would be dropped and the product silently never published.
+
+    Resolving them here, once, means `plist_iter` yields the same dictionaries
+    on every later pass.
+    """
+    for flat_config, prod_config in plist_iter(product_list, level='product'):
+        if 'formats' not in prod_config:
+            prod_config['formats'] = copy.deepcopy(
+                flat_config.get('formats', DEFAULT_FORMATS))
 
 
 def _extract_filenames(msg):
