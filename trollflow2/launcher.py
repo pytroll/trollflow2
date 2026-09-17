@@ -459,21 +459,26 @@ def process_jobs(workers, jobs, produced_files):
         try:
             for wrk in workers:
                 cwrk = wrk.copy()
-                if "timeout" in cwrk:
-                    def _timeout_handler(signum, frame, wrk=wrk):
-                        raise TimeoutError(
-                            f"Timeout for {wrk['fun']!s} expired "
-                            f"after {wrk['timeout']:.1f} seconds, "
-                            "giving up")
+                try:
+                    if "timeout" in cwrk:
+                        def _timeout_handler(signum, frame, wrk=wrk):
+                            raise TimeoutError(
+                                f"Timeout for {wrk['fun']!s} expired "
+                                f"after {wrk['timeout']:.1f} seconds, "
+                                "giving up")
 
-                    signal.signal(signal.SIGALRM, _timeout_handler)
-                    # using setitimer because it accepts floats,
-                    # unlike signal.alarm
-                    signal.setitimer(signal.ITIMER_REAL,
-                                     cwrk.pop("timeout"))
-                cwrk.pop('fun')(job, **cwrk)
-                if "timeout" in cwrk:
-                    signal.alarm(0)  # cancel the alarm
+                        signal.signal(signal.SIGALRM, _timeout_handler)
+                        # using setitimer because it accepts floats,
+                        # unlike signal.alarm
+                        signal.setitimer(signal.ITIMER_REAL,
+                                         cwrk.pop("timeout"))
+                    cwrk.pop('fun')(job, **cwrk)
+                finally:
+                    # Cancel the alarm after each worker, even if the
+                    # worker raised. The timeout key was already popped
+                    # from the copy above, so check the original dict.
+                    if "timeout" in wrk:
+                        signal.setitimer(signal.ITIMER_REAL, 0)
         except AbortProcessing as err:
             logger.warning(str(err))
 

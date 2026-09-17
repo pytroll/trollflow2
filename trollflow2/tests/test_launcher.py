@@ -788,6 +788,25 @@ class TestProcess(TestCase):
         # wait a little to ensure alarm is not raised later
         time.sleep(0.11)
 
+    def test_timeout_is_reset_between_workers(self):
+        """Test that a worker's timeout does not leak into the next worker."""
+        calls = []
+
+        def worker(job):
+            if not calls:
+                calls.append("fast")
+            else:
+                calls.append("slow")
+                time.sleep(0.2)
+
+        self.fake_plugin.side_effect = worker
+        self.expand.return_value = {"workers": [
+            {"fun": self.fake_plugin, "timeout": 0.05},
+            {"fun": self.fake_plugin},
+        ]}
+        process(self.msg, "prod_list", self.queue)
+        assert calls == ["fast", "slow"]
+
 
 def test_workers_initialized():
     """Test that the config loading works when workers are defined."""

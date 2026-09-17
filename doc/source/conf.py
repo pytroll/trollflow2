@@ -22,13 +22,13 @@
 # import sys
 # sys.path.insert(0, os.path.abspath('.'))
 
-from pkg_resources import get_distribution
+from importlib.metadata import version as get_version
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
 # built documents.
 #
-release = get_distribution('trollflow2').version
+release = get_version('trollflow2')
 # for example take major/minor
 version = '.'.join(release.split('.')[:2])
 
