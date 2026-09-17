@@ -130,6 +130,10 @@ def aggregate(job):
     job['scene'] = job['scene'].aggregate(**kwargs)
 
 
+#: Options accepted by resamplers that take only named keyword arguments (no
+#: ``**kwargs``), so that unsupported options such as ``radius_of_influence``
+#: are not passed on to them.  The ``resampler`` key itself is added
+#: automatically by :func:`_get_resampler_defaults` and must not be listed here.
 RESAMPLER_DEFAULT_OPTIONS = {
     "ewa": {
         "cache_dir": None,
@@ -156,11 +160,28 @@ GLOBAL_RESAMPLER_DEFAULTS = {
 }
 
 
+def _get_resampler_defaults(resampler):
+    """Get the default options to collect from the product list for *resampler*.
+
+    Resamplers listed in :data:`RESAMPLER_DEFAULT_OPTIONS` accept only a fixed
+    set of named keyword arguments, so only those options may be collected for
+    them.  The ``resampler`` name is always included: it selects the resampler
+    in :meth:`satpy.Scene.resample`, and leaving it out would silently fall
+    back to Satpy's default resampler.
+    """
+    try:
+        defaults = RESAMPLER_DEFAULT_OPTIONS[resampler].copy()
+    except KeyError:
+        return GLOBAL_RESAMPLER_DEFAULTS
+    defaults["resampler"] = resampler
+    return defaults
+
+
 def resample(job):
     """Resample the scene to some areas."""
     product_list = job['product_list']
     resampler = _get_plugin_conf(product_list, "/product_list", {"resampler": "nearest"})["resampler"]
-    defaults = RESAMPLER_DEFAULT_OPTIONS.get(resampler, GLOBAL_RESAMPLER_DEFAULTS)
+    defaults = _get_resampler_defaults(resampler)
     conf = _get_plugin_conf(product_list, '/product_list', defaults)
     job['resampled_scenes'] = {}
     scn = job['scene']
