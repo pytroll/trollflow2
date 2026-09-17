@@ -20,7 +20,12 @@
 # are not necessary
 """Tools for product list operations."""
 
+import copy
+
 import dpath
+
+#: Output format used for products that do not configure any ``formats``.
+DEFAULT_FORMATS = [{'format': 'tif', 'writer': 'geotiff'}]
 
 
 def plist_iter(product_list, base_mda=None, level=None):
@@ -55,7 +60,14 @@ def plist_iter(product_list, base_mda=None, level=None):
             if level == 'product':
                 yield pconfig, prod_config
                 continue
-            for file_config in pconfig.get('formats', [{'format': 'tif', 'writer': 'geotiff'}]):
+            formats = pconfig.get('formats')
+            if formats is None:
+                # A fresh copy, so that a caller storing the written filename in
+                # the yielded config cannot corrupt DEFAULT_FORMATS for everyone
+                # else.  Products going through `file_list_to_jobs` already own
+                # their `formats`, so this is only reached by direct callers.
+                formats = copy.deepcopy(DEFAULT_FORMATS)
+            for file_config in formats:
                 fconfig = pconfig.copy()
                 fconfig.pop('formats', None)
                 fconfig.update(file_config)

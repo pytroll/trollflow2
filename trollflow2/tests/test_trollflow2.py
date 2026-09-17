@@ -1069,15 +1069,16 @@ class TestResample:
         resample(job)
 
 
-def _mock_ewa_with_assert_42(data, cache_dir=None, mask_area=None,
+def _mock_ewa_with_assert_42(data, resampler=None, cache_dir=None, mask_area=None,
                              rows_per_scan=None, persist=False, chunks=None, fill_value=None,
                              weight_count=10000, weight_min=0.01, weight_distance_max=1.0,
                              weight_delta_max=10.0, weight_sum_min=-1.0,
                              maximum_weight_mode=None):
-    """Mimic EWAs .resample() function call without **kwargs.
+    """Mimic a Scene.resample() call forwarding to EWA, which has no **kwargs.
 
-    Also assert all the values are actually 42.
+    Also assert the resampler is selected and all the values are actually 42.
     """
+    assert resampler == "ewa"
     assert cache_dir == 42
     assert mask_area == 42
     assert rows_per_scan == 42
