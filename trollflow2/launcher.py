@@ -494,16 +494,43 @@ def read_config(fname=None, raw_string=None, Loader=SafeLoader):
             raw_config = raw_string
         if not raw_config:
             raise IOError
-        config = yaml.load(_remove_null_keys(raw_config), Loader=Loader)
+        config = yaml.load(raw_config, Loader=Loader)
     except (IOError, yaml.YAMLError):
         # Either open() or yaml.load() failed
         logger.exception("Process crashed, check YAML file.")
         raise
+    return _name_the_null_area(config)
+
+
+def _name_the_null_area(config):
+    """Rename an area configured as YAML null to the string ``"None"``.
+
+    The nameless area is how a product list asks for the data to be saved in
+    satellite projection.  It can be spelled ``null:``, ``~:``, ``Null:`` or
+    ``NULL:``, all of which YAML parses to `None`, but the rest of trollflow2
+    identifies areas by their name as a string: `resample` compares against
+    ``"None"``, `get_config_value` builds dpath lookups such as
+    ``/product_list/areas/None``, and the name is composed into filenames and
+    published messages.  Normalise the key once, here.
+    """
+    try:
+        areas = config['product_list']['areas']
+    except (KeyError, TypeError):
+        return config
+    if None not in areas:
+        return config
+    if 'None' in areas:
+        raise ValueError(
+            "The product list has both an unnamed (null) area and an area "
+            "named 'None'. Trollflow2 cannot tell them apart, rename one "
+            "of them.")
+    # Rebuilt rather than popped and re-added, so that the areas keep the
+    # order they were configured in.
+    renamed = {('None' if area is None else area): area_config
+               for area, area_config in areas.items()}
+    areas.clear()
+    areas.update(renamed)
     return config
-
-
-def _remove_null_keys(raw_config):
-    return raw_config.replace('null:', 'None:')
 
 
 def sendmail(config, trace):

@@ -651,6 +651,82 @@ class TestExpand(TestCase):
         assert expanded["d"] is not expanded["c"]
 
 
+class TestReadConfig:
+    """Test reading the product list."""
+
+    @pytest.mark.parametrize("null", ["null", "~", "Null", "NULL"])
+    def test_null_area_is_named_none(self, null):
+        """Test that every YAML spelling of the nameless area becomes "None"."""
+        from trollflow2.launcher import read_config
+        config = read_config(raw_string=f"""
+product_list:
+  areas:
+      {null}:
+        products:
+          overview:
+            productname: overview
+""")
+        areas = config["product_list"]["areas"]
+        assert "None" in areas
+        assert None not in areas
+
+    def test_values_containing_null_are_left_alone(self):
+        """Test that "null:" inside a value is not rewritten.
+
+        The nameless area used to be handled by replacing "null:" with "None:"
+        in the raw YAML text, which also hit quoted values.
+        """
+        from trollflow2.launcher import read_config
+        config = read_config(raw_string="""
+product_list:
+  output_dir: "s3://bucket/null:staging/"
+  fname_pattern: "{platform_name}_null:{productname}.{format}"
+  areas:
+      null:
+        products:
+          overview:
+            productname: overview
+""")
+        product_list = config["product_list"]
+        assert product_list["output_dir"] == "s3://bucket/null:staging/"
+        assert product_list["fname_pattern"] == "{platform_name}_null:{productname}.{format}"
+        assert "None" in product_list["areas"]
+
+    def test_areas_keep_their_order(self):
+        """Test that naming the null area does not reorder the areas."""
+        from trollflow2.launcher import read_config
+        config = read_config(raw_string="""
+product_list:
+  areas:
+      euron1:
+        products: {overview: {productname: overview}}
+      null:
+        products: {overview: {productname: overview}}
+      germ:
+        products: {overview: {productname: overview}}
+""")
+        assert list(config["product_list"]["areas"]) == ["euron1", "None", "germ"]
+
+    def test_null_area_clashing_with_a_none_area_is_an_error(self):
+        """Test that a null area and an area named "None" are not merged silently."""
+        from trollflow2.launcher import read_config
+        with pytest.raises(ValueError, match="rename one of them"):
+            read_config(raw_string="""
+product_list:
+  areas:
+      null:
+        products: {overview: {productname: overview}}
+      "None":
+        products: {overview: {productname: overview}}
+""")
+
+    def test_config_without_areas_is_returned_as_is(self):
+        """Test that a config with no areas section does not raise."""
+        from trollflow2.launcher import read_config
+        config = read_config(raw_string="product_list:\n  something: foo\n")
+        assert config == {"product_list": {"something": "foo"}}
+
+
 class TestProcess(TestCase):
     """Test the process function."""
 
