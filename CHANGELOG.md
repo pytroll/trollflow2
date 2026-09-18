@@ -1,3 +1,28 @@
+## Version 0.19.0 (2026/09/18)
+
+### Issues Closed
+
+* [Issue 123](https://github.com/pytroll/trollflow2/issues/123) - timeout is not reset ([PR 253](https://github.com/pytroll/trollflow2/pull/253) by [@Manny7717](https://github.com/Manny7717))
+
+In this release 1 issue was closed.
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR 258](https://github.com/pytroll/trollflow2/pull/258) - Replace pkg_resources with importlib.metadata in docs conf
+* [PR 257](https://github.com/pytroll/trollflow2/pull/257) - Bugfix remove null keys
+* [PR 256](https://github.com/pytroll/trollflow2/pull/256) - Fix product list format handling
+* [PR 255](https://github.com/pytroll/trollflow2/pull/255) - Fix calling the ewa resampler
+* [PR 253](https://github.com/pytroll/trollflow2/pull/253) - fix: reset worker timeout after each job ([123](https://github.com/pytroll/trollflow2/issues/123))
+
+#### Documentation changes
+
+* [PR 254](https://github.com/pytroll/trollflow2/pull/254) - Add basic AGENTS.md
+
+In this release 6 pull requests were closed.
+
+
 ## Version 0.18.0 (2026/02/02)
 
 
